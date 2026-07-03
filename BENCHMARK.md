@@ -81,8 +81,9 @@ The verifier is behavioral, but it still needs a stable project entry contract:
 - Weapon switching should use `swap_weapons`, `weapon_switch`, or a real `Tab`
   key path that the player scene receives through Godot input.
 - Damageable targets should react through existing gameplay conventions. The
-  verifier's test targets expose `damage(impact_point, force)` and are placed in
-  `damageables` and `targeteables` groups to match the local game style.
+  verifier's test targets expose `damage(impact_point, force)`. Most are placed
+  in both `damageables` and `targeteables` groups to match enemies, and some
+  explosion probes are damageable-only to model destructible objects.
 
 This contract should be treated as part of the benchmark, not as a hint about
 the historical grenade implementation.
@@ -104,10 +105,13 @@ checks and a real `res://main.tscn` smoke check for default shooting, melee,
 targetable/damageable actors, and coin/pickup behavior.
 
 Explosion-gameplay trials use fixed seed constants to generate a small
-deterministic suite of headings, nearby target radii, and far/side/rear safety
-placements. The suite is parameterized enough to reduce single-layout
-overfitting, but the seeds are fixed so the same verifier version gives the same
-candidate the same score.
+deterministic suite of headings, nearby target radii, nearby damageable-only
+destructible probes, and far/side/rear safety placements. The suite is
+parameterized enough to reduce single-layout overfitting, but the seeds are
+fixed so the same verifier version gives the same candidate the same score.
+The scoring treats blast locality as a core requirement: broad damage sweeps
+that hit most nearby targets and multiple safety targets are capped inside
+`explosion_gameplay` even if they also hit the expected nearby targets.
 
 The `passed` flag currently uses `score >= 85` as a report convenience. The
 primary benchmark signal is the 0-100 score and category breakdown. A reference
@@ -144,9 +148,9 @@ local validation should demonstrate:
 
 - the ablated task scores low
 - the reference behavior scores high
-- HUD-only, direct-damage, visual-only, fixed or wrong trajectory, broad-damage,
-  borderline throw-distance, and single-use implementations do not receive high
-  scores
+- HUD-only, direct-damage, visual-only, fixed or wrong trajectory, global
+  targetable sweeps, broad-damage, borderline throw-distance, and single-use
+  implementations do not receive high scores
 - repeated runs of the same candidate produce stable scores
 
 Probe candidates should be kept outside rollout-agent workspaces.

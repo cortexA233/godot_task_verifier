@@ -86,7 +86,7 @@ and coin/pickup behavior in addition to the deterministic verifier arena.
 
 ## Calibration
 
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials are generated from fixed seed constants: each seed deterministically picks a heading, nearby target radii around the canonical 6, 8, 10, and 12 unit rings plus the measured landing distance, and a far/side/rear safety radius inside the 30-unit target field. Every run of the same verifier version uses the same seeded variants. A trial gives full nearby-damage credit for the seeded expected direction group and partial credit for real localized damage in another radial group, so the verifier can distinguish hard-coded directions without false-negativing every coordinate-convention mismatch. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. Safety targets remain far enough to catch over-large explosions without moving inward with explosion radius. Trajectory preview scoring now emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials are generated from fixed seed constants: each seed deterministically picks a heading, nearby target radii around the canonical 6, 8, 10, and 12 unit rings plus the measured landing distance, and a far/side/rear safety radius inside the 30-unit target field. Every run of the same verifier version uses the same seeded variants. Explosion gameplay now separates nearby target damage, nearby damageable-only/destructible damage, blast locality, player safety, detonation effects, and throw-distance quality. Global damage sweeps that hit most nearby targets and multiple safety targets are capped within `explosion_gameplay`, so "damage every enemy in the scene" does not score like a localized blast. Trajectory preview scoring emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
 
 Run:
 
@@ -99,13 +99,15 @@ Latest local calibration:
 - Godot executable: `C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe`
 - Godot version: `4.6.stable.official.89cea1439`
 - Ablated task branch: `11/100`; no grenade projectile is available, so explosion calibration falls back, trajectory preview scores 0, and explosion gameplay scores 0.
-- Reference branch: not available at `C:\recent_project\godot-4-3d-third-person-controller-reference` during the latest local run.
+- Reference `main` commit `1cf08f7`: `91/100`, `passed: true`, with localized explosion gameplay at `17/20`.
+- Global targetable sweep probe branch `codex/grenade-global-enemy-damage` commit `14310ca`: `78/100`, `passed: false`, with `explosion_gameplay` capped to `4/20` after global damage sweep detection.
 
 The ablated score is low because the grenade weapon behavior is absent. The
-trajectory-preview gates, fixed-seed radial target variants, adaptive calibration, and
-frame-window effect observation reduce false negatives from exact
-throw-distance mismatch and short-lived presentation effects while keeping
-missing grenade behavior low-scoring.
+trajectory-preview gates, fixed-seed radial target variants, adaptive calibration,
+damageable-only destructible probe, global-sweep cap, and frame-window effect
+observation reduce false negatives from exact throw-distance mismatch and
+short-lived presentation effects while keeping missing or reward-hacked grenade
+behavior low-scoring.
 
 ## Probe Matrix
 

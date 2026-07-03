@@ -84,7 +84,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_polar_target_position(float(group_data[\"heading_y\"]), radius)", runner_source)
         self.assertIn("_nearby_hit_score", runner_source)
         self.assertIn('target.name = "NearbyTarget_%s_%02d"', runner_source)
-        self.assertIn("_nearby_hit_score(expected_nearby_hits, nearby_hits)", runner_source)
+        self.assertIn("_nearby_hit_score(expected_nearby_hits, nearby_hits, damaged_safety_targets.size(), global_sweep)", runner_source)
         self.assertIn("expected_nearby_hits > 0", runner_source)
         self.assertIn("nearby_hits > 0", runner_source)
 
@@ -145,7 +145,8 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('board.add("hud_feedback", _detail_score(details), 10', runner_source)
         self.assertIn('board.add("trajectory_preview", _detail_score(details), 30', runner_source)
         self.assertIn('board.add("projectile_physics", _detail_score(details), 15', runner_source)
-        self.assertIn('board.add("explosion_gameplay", _detail_score(details), 20', runner_source)
+        self.assertIn('board.add("explosion_gameplay", capped_score, 20', runner_source)
+        self.assertIn("_explosion_gameplay_score_cap", runner_source)
         self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
         self.assertIn('board.add("stability_repeatability", _detail_score(details), 5', runner_source)
 
@@ -342,7 +343,165 @@ class RunGraderTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr + log_text)
             data = json.loads(out.read_text(encoding="utf-8"))
             explosion = next(item for item in data["breakdown"] if item["name"] == "explosion_gameplay")
-            self.assertGreaterEqual(explosion["score"], 16, json.dumps(explosion, indent=2))
+            self.assertGreaterEqual(explosion["score"], 14, json.dumps(explosion, indent=2))
+            self.assertIn("explosion damage stayed localized", explosion["notes"])
+
+    def test_explosion_gameplay_penalizes_global_targetable_damage_sweep(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            candidate = tmp_path / "candidate"
+            player_dir = candidate / "player"
+            player_dir.mkdir(parents=True)
+            (candidate / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (player_dir / "player.tscn").write_text(textwrap.dedent(
+                """
+                [gd_scene load_steps=2 format=3]
+
+                [ext_resource type="Script" path="res://player/player.gd" id="1_player"]
+
+                [node name="Player" type="CharacterBody3D"]
+                script = ExtResource("1_player")
+                """
+            ).lstrip(), encoding="utf-8")
+            (player_dir / "fake_grenade.tscn").write_text(textwrap.dedent(
+                """
+                [gd_scene load_steps=2 format=3]
+
+                [ext_resource type="Script" path="res://player/fake_grenade.gd" id="1_grenade"]
+
+                [node name="FakeGrenadeProjectile" type="Node3D"]
+                script = ExtResource("1_grenade")
+                """
+            ).lstrip(), encoding="utf-8")
+            (player_dir / "player.gd").write_text(textwrap.dedent(
+                """
+                extends CharacterBody3D
+
+                signal weapon_switched(weapon_name: String)
+
+                const GRENADE_SCENE := preload("res://player/fake_grenade.tscn")
+
+                var _weapon_mode := "DEFAULT"
+
+
+                func _ready() -> void:
+                    _ensure_action("swap_weapons")
+                    _ensure_action("weapon_switch")
+                    _ensure_action("attack")
+                    _ensure_action("aim")
+                    weapon_switched.emit(_weapon_mode)
+
+
+                func _physics_process(_delta: float) -> void:
+                    if Input.is_action_just_pressed("swap_weapons") or Input.is_action_just_pressed("weapon_switch"):
+                        _weapon_mode = "GRENADE" if _weapon_mode == "DEFAULT" else "DEFAULT"
+                        weapon_switched.emit(_weapon_mode)
+                    if Input.is_action_just_pressed("attack"):
+                        if _weapon_mode == "GRENADE":
+                            var grenade := GRENADE_SCENE.instantiate()
+                            get_parent().add_child(grenade)
+                            grenade.global_position = global_position + Vector3.UP * 1.4
+                        else:
+                            var default_attack := Node3D.new()
+                            default_attack.name = "DefaultAttackNode"
+                            get_parent().add_child(default_attack)
+                            default_attack.global_position = global_position + Vector3(0, 1.0, -2.0)
+
+
+                func _ensure_action(action_name: String) -> void:
+                    if not InputMap.has_action(action_name):
+                        InputMap.add_action(action_name)
+                """
+            ).lstrip(), encoding="utf-8")
+            (player_dir / "fake_grenade.gd").write_text(textwrap.dedent(
+                """
+                extends Node3D
+
+                const DETONATE_FRAME := 70
+                const THROW_DISTANCE := 9.0
+
+                var _start_position := Vector3.ZERO
+                var _frame := 0
+                var _detonated := false
+
+
+                func _ready() -> void:
+                    _start_position = global_position
+
+
+                func _physics_process(_delta: float) -> void:
+                    if _detonated:
+                        return
+                    _frame += 1
+                    var t := minf(float(_frame) / float(DETONATE_FRAME), 1.0)
+                    global_position = _start_position + Vector3(0.0, sin(t * PI) * 1.5, THROW_DISTANCE * t)
+                    if _frame >= DETONATE_FRAME:
+                        _detonate()
+
+
+                func _detonate() -> void:
+                    if _detonated:
+                        return
+                    _detonated = true
+                    var effect := MeshInstance3D.new()
+                    effect.name = "FakeExplosionEffect"
+                    effect.mesh = BoxMesh.new()
+                    get_parent().add_child(effect)
+                    effect.global_position = global_position
+                    for node in get_tree().get_nodes_in_group("targeteables"):
+                        if not is_instance_valid(node):
+                            continue
+                        if node is Node3D and node.has_method("damage"):
+                            node.damage(global_position, Vector3.UP)
+                    queue_free()
+                """
+            ).lstrip(), encoding="utf-8")
+
+            out = tmp_path / "score.json"
+            log = tmp_path / "score.log"
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_grader.py"),
+                    "--project",
+                    str(candidate),
+                    "--godot",
+                    str(godot),
+                    "--out",
+                    str(out),
+                    "--log",
+                    str(log),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=120,
+            )
+
+            log_text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr + log_text)
+            data = json.loads(out.read_text(encoding="utf-8"))
+            explosion = next(item for item in data["breakdown"] if item["name"] == "explosion_gameplay")
+            self.assertLessEqual(explosion["score"], 6, json.dumps(explosion, indent=2))
+            self.assertIn("global damage sweep", explosion["notes"])
+
+    def test_explosion_gameplay_scores_destructibles_and_caps_global_sweeps(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+        arena_source = (ROOT / "verifier_godot" / "__verifier__" / "arena_builder.gd").read_text(encoding="utf-8")
+        target_source = (ROOT / "verifier_godot" / "__verifier__" / "verifier_damage_target.gd").read_text(encoding="utf-8")
+
+        self.assertIn("_add_nearby_destructible_target", runner_source)
+        self.assertIn('"Nearby destructible damage across angles"', runner_source)
+        self.assertIn('"Blast locality across angles"', runner_source)
+        self.assertIn("_global_sweep_detected", runner_source)
+        self.assertIn("_explosion_gameplay_score_cap", runner_source)
+        self.assertIn("global damage sweep cap applied", runner_source)
+        self.assertIn("add_damageable_only_target", arena_source)
+        self.assertIn("targetable := true", target_source)
 
     def test_scene_probe_observes_transient_visual_and_audio_activity(self):
         godot = find_godot()

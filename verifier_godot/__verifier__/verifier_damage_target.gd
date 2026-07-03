@@ -4,11 +4,15 @@ extends RigidBody3D
 var damage_calls := 0
 var last_impact_point := Vector3.ZERO
 var last_force := Vector3.ZERO
+var damageable := true
+var targetable := true
 
 
 func _ready() -> void:
-	add_to_group("damageables")
-	add_to_group("targeteables")
+	if damageable:
+		add_to_group("damageables")
+	if targetable:
+		add_to_group("targeteables")
 	freeze = true
 
 	var shape := CollisionShape3D.new()

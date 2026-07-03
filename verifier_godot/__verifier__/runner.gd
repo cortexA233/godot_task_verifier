@@ -391,7 +391,12 @@ func _score_explosion_gameplay() -> void:
 	for trial in _explosion_trial_variants(calibration):
 		trial_results.append(await _run_explosion_trial(trial, calibration))
 	var details := _explosion_details_from_trials(trial_results, calibration)
-	board.add("explosion_gameplay", _detail_score(details), 20, _detail_notes(details), details)
+	var raw_score := _detail_score(details)
+	var capped_score := mini(raw_score, _explosion_gameplay_score_cap(trial_results))
+	var notes := _detail_notes(details)
+	if capped_score < raw_score:
+		notes += "; global damage sweep cap applied: explosion_gameplay limited to %d/20" % capped_score
+	board.add("explosion_gameplay", capped_score, 20, notes, details)
 
 
 func _explosion_trial_variants(calibration: Dictionary) -> Array[Dictionary]:
@@ -549,6 +554,7 @@ func _run_explosion_trial(trial: Dictionary, calibration: Dictionary) -> Diction
 	var nearby_layout := _add_nearby_damage_targets(arena, target_group, nearby_radii)
 	var all_nearby_targets: Array = nearby_layout["all"]
 	var nearby_targets: Array = nearby_layout["scored"]
+	var nearby_destructible_target := _add_nearby_destructible_target(arena, heading_y, target_forward_distance)
 	var safety_targets: Array = [
 		_add_safety_target(arena, "FarTarget", heading_y, safety_radius),
 		_add_safety_target(arena, "LeftSideTarget", heading_y - PI * 0.5, safety_radius),
@@ -567,8 +573,10 @@ func _run_explosion_trial(trial: Dictionary, calibration: Dictionary) -> Diction
 			damaged_safety_targets.append(String(safety_target.name))
 	var expected_nearby_hits := _count_damaged_targets(nearby_targets)
 	var nearby_hits := _count_damaged_targets(all_nearby_targets)
-	var near_score := _nearby_hit_score(expected_nearby_hits, nearby_hits)
-	var damage_detonation_observed: bool = nearby_hits > 0 or damaged_safety_targets.size() > 0
+	var nearby_destructible_hit: bool = int(nearby_destructible_target.get("damage_calls")) > 0
+	var global_sweep := _global_sweep_detected(nearby_hits, all_nearby_targets.size(), damaged_safety_targets)
+	var near_score := _nearby_hit_score(expected_nearby_hits, nearby_hits, damaged_safety_targets.size(), global_sweep)
+	var damage_detonation_observed: bool = nearby_hits > 0 or nearby_destructible_hit or damaged_safety_targets.size() > 0
 	var player_safe := damage_detonation_observed and (not player is CharacterBody3D or (player as CharacterBody3D).velocity.length() < 20.0)
 	return {
 		"label": trial_label,
@@ -576,12 +584,14 @@ func _run_explosion_trial(trial: Dictionary, calibration: Dictionary) -> Diction
 		"near_score": near_score,
 		"nearby_hits": nearby_hits,
 		"expected_nearby_hits": expected_nearby_hits,
+		"nearby_destructible_hit": nearby_destructible_hit,
 		"nearby_target_count": nearby_targets.size(),
 		"nearby_total_target_count": all_nearby_targets.size(),
 		"detonation_observed": damage_detonation_observed,
 		"player_safe": player_safe,
 		"effects_observed": damage_detonation_observed and int(activity.get("visible_count", 0)) > 0,
 		"damaged_safety_targets": damaged_safety_targets,
+		"global_sweep_detected": global_sweep,
 		"calibration_status": String(calibration.get("status", "failed")),
 		"calibration_distance": float(calibration.get("distance", FALLBACK_THROW_DISTANCE)),
 		"target_forward_distance": target_forward_distance,
@@ -590,6 +600,11 @@ func _run_explosion_trial(trial: Dictionary, calibration: Dictionary) -> Diction
 		"nearby_radii": nearby_radii,
 		"safety_radius": safety_radius,
 	}
+
+
+func _add_nearby_destructible_target(root_node: Node3D, heading_y: float, radius: float) -> Node3D:
+	var target := ArenaBuilder.add_damageable_only_target(root_node, "NearbyDestructibleTarget", _offset_polar_target_position(heading_y, radius, 1.1))
+	return target
 
 
 func _add_nearby_damage_targets(root_node: Node3D, target_group: String, nearby_radii: Array) -> Dictionary:
@@ -652,12 +667,23 @@ func _count_damaged_targets(targets: Array) -> int:
 	return hits
 
 
-func _nearby_hit_score(expected_nearby_hits: int, nearby_hits: int) -> int:
+func _nearby_hit_score(expected_nearby_hits: int, nearby_hits: int, damaged_safety_count: int, global_sweep: bool) -> int:
+	if global_sweep:
+		return 3 if expected_nearby_hits > 0 else 1
+	if damaged_safety_count > 0 and expected_nearby_hits > 0:
+		return 6
 	if expected_nearby_hits > 0:
 		return 10
 	if nearby_hits > 0:
 		return 5
 	return 0
+
+
+func _global_sweep_detected(nearby_hits: int, nearby_total_target_count: int, damaged_safety_targets: Array) -> bool:
+	if nearby_total_target_count <= 0:
+		return false
+	var nearby_threshold := int(ceil(float(nearby_total_target_count) * 0.7))
+	return nearby_hits >= nearby_threshold and damaged_safety_targets.size() >= 3
 
 
 func _set_explosion_trial_heading(heading_y: float) -> void:
@@ -685,6 +711,13 @@ func _polar_target_position(heading_y: float, radius: float) -> Vector3:
 	return forward * minf(radius, TARGET_FIELD_RADIUS) + Vector3.UP * 0.5
 
 
+func _offset_polar_target_position(heading_y: float, radius: float, side_offset: float) -> Vector3:
+	var basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward := (basis * Vector3.FORWARD).normalized()
+	var right := (basis * Vector3.RIGHT).normalized()
+	return forward * minf(radius, TARGET_FIELD_RADIUS) + right * side_offset + Vector3.UP * 0.5
+
+
 func _calibration_quality_score(calibration_status: String) -> int:
 	if calibration_status == "full":
 		return 2
@@ -701,11 +734,15 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 	var calibration_notes := String(calibration.get("notes", "default throw calibration did not run"))
 	var calibration_prefix := "default throw calibration %s at %.2f units: %s" % [calibration_status, calibration_distance, calibration_notes]
 	var total_near_score := 0
+	var destructible_hit_count := 0
+	var localized_count := 0
 	var player_safe_count := 0
 	var effects_count := 0
 	var all_trials_detonated := true
 	var safety_misses: Array[String] = []
 	var near_notes: Array[String] = []
+	var destructible_notes: Array[String] = []
+	var locality_notes: Array[String] = []
 	var player_notes: Array[String] = []
 	var effect_notes: Array[String] = []
 	for trial_result in trial_results:
@@ -719,6 +756,21 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 		var damaged_safety_targets: Array = trial_result["damaged_safety_targets"]
 		if damaged_safety_targets.size() > 0:
 			safety_misses.append("%s damaged %s" % [label, ", ".join(damaged_safety_targets)])
+		if bool(trial_result.get("nearby_destructible_hit", false)):
+			destructible_hit_count += 1
+			destructible_notes.append("%s nearby damageable-only destructible was damaged" % label)
+		else:
+			destructible_notes.append("%s nearby damageable-only destructible was not damaged" % label)
+		var global_sweep := bool(trial_result.get("global_sweep_detected", false))
+		if detonation_observed and damaged_safety_targets.is_empty() and not global_sweep:
+			localized_count += 1
+			locality_notes.append("%s explosion damage stayed localized" % label)
+		elif global_sweep:
+			locality_notes.append("%s global damage sweep detected" % label)
+		elif damaged_safety_targets.size() > 0:
+			locality_notes.append("%s out-of-range safety targets were damaged" % label)
+		else:
+			locality_notes.append("%s locality not credited because no detonation was observed" % label)
 		if bool(trial_result["player_safe"]):
 			player_safe_count += 1
 			player_notes.append("%s player safe" % label)
@@ -731,29 +783,43 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 			effect_notes.append("%s detonation produced runtime nodes or effects" % label)
 		else:
 			effect_notes.append("%s no runtime detonation effects observed" % label)
-	var nearby_score := _scaled_average_score(total_near_score, trial_results.size(), 10, 8)
+	var nearby_score := _scaled_average_score(total_near_score, trial_results.size(), 10, 5)
 	details.append(_detail(
 		"Nearby target damage across angles",
 		nearby_score,
-		8,
-		_score_status(nearby_score, 8),
+		5,
+		_score_status(nearby_score, 5),
 		calibration_prefix + "; nearby target damage averaged across explosion trials: " + "; ".join(near_notes)
 	))
-	if all_trials_detonated and safety_misses.is_empty():
-		details.append(_detail("Out-of-range safety across angles", 4, 4, "earned", "all explosion safety trials protected out-of-range targets"))
-	else:
-		var safety_notes: Array[String] = []
-		if not all_trials_detonated:
-			safety_notes.append("not all explosion trials detonated")
-		if not safety_misses.is_empty():
-			safety_notes.append("out-of-range safety targets were damaged: " + "; ".join(safety_misses))
-		details.append(_detail("Out-of-range safety across angles", 0, 4, "missed", "; ".join(safety_notes)))
-	var player_score := _scaled_average_score(player_safe_count, trial_results.size(), 1, 3)
+	var destructible_score := _scaled_average_score(destructible_hit_count, trial_results.size(), 1, 3)
+	details.append(_detail(
+		"Nearby destructible damage across angles",
+		destructible_score,
+		3,
+		_score_status(destructible_score, 3),
+		"nearby damageable-only destructible damage averaged across explosion trials: " + "; ".join(destructible_notes)
+	))
+	var locality_score := _scaled_average_score(localized_count, trial_results.size(), 1, 5)
+	var locality_note := "blast locality averaged across explosion trials: " + "; ".join(locality_notes)
+	if not all_trials_detonated:
+		locality_note += "; not all explosion trials detonated"
+	if not safety_misses.is_empty():
+		locality_note += "; out-of-range safety targets were damaged: " + "; ".join(safety_misses)
+	elif all_trials_detonated:
+		locality_note += "; all explosion safety trials protected out-of-range targets"
+	details.append(_detail(
+		"Blast locality across angles",
+		locality_score,
+		5,
+		_score_status(locality_score, 5),
+		locality_note
+	))
+	var player_score := _scaled_average_score(player_safe_count, trial_results.size(), 1, 2)
 	details.append(_detail(
 		"Player safety across angles",
 		player_score,
-		3,
-		_score_status(player_score, 3),
+		2,
+		_score_status(player_score, 2),
 		"player safety averaged across explosion trials: " + "; ".join(player_notes)
 	))
 	var effects_score := _scaled_average_score(effects_count, trial_results.size(), 1, 3)
@@ -779,6 +845,19 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 		calibration_quality_notes
 	))
 	return details
+
+
+func _explosion_gameplay_score_cap(trial_results: Array[Dictionary]) -> int:
+	if trial_results.is_empty():
+		return 20
+	var global_sweep_count := 0
+	for trial_result in trial_results:
+		if bool(trial_result.get("global_sweep_detected", false)):
+			global_sweep_count += 1
+	var global_sweep_threshold := maxi(1, int(ceil(float(trial_results.size()) * 0.5)))
+	if global_sweep_count >= global_sweep_threshold:
+		return 4
+	return 20
 
 
 func _scaled_average_score(total_score: int, sample_count: int, per_sample_max: int, max_score: int) -> int:

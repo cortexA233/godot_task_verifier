@@ -186,6 +186,9 @@ func _add_seeded_trial_layout(trial: Dictionary) -> void:
 		var target_name := "NearbyTarget_Seed%d_%s_%04d" % [seed_value, target_group, int(round(radius * 100.0))]
 		_add_damage_target(target_name, position)
 		_add_target_label("Seed %d %s %.2fm" % [seed_value, target_group, radius], position + Vector3.UP * 1.05, Color(0.9, 1.0, 0.5))
+	var destructible_position := _offset_polar_target_position(heading_y, _target_forward_radius(nearby_radii), 1.1)
+	_add_damageable_only_target("NearbyDestructible_Seed%d" % seed_value, destructible_position)
+	_add_target_label("Seed %d damageable-only" % seed_value, destructible_position + Vector3.UP * 1.05, Color(0.4, 1.0, 0.85))
 	_add_debug_safety_target("FarTarget_Seed%d" % seed_value, "Seed %d far %.1fm" % [seed_value, safety_radius], heading_y, safety_radius)
 	_add_debug_safety_target("LeftSideTarget_Seed%d" % seed_value, "Seed %d left %.1fm" % [seed_value, safety_radius], heading_y - PI * 0.5, safety_radius)
 	_add_debug_safety_target("RightSideTarget_Seed%d" % seed_value, "Seed %d right %.1fm" % [seed_value, safety_radius], heading_y + PI * 0.5, safety_radius)
@@ -230,9 +233,31 @@ func _polar_target_position(heading_y: float, radius: float) -> Vector3:
 	return forward * minf(radius, TARGET_FIELD_RADIUS) + Vector3.UP * 0.5
 
 
+func _offset_polar_target_position(heading_y: float, radius: float, side_offset: float) -> Vector3:
+	var basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward := (basis * Vector3.FORWARD).normalized()
+	var right := (basis * Vector3.RIGHT).normalized()
+	return forward * minf(radius, TARGET_FIELD_RADIUS) + right * side_offset + Vector3.UP * 0.5
+
+
+func _target_forward_radius(nearby_radii: Array) -> float:
+	if nearby_radii.size() > 2:
+		return float(nearby_radii[2])
+	return FALLBACK_THROW_DISTANCE
+
+
 func _add_damage_target(target_name: String, position: Vector3) -> Node3D:
 	var target: Node3D = DamageTarget.new()
 	target.name = target_name
+	arena.add_child(target)
+	target.global_position = position
+	return target
+
+
+func _add_damageable_only_target(target_name: String, position: Vector3) -> Node3D:
+	var target: Node3D = DamageTarget.new()
+	target.name = target_name
+	target.set("targetable", false)
 	arena.add_child(target)
 	target.global_position = position
 	return target

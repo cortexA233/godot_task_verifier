@@ -45,6 +45,15 @@ static func add_damage_target(root: Node3D, name: String, position: Vector3) -> 
 	return target
 
 
+static func add_damageable_only_target(root: Node3D, name: String, position: Vector3) -> VerifierDamageTarget:
+	var target: VerifierDamageTarget = DamageTarget.new()
+	target.name = name
+	target.targetable = false
+	root.add_child(target)
+	target.global_position = position
+	return target
+
+
 static func _create_ground() -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = "VerifierGround"
