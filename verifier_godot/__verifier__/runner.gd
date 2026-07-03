@@ -27,8 +27,6 @@ const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
 const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
 const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
 const NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]
-const NEARBY_EFFECT_OBSERVATION_DISTANCE := 9.0
-const NEARBY_EFFECT_OBSERVATION_RADIUS := 10.0
 
 var board
 var input
@@ -442,13 +440,14 @@ func _run_explosion_trial(trial_label: String, heading_y: float, target_group: S
 	await _tap_weapon_switch(3, 10)
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
-	var effect_origin := _polar_target_position(heading_y, NEARBY_EFFECT_OBSERVATION_DISTANCE)
-	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, effect_origin, NEARBY_EFFECT_OBSERVATION_RADIUS, 180)
+	var effect_origin := player.global_position
+	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, effect_origin, TARGET_FIELD_RADIUS, 180)
 	var damaged_safety_targets: Array[String] = []
 	for safety_target in safety_targets:
 		if safety_target.damage_calls > 0:
 			damaged_safety_targets.append(String(safety_target.name))
-	var nearby_hits := _count_damaged_targets(nearby_targets)
+	var expected_nearby_hits := _count_damaged_targets(nearby_targets)
+	var nearby_hits := _count_damaged_targets(all_nearby_targets)
 	var near_score := _nearby_hit_score(nearby_hits)
 	var damage_detonation_observed: bool = nearby_hits > 0 or damaged_safety_targets.size() > 0
 	var player_safe := damage_detonation_observed and (not player is CharacterBody3D or (player as CharacterBody3D).velocity.length() < 20.0)
@@ -456,6 +455,7 @@ func _run_explosion_trial(trial_label: String, heading_y: float, target_group: S
 		"label": trial_label,
 		"near_score": near_score,
 		"nearby_hits": nearby_hits,
+		"expected_nearby_hits": expected_nearby_hits,
 		"nearby_target_count": nearby_targets.size(),
 		"nearby_total_target_count": all_nearby_targets.size(),
 		"detonation_observed": damage_detonation_observed,

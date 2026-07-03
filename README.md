@@ -10,7 +10,7 @@ Run:
 ```powershell
 python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
   --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe" `
+  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
   --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json
 ```
 
@@ -23,7 +23,7 @@ To write a detailed PDF score report during grading, add `--pdf-report`:
 ```powershell
 python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
   --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe" `
+  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
   --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
   --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf
 ```
@@ -70,7 +70,7 @@ The score is behavioral. It does not require historical filenames, class names, 
 
 ## Calibration
 
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives the strongest calibration confidence to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable. Formal explosion trials place nearby damage targets on radial 6, 8, 10, and 12 unit rings for all 18 direction groups around the player, one group every 20 degrees; a trial receives nearby-damage credit when any target in the snapped direction group for that throw is damaged. The `FarTarget` distance is fixed at 25 units, and side/rear safety targets also sit on the 25-unit ring within the 30-unit target field so safety stays strict and does not move inward with explosion radius.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives the strongest calibration confidence to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable. Formal explosion trials place nearby damage targets on radial 6, 8, 10, and 12 unit rings for all 18 direction groups around the player, one group every 20 degrees; a trial receives nearby-damage credit when any radial nearby target is damaged, so valid camera-forward or player-forward implementations are not false-negatived by the verifier's angle convention. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. The `FarTarget` distance is fixed at 25 units, and side/rear safety targets also sit on the 25-unit ring within the 30-unit target field so safety stays strict and does not move inward with explosion radius. Aim-reactivity is scored in `trajectory_preview`, not by assuming a specific explosion heading.
 
 Run:
 
@@ -80,8 +80,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-
 
 Latest local calibration:
 
-- Godot executable: `C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe`
-- Godot version: `4.7.stable.mono.official.5b4e0cb0f`
+- Godot executable: `C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe`
+- Godot version: `4.6.stable.official.89cea1439`
 - Ablated task branch: `13/100`; no grenade projectile is available, so explosion calibration falls back and explosion gameplay scores 0.
 - Reference branch: not available at `C:\recent_project\godot-4-3d-third-person-controller-reference` during the latest local run.
 
