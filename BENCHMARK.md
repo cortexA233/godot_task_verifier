@@ -118,15 +118,27 @@ The scoring treats blast locality as a core requirement: broad damage sweeps
 that hit most nearby targets and multiple safety targets are capped inside
 `explosion_gameplay` even if they also hit the expected nearby targets.
 
-The `passed` flag currently uses `score >= 85` as a report convenience. The
-primary benchmark signal is the 0-100 score and category breakdown. The pass
-line sits between the strongest observed near-miss probe (the capped global
-targetable sweep at `78/100`) and the reference implementation (`91/100`),
-leaving a 7-point margin over the strongest probe and a 6-point margin under
-the reference. Any scoring or calibration change must re-run the global-sweep
-probe and confirm it still lands below the pass line. A reference score below
-100 should be inspected as either reference incompleteness or a possible
-verifier false negative; it is not proof that the verifier is perfect.
+The `passed` flag currently uses `score >= 85` as a report convenience, and it
+additionally requires at least half credit in each core gameplay category:
+`trajectory_preview >= 15/30`, `projectile_physics >= 8/15`, and
+`explosion_gameplay >= 10/20`. The score JSON records the threshold in
+`pass_threshold` and lists any floor misses in `category_floor_failures`, so a
+candidate cannot pass by stacking supporting-category points while a core
+category stays broken. The primary benchmark signal is the 0-100 score and
+category breakdown. The pass line sits between the strongest observed
+near-miss probe (the capped global targetable sweep at `78/100`) and the
+reference implementation (`91/100`), leaving a 7-point margin over the
+strongest probe and a 6-point margin under the reference; the same probe also
+fails the `explosion_gameplay` floor outright. Any scoring or calibration
+change must re-run the global-sweep probe and confirm it still lands below the
+pass line. A reference score below 100 should be inspected as either reference
+incompleteness or a possible verifier false negative; it is not proof that the
+verifier is perfect.
+
+The score JSON also carries a soft `suspect` flag with `suspect_reasons`.
+Global damage sweeps, damaged far/side/rear safety targets, and player
+self-damage flag the run for manual review without changing the score or the
+category breakdown.
 
 ## Reproducibility
 

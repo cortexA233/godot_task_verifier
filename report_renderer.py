@@ -75,6 +75,20 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
     score = int(result["score"])
     max_score = int(result["max_score"])
     passed = bool(result.get("passed", score >= 85))
+    threshold = int(result.get("pass_threshold", 85))
+    floor_failures = [str(item) for item in result.get("category_floor_failures", [])]
+    suspect = bool(result.get("suspect", False))
+    suspect_reasons = [str(reason) for reason in result.get("suspect_reasons", [])]
+    if passed:
+        status_line = "Passing threshold met."
+    elif score >= threshold and floor_failures:
+        status_line = "Score meets the threshold but category pass floors failed: " + "; ".join(floor_failures) + "."
+    else:
+        status_line = "Below passing threshold."
+    review_line = ""
+    if suspect:
+        reasons_text = "; ".join(suspect_reasons) if suspect_reasons else "anti-cheat signals observed"
+        review_line = "Flagged for manual review: " + reasons_text + "."
     breakdown = [_normalize_item(item) for item in result.get("breakdown", [])]
     findings = select_key_findings(breakdown, limit=5)
 
@@ -92,7 +106,7 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
     story = [
         _header_table(result, score, max_score, passed, source_json_path, styles),
         Spacer(1, 0.18 * inch),
-        _score_summary_table(score, max_score, passed, styles),
+        _score_summary_table(score, max_score, passed, styles, status_line, review_line),
         Spacer(1, 0.18 * inch),
         Paragraph("Category Scores", styles["section"]),
         Spacer(1, 0.06 * inch),
@@ -298,14 +312,24 @@ def _header_table(result: dict, score: int, max_score: int, passed: bool, source
     return table
 
 
-def _score_summary_table(score: int, max_score: int, passed: bool, styles: dict) -> Table:
+def _score_summary_table(
+    score: int,
+    max_score: int,
+    passed: bool,
+    styles: dict,
+    status_line: str = "",
+    review_line: str = "",
+) -> Table:
     ratio = 0 if max_score <= 0 else score / max_score
-    status_line = "Passing threshold met." if passed else "Below passing threshold."
+    if not status_line:
+        status_line = "Passing threshold met." if passed else "Below passing threshold."
     summary = (
         f"<b>{status_line}</b><br/>"
         f"The PDF mirrors the verifier JSON result. Category bars below show which behaviors were observed "
         f"at runtime and which remain incomplete."
     )
+    if review_line:
+        summary += f"<br/><b>{review_line}</b>"
     table = Table(
         [[ScorePill(score, max_score, passed), Paragraph(summary, styles["cell"])]],
         colWidths=[2.05 * inch, 4.65 * inch],

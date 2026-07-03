@@ -426,6 +426,7 @@ func _score_explosion_gameplay() -> void:
 	var notes := _detail_notes(details)
 	if capped_score < raw_score:
 		notes += "; global damage sweep cap applied: explosion_gameplay limited to %d/20" % capped_score
+	_flag_explosion_suspects(trial_results, capped_score < raw_score)
 	board.add("explosion_gameplay", capped_score, 20, notes, details)
 
 
@@ -888,6 +889,17 @@ func _explosion_gameplay_score_cap(trial_results: Array[Dictionary]) -> int:
 	if global_sweep_count >= global_sweep_threshold:
 		return 4
 	return 20
+
+
+func _flag_explosion_suspects(trial_results: Array[Dictionary], sweep_cap_applied: bool) -> void:
+	if sweep_cap_applied:
+		board.flag_suspect("global damage sweep detected across explosion trials")
+	for trial_result in trial_results:
+		var damaged_safety_targets: Array = trial_result.get("damaged_safety_targets", [])
+		if damaged_safety_targets.size() > 0:
+			board.flag_suspect("explosion damaged out-of-range far/side/rear safety targets")
+		if bool(trial_result.get("detonation_observed", false)) and not bool(trial_result.get("player_safe", true)):
+			board.flag_suspect("player was affected by their own grenade explosion")
 
 
 func _scaled_average_score(total_score: int, sample_count: int, per_sample_max: int, max_score: int) -> int:

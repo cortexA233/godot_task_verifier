@@ -271,8 +271,16 @@
       "score": 4
     }
   ],
+  "category_floor_failures": [
+    "trajectory_preview below pass floor 15",
+    "projectile_physics below pass floor 8",
+    "explosion_gameplay below pass floor 10"
+  ],
   "godot_version": "4.6-stable (official)",
   "max_score": 100,
+  "pass_threshold": 85,
   "passed": false,
-  "score": 13
+  "score": 13,
+  "suspect": false,
+  "suspect_reasons": []
 }

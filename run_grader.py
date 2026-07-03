@@ -98,6 +98,8 @@ def infrastructure_failure(message: str, out_path: Path, log_path: Path) -> int:
         "score": 0,
         "max_score": 100,
         "passed": False,
+        "suspect": False,
+        "suspect_reasons": [],
         "godot_version": "",
         "breakdown": [{"name": "grader_infrastructure", "score": 0, "max": 100, "notes": message}],
         "artifacts": {"log": str(log_path), "screenshots": []},

@@ -38,7 +38,7 @@ class RepositoryConsistencyTests(unittest.TestCase):
         score_board = (
             ROOT / "verifier_godot" / "__verifier__" / "score_board.gd"
         ).read_text(encoding="utf-8")
-        match = re.search(r"score_total >= (\d+)", score_board)
+        match = re.search(r"PASS_THRESHOLD := (\d+)", score_board)
         self.assertIsNotNone(match, "score_board.gd must define the pass threshold")
         threshold = match.group(1)
 

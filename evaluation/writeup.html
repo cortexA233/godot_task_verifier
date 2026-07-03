@@ -449,7 +449,7 @@
 
     <section>
       <h2>Calibration And Scores</h2>
-      <p>These numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier: the global-damage sweep cap is active, weapon-switch input is scored behaviorally instead of by action name, and the <code>passed</code> flag means <code>score >= 85</code> — above the strongest capped probe (78) and below the reference (91). Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
+      <p>These numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier: the global-damage sweep cap is active, weapon-switch input is scored behaviorally instead of by action name, and the <code>passed</code> flag means <code>score >= 85</code> plus half-credit pass floors in the core gameplay categories (<code>trajectory_preview >= 15</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>) — above the strongest capped probe (78) and below the reference (91). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
       <table>
         <thead>
           <tr><th>Candidate</th><th>Score</th><th>Observed</th><th>Evidence path</th></tr>
@@ -549,7 +549,7 @@
         <div class="panel">
           <h3>Probe Actually Run</h3>
           <p><span class="tag good">global damage capped at 78</span></p>
-          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The fake lands at 78/100, below the score >= 85 pass line.</p>
+          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The fake lands at 78/100, below the score >= 85 pass line — and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage.</p>
         </div>
         <div class="panel">
           <h3>Remaining Work</h3>

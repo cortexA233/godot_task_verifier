@@ -126,6 +126,25 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("Missed 0/8", pdf_text)
             self.assertIn("no spawned node showed clear arc motion", pdf_text)
 
+    def test_pdf_report_shows_suspect_and_floor_review_lines(self):
+        result = sample_result()
+        result["score"] = 90
+        result["passed"] = False
+        result["pass_threshold"] = 85
+        result["category_floor_failures"] = ["explosion_gameplay below pass floor 10"]
+        result["suspect"] = True
+        result["suspect_reasons"] = ["global damage sweep detected across explosion trials"]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "report.pdf"
+
+            report_renderer.render_pdf_report(result, output, Path("score.json"))
+
+            pdf_text = extract_pdf_text(output)
+            self.assertIn("category pass floors failed", pdf_text)
+            self.assertIn("Flagged for manual review", pdf_text)
+            self.assertIn("global damage sweep", pdf_text)
+
     def test_render_report_cli_writes_pdf(self):
         import render_report
 

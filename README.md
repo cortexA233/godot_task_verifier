@@ -80,8 +80,12 @@ This scene uses the same deterministic arena shell and fixed seed target generat
 - `stability_repeatability`: 5 points
 
 The score is behavioral. It does not require historical filenames, class names, node paths, or signal names.
-The `passed` flag in the score JSON is a report convenience meaning `score >= 85`;
-the primary benchmark signal is the 0-100 score and category breakdown.
+The `passed` flag in the score JSON is a report convenience meaning `score >= 85`
+plus half-credit pass floors in the core gameplay categories
+(`trajectory_preview >= 15`, `projectile_physics >= 8`, `explosion_gameplay >= 10`);
+the primary benchmark signal is the 0-100 score and category breakdown. The JSON
+also carries a soft `suspect` flag with `suspect_reasons` when global damage
+sweeps, damaged safety targets, or player self-damage need manual review.
 The `stability_repeatability` category now includes a real `res://main.tscn`
 smoke check for default shooting, melee, targetable actors, damageable actors,
 and coin/pickup behavior in addition to the deterministic verifier arena.

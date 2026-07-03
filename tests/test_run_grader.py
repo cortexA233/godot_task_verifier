@@ -114,6 +114,28 @@ class RunGraderTests(unittest.TestCase):
         self.assertNotIn('input.can_drive("swap_weapons")', runner_source)
         self.assertIn("await _tap_weapon_switch()", runner_source)
 
+    def test_score_board_enforces_category_floors_and_suspect_flag(self):
+        board_source = (ROOT / "verifier_godot" / "__verifier__" / "score_board.gd").read_text(encoding="utf-8")
+
+        self.assertIn("PASS_THRESHOLD := 85", board_source)
+        self.assertIn('"trajectory_preview": 15', board_source)
+        self.assertIn('"projectile_physics": 8', board_source)
+        self.assertIn('"explosion_gameplay": 10', board_source)
+        self.assertIn("failed_category_floors", board_source)
+        self.assertIn("floor_failures.is_empty()", board_source)
+        self.assertIn('"category_floor_failures": floor_failures', board_source)
+        self.assertIn("func flag_suspect", board_source)
+        self.assertIn('"suspect": not _suspect_reasons.is_empty()', board_source)
+        self.assertIn('"suspect_reasons": _suspect_reasons', board_source)
+
+    def test_runner_flags_explosion_suspects_for_manual_review(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("_flag_explosion_suspects(trial_results, capped_score < raw_score)", runner_source)
+        self.assertIn('board.flag_suspect("global damage sweep detected across explosion trials")', runner_source)
+        self.assertIn('board.flag_suspect("explosion damaged out-of-range far/side/rear safety targets")', runner_source)
+        self.assertIn('board.flag_suspect("player was affected by their own grenade explosion")', runner_source)
+
     def test_scene_probe_has_calibration_tracking_helpers(self):
         probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
 

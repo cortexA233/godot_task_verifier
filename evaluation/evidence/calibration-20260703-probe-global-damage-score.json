@@ -271,8 +271,17 @@
       "score": 5
     }
   ],
+  "category_floor_failures": [
+    "explosion_gameplay below pass floor 10"
+  ],
   "godot_version": "4.6-stable (official)",
   "max_score": 100,
+  "pass_threshold": 85,
   "passed": false,
-  "score": 78
+  "score": 78,
+  "suspect": true,
+  "suspect_reasons": [
+    "global damage sweep detected across explosion trials",
+    "explosion damaged out-of-range far/side/rear safety targets"
+  ]
 }

@@ -153,7 +153,7 @@
         {
           "label": "Nearby target damage across angles",
           "max": 5,
-          "notes": "default throw calibration borderline at 13.20 units: default throw calibration measured 13.20 units from GrenadeProjectile after 12.22 units of horizontal travel; default throw distance is outside the preferred 6-12 unit envelope but still usable; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 5/10; Seed 27059 throw raw nearby hit score 5/10; Seed 37087 throw raw nearby hit score 5/10",
+          "notes": "default throw calibration borderline at 13.12 units: default throw calibration measured 13.12 units from GrenadeProjectile after 12.14 units of horizontal travel; default throw distance is outside the preferred 6-12 unit envelope but still usable; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 5/10; Seed 27059 throw raw nearby hit score 5/10; Seed 37087 throw raw nearby hit score 5/10",
           "score": 3,
           "status": "partial"
         },
@@ -195,7 +195,7 @@
       ],
       "max": 20,
       "name": "explosion_gameplay",
-      "notes": "default throw calibration borderline at 13.20 units: default throw calibration measured 13.20 units from GrenadeProjectile after 12.22 units of horizontal travel; default throw distance is outside the preferred 6-12 unit envelope but still usable; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 5/10; Seed 27059 throw raw nearby hit score 5/10; Seed 37087 throw raw nearby hit score 5/10; nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was not damaged; blast locality averaged across explosion trials: Seed 17031 throw explosion damage stayed localized; Seed 27059 throw explosion damage stayed localized; Seed 37087 throw explosion damage stayed localized; all explosion safety trials protected out-of-range targets; player safety averaged across explosion trials: Seed 17031 throw player safe; Seed 27059 throw player safe; Seed 37087 throw player safe; detonation effects averaged across explosion trials: Seed 17031 throw detonation produced runtime nodes or effects; Seed 27059 throw detonation produced runtime nodes or effects; Seed 37087 throw detonation produced runtime nodes or effects; borderline default throw distance receives 0/2 calibration-quality credit",
+      "notes": "default throw calibration borderline at 13.12 units: default throw calibration measured 13.12 units from GrenadeProjectile after 12.14 units of horizontal travel; default throw distance is outside the preferred 6-12 unit envelope but still usable; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 5/10; Seed 27059 throw raw nearby hit score 5/10; Seed 37087 throw raw nearby hit score 5/10; nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was not damaged; blast locality averaged across explosion trials: Seed 17031 throw explosion damage stayed localized; Seed 27059 throw explosion damage stayed localized; Seed 37087 throw explosion damage stayed localized; all explosion safety trials protected out-of-range targets; player safety averaged across explosion trials: Seed 17031 throw player safe; Seed 27059 throw player safe; Seed 37087 throw player safe; detonation effects averaged across explosion trials: Seed 17031 throw detonation produced runtime nodes or effects; Seed 27059 throw detonation produced runtime nodes or effects; Seed 37087 throw detonation produced runtime nodes or effects; borderline default throw distance receives 0/2 calibration-quality credit",
       "score": 13
     },
     {
@@ -271,8 +271,12 @@
       "score": 5
     }
   ],
+  "category_floor_failures": [],
   "godot_version": "4.6-stable (official)",
   "max_score": 100,
+  "pass_threshold": 85,
   "passed": false,
-  "score": 78
+  "score": 78,
+  "suspect": false,
+  "suspect_reasons": []
 }
