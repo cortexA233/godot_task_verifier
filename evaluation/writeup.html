@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoboBlast Grenade Verifier Writeup</title>
+  <style>
+    :root {
+      --ink: #142033;
+      --muted: #58677a;
+      --soft: #f6f8fb;
+      --paper: #ffffff;
+      --line: #d9e1ec;
+      --blue: #2266c9;
+      --cyan: #20a4b8;
+      --green: #1c9c5c;
+      --amber: #c87500;
+      --red: #c73737;
+      --dark: #0c1320;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--soft);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    a { color: var(--blue); }
+
+    .hero {
+      min-height: 54vh;
+      display: grid;
+      align-items: end;
+      color: #fff;
+      background:
+        linear-gradient(90deg, rgba(7, 13, 24, .86), rgba(7, 13, 24, .52) 54%, rgba(7, 13, 24, .2)),
+        url("assets/roboblast-shooter-demo.webp") center / cover no-repeat;
+    }
+
+    .hero-inner {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 80px 0 58px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #87d8ff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0 0 14px;
+      font-size: clamp(40px, 7vw, 78px);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 790px;
+      margin: 0;
+      color: #d9e8f7;
+      font-size: clamp(18px, 2.5vw, 23px);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 34px 0 72px;
+    }
+
+    section {
+      margin: 34px 0;
+      padding: 32px 0 0;
+      border-top: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: clamp(25px, 3vw, 34px);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    p { margin: 0 0 14px; }
+
+    code {
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #eef3f8;
+      color: #22324a;
+      font-size: .9em;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-grid,
+    .two-col,
+    .three-col {
+      display: grid;
+      gap: 16px;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: -68px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .two-col { grid-template-columns: 1.1fr .9fr; }
+    .three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .panel,
+    .metric,
+    .media-frame {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 36px rgba(22, 32, 51, .07);
+    }
+
+    .panel,
+    .metric { padding: 20px; }
+
+    .metric b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+    }
+
+    .status-good b { color: var(--green); }
+    .status-warn b { color: var(--amber); }
+    .status-bad b { color: var(--red); }
+    .status-blue b { color: var(--blue); }
+
+    .media-frame {
+      overflow: hidden;
+      background: #101826;
+    }
+
+    .media-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 260px;
+      object-fit: cover;
+    }
+
+    .caption {
+      padding: 12px 14px;
+      color: #dce8f5;
+      background: #111a28;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #edf2f8;
+      color: #26364e;
+      font-size: 12px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .score {
+      display: inline-flex;
+      min-width: 66px;
+      justify-content: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #edf2f8;
+      font-weight: 800;
+    }
+
+    .score.high { color: var(--green); }
+    .score.mid { color: var(--amber); }
+    .score.low { color: var(--red); }
+
+    .bar {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dfe6ee;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    .bar .good { background: var(--green); }
+    .bar .warn { background: var(--amber); }
+    .bar .bad { background: var(--red); }
+    .muted { color: var(--muted); }
+
+    .callout {
+      margin: 16px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--blue);
+      border-radius: 0 8px 8px 0;
+      background: #eef5ff;
+    }
+
+    .callout.bad {
+      border-left-color: var(--red);
+      background: #fff1f0;
+    }
+
+    .callout.warn {
+      border-left-color: var(--amber);
+      background: #fff7e8;
+    }
+
+    .arena {
+      min-height: 330px;
+      display: grid;
+      place-items: center;
+      background: #101826;
+      color: #e9f4ff;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .arena svg {
+      width: min(100%, 640px);
+      height: auto;
+      display: block;
+    }
+
+    .tag {
+      display: inline-block;
+      margin: 0 6px 6px 0;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #edf2f8;
+      color: #32445f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tag.bad {
+      background: #ffe2e0;
+      color: #9a2525;
+    }
+
+    .tag.good {
+      background: #dcf3e7;
+      color: #11683d;
+    }
+
+    .path-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .command {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      padding: 14px;
+      border: 1px solid #1d2a3d;
+      border-radius: 8px;
+      color: #dce8f5;
+      background: var(--dark);
+      font: 13px/1.55 "Cascadia Mono", Consolas, monospace;
+    }
+
+    footer {
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 22px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .metric-grid,
+      .two-col,
+      .three-col {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid { margin-top: 0; }
+      .hero { min-height: 62vh; }
+      table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      th, td {
+        min-width: 128px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">Take-home evaluation writeup</p>
+      <h1>RoboBlast Grenade Verifier</h1>
+      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from three Claude Code Sonnet attempts and one newly discovered anti-cheat blocker.</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="metric-grid" aria-label="Summary metrics">
+      <div class="metric status-good">
+        <b>93</b>
+        <span>Reference score</span>
+        <small>High score on the complete implementation, with minor trajectory/main-scene observation misses.</small>
+      </div>
+      <div class="metric status-bad">
+        <b>13</b>
+        <span>Ablated score</span>
+        <small>Fresh local run: no projectile, trajectory, explosion, or polish behavior observed.</small>
+      </div>
+      <div class="metric status-blue">
+        <b>12-78</b>
+        <span>Sonnet run spread</span>
+        <small>Three attempts land in partial-credit territory rather than an easy 100.</small>
+      </div>
+      <div class="metric status-bad">
+        <b>90</b>
+        <span>Probe blocker</span>
+        <small>The global-damage fake solution currently passes. This must be fixed before final submission.</small>
+      </div>
+    </div>
+
+    <section>
+      <h2>Task Chosen</h2>
+      <div class="two-col">
+        <div>
+          <p>The task removes the grenade weapon from RoboBlast and asks the rollout agent to rebuild it from a behavioral-only prompt. The expected player-facing behavior spans weapon switching, HUD state, trajectory preview, physical projectile flight, localized explosion damage, visual/audio feedback, cleanup, and preservation of default shooting/melee.</p>
+          <p>The feature is a good benchmark slice because it crosses code, scenes, resources, UI, physics, damage conventions, and visual presentation. It is also hard to grade honestly: a solution can look plausible while skipping aim reactivity, spatial damage, cooldown behavior, or main-scene integration.</p>
+          <div class="callout">
+            The agent-facing prompt is <code>TASK_PROMPT.md</code>. It intentionally describes outcomes only: no historical file names, node paths, class names, methods, or verifier internals.
+          </div>
+        </div>
+        <figure class="media-frame">
+          <img src="assets/roboblast-grenade-aim.webp" alt="RoboBlast player aiming a grenade in the original game context">
+          <figcaption class="caption">Visual target: grenade mode should communicate an arcing throw and landing area in normal gameplay, not just in debug output.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Verifier Design</h2>
+      <div class="two-col">
+        <div>
+          <p>The verifier is external to the candidate project. It copies the candidate into a temporary directory, injects <code>verifier_godot/__verifier__</code>, runs Godot headlessly, and writes a structured 0-100 JSON result.</p>
+          <p>Scoring is category-based so near-misses receive useful partial credit instead of a single pass/fail result. The current rubric is:</p>
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Max</th><th>Behavior checked</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Weapon controls</td><td>15</td><td>Switching, grenade attack path, rate limit, default attack preservation.</td></tr>
+              <tr><td>HUD feedback</td><td>10</td><td>Visible weapon UI, selected state update, aim feedback.</td></tr>
+              <tr><td>Trajectory preview</td><td>30</td><td>Visible aiming aid, arc/landing communication, camera reactivity, projectile consistency, lifecycle.</td></tr>
+              <tr><td>Projectile physics</td><td>15</td><td>Runtime projectile spawn, arcing motion, player-safe path.</td></tr>
+              <tr><td>Explosion gameplay</td><td>20</td><td>Seeded nearby damage, far/side/rear safety, player safety, effects, throw-distance calibration.</td></tr>
+              <tr><td>Visual/audio polish</td><td>5</td><td>Visible temporary effects, detonation audio, cleanup.</td></tr>
+              <tr><td>Stability repeatability</td><td>5</td><td>Repeated throws, default-weapon regression checks, main-scene smoke checks.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="arena" aria-label="Verifier arena schematic">
+          <svg viewBox="0 0 640 420" role="img" aria-labelledby="arenaTitle arenaDesc">
+            <title id="arenaTitle">Deterministic verifier arena schematic</title>
+            <desc id="arenaDesc">Player in center, arcing grenade directions, nearby score targets, far safety targets, and player safety zone.</desc>
+            <rect width="640" height="420" fill="#101826"></rect>
+            <circle cx="320" cy="330" r="42" fill="#1e3450" stroke="#7cc7ff" stroke-width="2"></circle>
+            <text x="320" y="337" fill="#e9f4ff" text-anchor="middle" font-size="16" font-weight="700">Player</text>
+            <path d="M320 296 C318 230 306 160 286 86" fill="none" stroke="#87d8ff" stroke-width="4" stroke-dasharray="8 8"></path>
+            <path d="M320 296 C255 232 208 170 160 106" fill="none" stroke="#87d8ff" stroke-width="4" stroke-dasharray="8 8"></path>
+            <path d="M320 296 C384 232 432 170 480 106" fill="none" stroke="#87d8ff" stroke-width="4" stroke-dasharray="8 8"></path>
+            <g fill="#1c9c5c" stroke="#b7ffd8" stroke-width="2">
+              <circle cx="286" cy="86" r="22"></circle>
+              <circle cx="160" cy="106" r="22"></circle>
+              <circle cx="480" cy="106" r="22"></circle>
+            </g>
+            <g fill="#c87500" stroke="#ffe0a8" stroke-width="2">
+              <circle cx="80" cy="56" r="18"></circle>
+              <circle cx="560" cy="56" r="18"></circle>
+              <circle cx="320" cy="36" r="18"></circle>
+              <circle cx="320" cy="390" r="18"></circle>
+            </g>
+            <text x="286" y="91" fill="#fff" text-anchor="middle" font-size="12">near</text>
+            <text x="160" y="111" fill="#fff" text-anchor="middle" font-size="12">near</text>
+            <text x="480" y="111" fill="#fff" text-anchor="middle" font-size="12">near</text>
+            <text x="80" y="61" fill="#fff" text-anchor="middle" font-size="11">far</text>
+            <text x="560" y="61" fill="#fff" text-anchor="middle" font-size="11">side</text>
+            <text x="320" y="41" fill="#fff" text-anchor="middle" font-size="11">far</text>
+            <text x="320" y="394" fill="#fff" text-anchor="middle" font-size="10">rear</text>
+            <text x="320" y="248" fill="#d9e8f7" text-anchor="middle" font-size="15">fixed-seed headings and target rings</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Calibration And Scores</h2>
+      <p>These numbers are from local Godot 4.6 verifier runs on 2026-07-03. The fresh ablated score was rerun for this writeup; the reference and Sonnet runs use the latest <code>recheck-20260703-*</code> score artifacts already present in this verifier workspace.</p>
+      <table>
+        <thead>
+          <tr><th>Candidate</th><th>Score</th><th>Observed</th><th>Evidence path</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Reference complete implementation</td>
+            <td><span class="score high">93/100</span></td>
+            <td><div class="bar"><span class="good" style="width:93%"></span></div></td>
+            <td><code>artifacts/recheck-20260703-reference-main-complete-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Ablated task workspace</td>
+            <td><span class="score low">13/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:13%"></span></div></td>
+            <td><code>artifacts/writeup-ablated-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Claude Code Sonnet run 1</td>
+            <td><span class="score mid">47/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:47%"></span></div></td>
+            <td><code>artifacts/recheck-20260703-sonnet-1-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Claude Code Sonnet run 2</td>
+            <td><span class="score mid">78/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
+            <td><code>artifacts/recheck-20260703-sonnet-2-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Claude Code Sonnet run 3</td>
+            <td><span class="score low">12/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:12%"></span></div></td>
+            <td><code>artifacts/recheck-20260703-sonnet-3-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Fake broad/global damage probe</td>
+            <td><span class="score low">90/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:90%"></span></div></td>
+            <td><code>artifacts/writeup-probe-global-damage-score.json</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout bad">
+        <strong>Submission blocker:</strong> the broad/global damage fake solution should have been capped in the 35-75 band from <code>probe_matrix.md</code>, but it scored 90. The verifier does notice far, side, and rear safety damage, yet the penalty is too small. Final submission should strengthen explosion safety gating or cap total score when distant targets are damaged.
+      </div>
+    </section>
+
+    <section>
+      <h2>Rollout Runs</h2>
+      <div class="callout">
+        Rollout workspaces were prepared as isolated copies with verifier files, local git history, generated artifacts, and assignment-only materials stripped from the agent-facing workspace. The local Godot MCP configuration for the task project enables <code>@coding-solo/godot-mcp</code> through Node and points <code>GODOT_PATH</code> at <code>C:\Godot_v4.6</code>.
+      </div>
+      <table>
+        <thead>
+          <tr><th>Run</th><th>Diff summary</th><th>Score</th><th>Failure analysis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sonnet 1</td>
+            <td>6 modified, 6 added, 1 prompt-localized file removed. Added <code>thrown_grenade</code> and trajectory resources; modified player, weapon UI, project settings, and explosion scene.</td>
+            <td><span class="score mid">47/100</span></td>
+            <td>Real defects: weapon switch path did not create observable projectile behavior; HUD state did not change; preview did not react to aim; no visible effect/audio in the primary observation window. The explosion trial still found localized damage, so the category breakdown is useful but should be manually inspected.</td>
+          </tr>
+          <tr>
+            <td>Sonnet 2</td>
+            <td>5 modified, 5 added, 1 prompt-localized file removed. Added <code>grenade_projectile</code>, projectile scene, landing marker, and a grenade implementation plan.</td>
+            <td><span class="score mid">78/100</span></td>
+            <td>Best partial run. It implemented switchable grenade attacks, projectile physics, localized damage, visual/audio feedback, and repeat use. Misses were meaningful: no registered weapon-switch input action, preview did not update with aim/camera direction, default throw landed at 13.20 units outside the preferred 6-12 band, and one main-scene default attack smoke check was not observed.</td>
+          </tr>
+          <tr>
+            <td>Sonnet 3</td>
+            <td>0 code/resource changes relative to the ablated baseline; removed the localized task prompt file.</td>
+            <td><span class="score low">12/100</span></td>
+            <td>Real agent failure: no grenade trajectory, projectile, explosion gameplay, or polish behavior was implemented. The remaining points come from existing UI/default-player behavior that survived the ablation.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Before publishing the fork, attach exact model/version strings and full patch files for each run. The current verifier repo contains score artifacts and isolated workspace paths, but not committed public branch diffs for these three runs.</p>
+    </section>
+
+    <section>
+      <h2>Anti-Cheat Status</h2>
+      <div class="three-col">
+        <div class="panel">
+          <h3>Probes Designed</h3>
+          <span class="tag">HUD only</span>
+          <span class="tag">visual only</span>
+          <span class="tag">no trajectory</span>
+          <span class="tag">single-use</span>
+          <span class="tag">player damage</span>
+          <span class="tag">wrong trajectory</span>
+          <span class="tag">global damage</span>
+          <span class="tag">default regression</span>
+          <p class="muted">The expected bands live in <code>probe_matrix.md</code>.</p>
+        </div>
+        <div class="panel">
+          <h3>Probe Actually Run</h3>
+          <p><span class="tag bad">global damage scored 90</span></p>
+          <p>The verifier logs far, side, and rear safety target damage but only subtracts 4 points inside <code>explosion_gameplay</code>. That leaves the fake solution above the pass threshold.</p>
+        </div>
+        <div class="panel">
+          <h3>Required Fix</h3>
+          <p>Make distant-target damage a stronger anti-cheat condition. Options include capping <code>explosion_gameplay</code>, capping total score when broad damage is observed, or splitting safety target checks into larger point weights. Then rerun the whole probe matrix.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Evaluation Integrity</h2>
+      <table>
+        <thead>
+          <tr><th>Risk</th><th>Mitigation</th><th>Current status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Agent reads verifier or hidden rubric</td>
+            <td><code>prepare_rollout_workspace.py</code> excludes verifier folders, generated artifacts, assignment/verifier docs, Godot caches, local agent config, and git history.</td>
+            <td><span class="tag good">Implemented</span></td>
+          </tr>
+          <tr>
+            <td>Agent recovers original grenade from git history</td>
+            <td>Rollout copy should be non-git or history-stripped. Public branches should keep the ablated task separate from verifier and reference evidence.</td>
+            <td><span class="tag good">Local copies were isolated</span></td>
+          </tr>
+          <tr>
+            <td>Verifier overfits one coordinate setup</td>
+            <td>Explosion trials use fixed seeded headings and nearby/safety target placements. Same verifier version is deterministic while still testing multiple angles.</td>
+            <td><span class="tag good">Implemented</span></td>
+          </tr>
+          <tr>
+            <td>Verifier accepts reward hacking</td>
+            <td>Probe matrix exists, but the global damage fake currently passes and must be fixed.</td>
+            <td><span class="tag bad">Blocking</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Reproduction Commands</h2>
+      <p>Verifier command used for the fresh ablated check:</p>
+      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\writeup-ablated-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\writeup-ablated-score.log</div>
+      <p>Fake broad-damage probe command:</p>
+      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller-grenade-global --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\writeup-probe-global-damage-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\writeup-probe-global-damage-score.log</div>
+      <p>Godot version recorded in result JSON: <code>4.6-stable (official)</code>. The README also records the local executable build as <code>4.6.stable.official.89cea1439</code>.</p>
+    </section>
+
+    <section>
+      <h2>Final Submission Checklist</h2>
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Status</th><th>Next action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Ablated task branch and behavioral spec</td><td><span class="tag good">Ready locally</span></td><td>Publish exact ablated branch and keep verifier/history out of agent reach.</td></tr>
+          <tr><td>Headless verifier and scoring docs</td><td><span class="tag good">Ready locally</span></td><td>Include exact command and Godot 4.6 version.</td></tr>
+          <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Commit or publish each final diff/branch and exact model/tool metadata.</td></tr>
+          <tr><td>Godot MCP available to rollout agents</td><td><span class="tag good">Configured locally</span></td><td>Document the MCP config in the public run metadata.</td></tr>
+          <tr><td>Anti-cheat fake solutions</td><td><span class="tag bad">Not ready</span></td><td>Fix the global-damage miss, then run and record all fake solutions from <code>probe_matrix.md</code>.</td></tr>
+          <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>After anti-cheat fix, update the blocker section and score table with final probe evidence.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      Draft generated from local evidence in <code>C:\recent_project\roboblast-grenade-verifier</code> on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated and produces useful partial-credit agent spread, but the broad-damage anti-cheat probe must be fixed before this is a clean final submission.
+    </footer>
+  </main>
+</body>
+</html>
