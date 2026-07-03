@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+.superpowers/
+tmp/
+
+artifacts/*
+!artifacts/.gitkeep
+
+*.log
+*.pdf
