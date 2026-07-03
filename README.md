@@ -28,8 +28,7 @@ interpretation, and reproducibility rules.
 
 ## Requirements
 
-- Godot 4.6 console executable. Current calibration used
-  `C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe`.
+- Godot 4.6 console executable.
 - Python 3.11+.
 - Report/test dependencies when rendering PDFs or running the full test suite:
 
@@ -39,33 +38,41 @@ python -m pip install -r requirements.txt
 
 ## Quick Start
 
+Set paths for your local checkout and tools:
+
+```powershell
+$Verifier = "<path-to-this-repo>"
+$Godot = "<path-to-godot-4.6-console-executable>"
+$Project = "<path-to-candidate-project>"
+```
+
 Run the verifier against a candidate Godot project:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
-  --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
-  --log C:\recent_project\roboblast-grenade-verifier\artifacts\godot-verifier.log
+python "$Verifier\run_grader.py" `
+  --project "$Project" `
+  --godot "$Godot" `
+  --out "$Verifier\artifacts\score.json" `
+  --log "$Verifier\artifacts\godot-verifier.log"
 ```
 
 Write a detailed PDF report in the same run:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
-  --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
-  --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf `
-  --log C:\recent_project\roboblast-grenade-verifier\artifacts\godot-verifier.log
+python "$Verifier\run_grader.py" `
+  --project "$Project" `
+  --godot "$Godot" `
+  --out "$Verifier\artifacts\score.json" `
+  --pdf-report "$Verifier\artifacts\score-report.pdf" `
+  --log "$Verifier\artifacts\godot-verifier.log"
 ```
 
 Render a PDF later from an existing score JSON:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\render_report.py `
-  C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
-  C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf
+python "$Verifier\render_report.py" `
+  "$Verifier\artifacts\score.json" `
+  "$Verifier\artifacts\score-report.pdf"
 ```
 
 ## What The Verifier Measures
@@ -112,14 +119,19 @@ task branches.
 For evaluated rollout runs, prefer the repo-local preparation skill:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\skills\prepare-agent-run-workspace\scripts\setup_agent_run.py `
-  --source C:\path\to\ablated-task-project `
-  --run-root C:\path\to\agent-runs\run-01-cc-sonnet `
+$Verifier = "<path-to-this-repo>"
+$AblatedProject = "<path-to-ablated-task-project>"
+$RunRoot = "<path-to-agent-runs>\run-01-cc-sonnet"
+$TaskPrompt = "<path-to-task-prompt>\TASK_PROMPT.md"
+
+python "$Verifier\skills\prepare-agent-run-workspace\scripts\setup_agent_run.py" `
+  --source "$AblatedProject" `
+  --run-root "$RunRoot" `
   --agent cc-sonnet `
   --model "model/version if known" `
   --tool "Godot MCP available" `
   --godot-mcp available `
-  --prompt C:\path\to\TASK_PROMPT.md
+  --prompt "$TaskPrompt"
 ```
 
 This creates `workspace/` for the agent and evaluator-owned `evidence/` beside
@@ -129,26 +141,29 @@ it. Give the agent the `workspace/` path and the contents of
 After the agent finishes, collect objective evidence:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.py `
-  --run-root C:\path\to\agent-runs\run-01-cc-sonnet
+python "$Verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.py" `
+  --run-root "$RunRoot"
 ```
 
 After running the verifier, re-run evidence collection with the score and exact
 grader command:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.py `
-  --run-root C:\path\to\agent-runs\run-01-cc-sonnet `
-  --score-json C:\path\to\score.json `
-  --grader-command 'python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\path\to\agent-runs\run-01-cc-sonnet\workspace --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" --out C:\path\to\score.json'
+$ScoreJson = "<path-to-score-json>"
+$GraderCommand = 'python "<path-to-this-repo>\run_grader.py" --project "<path-to-agent-run>\workspace" --godot "<path-to-godot-4.6-console-executable>" --out "<path-to-score-json>"'
+
+python "$Verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.py" `
+  --run-root "$RunRoot" `
+  --score-json "$ScoreJson" `
+  --grader-command "$GraderCommand"
 ```
 
 For a plain clean rollout copy without baseline/evidence metadata, use:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\prepare_rollout_workspace.py `
-  --project C:\path\to\ablated-task-project `
-  --out C:\path\to\clean-rollout-workspace `
+python "$Verifier\prepare_rollout_workspace.py" `
+  --project "$AblatedProject" `
+  --out "<path-to-clean-rollout-workspace>" `
   --force
 ```
 
@@ -157,9 +172,9 @@ python C:\recent_project\roboblast-grenade-verifier\prepare_rollout_workspace.py
 Export the verifier arena for manual inspection in Godot:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\export_debug_arena.py `
-  --project C:\path\to\candidate-project `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\debug-arena
+python "$Verifier\export_debug_arena.py" `
+  --project "$Project" `
+  --out "$Verifier\artifacts\debug-arena"
 ```
 
 Open the exported project in Godot and run:
@@ -178,7 +193,7 @@ and labels for inspection.
 Run local calibration:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-grenade-verifier\run_calibration.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File "$Verifier\run_calibration.ps1"
 ```
 
 Latest local calibration was recorded on 2026-07-03 with Godot
