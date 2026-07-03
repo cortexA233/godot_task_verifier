@@ -122,6 +122,46 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_set_explosion_trial_heading(0.45)", runner_source)
         self.assertIn("first_transforms", runner_source)
 
+    def test_runner_uses_discriminating_score_weights(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('board.add("weapon_controls", _detail_score(details), 15', runner_source)
+        self.assertIn('board.add("hud_feedback", _detail_score(details), 10', runner_source)
+        self.assertIn('board.add("trajectory_preview", _detail_score(details), 30', runner_source)
+        self.assertIn('board.add("projectile_physics", _detail_score(details), 15', runner_source)
+        self.assertIn('board.add("explosion_gameplay", _detail_score(details), 20', runner_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
+        self.assertIn('board.add("stability_repeatability", _detail_score(details), 5', runner_source)
+
+    def test_trajectory_preview_uses_quality_gates_and_consistency_detail(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"Visible grenade aiming aid"', runner_source)
+        self.assertIn('"Communicates arcing throw"', runner_source)
+        self.assertIn('"Updates with aim/camera direction"', runner_source)
+        self.assertIn('"Preview matches projectile direction"', runner_source)
+        self.assertIn('"Visibility lifecycle/cooldown behavior"', runner_source)
+        self.assertIn("trajectory details gated because no visible aiming aid was observed", runner_source)
+        self.assertIn("consistency not credited because aiming aid did not update", runner_source)
+        self.assertIn("SceneProbe.directions_match", runner_source)
+
+    def test_scene_probe_has_trajectory_direction_helpers(self):
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+
+        self.assertIn("horizontal_direction", probe_source)
+        self.assertIn("track_horizontal_direction", probe_source)
+        self.assertIn("average_horizontal_direction", probe_source)
+        self.assertIn("directions_match", probe_source)
+        self.assertIn("visible_nodes_suggest_arc_or_landing", probe_source)
+
+    def test_explosion_gameplay_records_throw_distance_quality(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"Throw distance calibration quality"', runner_source)
+        self.assertIn("_calibration_quality_score", runner_source)
+        self.assertIn('calibration_status == "full"', runner_source)
+        self.assertIn("borderline default throw distance receives 0/2 calibration-quality credit", runner_source)
+
     def test_runner_requires_visible_effect_for_detonation_audio_credit(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 

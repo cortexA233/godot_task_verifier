@@ -19,7 +19,7 @@ LONG_EXPLOSION_NOTE = (
 
 def sample_result() -> dict:
     return {
-        "score": 40,
+        "score": 35,
         "max_score": 100,
         "passed": False,
         "godot_version": "4.7-stable (official)",
@@ -32,15 +32,15 @@ def sample_result() -> dict:
             },
             {
                 "name": "hud_feedback",
-                "score": 15,
-                "max": 15,
+                "score": 10,
+                "max": 10,
                 "notes": "player has visible UI controls; UI control state changed after weapon switch",
             },
             {
                 "name": "trajectory_preview",
-                "score": 13,
-                "max": 20,
-                "notes": "new visible 3D aim feedback appears in grenade mode; aim feedback did not visibly move",
+                "score": 6,
+                "max": 30,
+                "notes": "visible aiming aid appeared; aim feedback did not update or match projectile direction",
             },
             {
                 "name": "projectile_physics",
@@ -77,6 +77,12 @@ def sample_result() -> dict:
                 "max": 20,
                 "notes": LONG_EXPLOSION_NOTE,
             },
+            {
+                "name": "visual_audio_polish",
+                "score": 5,
+                "max": 5,
+                "notes": "visible and audio effects appeared",
+            },
         ],
         "artifacts": {"log": "score.log", "screenshots": []},
     }
@@ -103,7 +109,7 @@ class ReportRendererTests(unittest.TestCase):
     def test_select_key_findings_prioritizes_zero_scores(self):
         findings = report_renderer.select_key_findings(sample_result()["breakdown"], limit=3)
 
-        self.assertEqual([finding["name"] for finding in findings[:2]], ["explosion_gameplay", "projectile_physics"])
+        self.assertEqual([finding["name"] for finding in findings[:2]], ["explosion_gameplay", "trajectory_preview"])
         self.assertEqual(findings[0]["score"], 0)
         self.assertEqual(findings[0]["notes"], LONG_EXPLOSION_NOTE)
 
