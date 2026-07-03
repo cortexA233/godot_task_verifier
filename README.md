@@ -86,7 +86,7 @@ and coin/pickup behavior in addition to the deterministic verifier arena.
 
 ## Calibration
 
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials place nearby damage targets on radial 6, 8, 10, and 12 unit rings for all 18 direction groups around the player, one group every 20 degrees; a trial receives nearby-damage credit when any radial nearby target is damaged, so valid camera-forward or player-forward implementations are not false-negatived by the verifier's angle convention. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. The `FarTarget` distance is fixed at 25 units, and side/rear safety targets also sit on the 25-unit ring within the 30-unit target field so safety stays strict and does not move inward with explosion radius. Trajectory preview scoring now emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials are generated from fixed seed constants: each seed deterministically picks a heading, nearby target radii around the canonical 6, 8, 10, and 12 unit rings plus the measured landing distance, and a far/side/rear safety radius inside the 30-unit target field. Every run of the same verifier version uses the same seeded variants. A trial gives full nearby-damage credit for the seeded expected direction group and partial credit for real localized damage in another radial group, so the verifier can distinguish hard-coded directions without false-negativing every coordinate-convention mismatch. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. Safety targets remain far enough to catch over-large explosions without moving inward with explosion radius. Trajectory preview scoring now emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
 
 Run:
 
@@ -102,7 +102,7 @@ Latest local calibration:
 - Reference branch: not available at `C:\recent_project\godot-4-3d-third-person-controller-reference` during the latest local run.
 
 The ablated score is low because the grenade weapon behavior is absent. The
-trajectory-preview gates, radial nearby target rings, adaptive calibration, and
+trajectory-preview gates, fixed-seed radial target variants, adaptive calibration, and
 frame-window effect observation reduce false negatives from exact
 throw-distance mismatch and short-lived presentation effects while keeping
 missing grenade behavior low-scoring.

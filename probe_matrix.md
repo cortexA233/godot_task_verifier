@@ -18,6 +18,7 @@ python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
 | Single-use grenade | 40-75 | `stability_repeatability` loses repeated-use points. |
 | Grenade damages player | 30-70 | `explosion_gameplay` notes player impact or unsafe path. |
 | Fixed or wrong trajectory that ignores aim | 30-70 | `trajectory_preview` loses aim-change and preview/projectile consistency points; `explosion_gameplay` may still credit localized damage when the blast is otherwise real, nearby, and safe. |
+| Hard-coded one-angle or one-distance blast | 25-65 | Fixed-seed explosion variants include multiple deterministic headings, nearby radii, and safety placements; expected-direction hits receive full nearby credit, while off-seed localized hits are capped at partial credit. |
 | Explosion affects distant targets | 35-75 | `explosion_gameplay` notes far, side, rear, or player safety target damage. |
 | Very short or very long default throw | 25-68 | Calibration notes failed or borderline distance; throw-distance quality records `0/2` and fixed fallback or safety targets prevent full explosion credit. |
 | Grenade mode breaks default shooting | 35-75 | `stability_repeatability` loses default-weapon regression points. |

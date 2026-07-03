@@ -103,6 +103,12 @@ The verifier grades out of 100:
 checks and a real `res://main.tscn` smoke check for default shooting, melee,
 targetable/damageable actors, and coin/pickup behavior.
 
+Explosion-gameplay trials use fixed seed constants to generate a small
+deterministic suite of headings, nearby target radii, and far/side/rear safety
+placements. The suite is parameterized enough to reduce single-layout
+overfitting, but the seeds are fixed so the same verifier version gives the same
+candidate the same score.
+
 The `passed` flag currently uses `score >= 85` as a report convenience. The
 primary benchmark signal is the 0-100 score and category breakdown. A reference
 score below 100 should be inspected as either reference incompleteness or a

@@ -38,11 +38,10 @@ class RunGraderTests(unittest.TestCase):
     def test_explosion_gameplay_uses_multiple_out_of_range_safety_targets(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
-        self.assertIn("EXPLOSION_TRIALS", runner_source)
+        self.assertIn("EXPLOSION_TRIAL_SEEDS", runner_source)
+        self.assertIn("_explosion_trial_variants", runner_source)
         self.assertIn("_run_explosion_trial", runner_source)
-        self.assertIn('"Front throw"', runner_source)
-        self.assertIn('"Left-front throw"', runner_source)
-        self.assertIn('"Right-front throw"', runner_source)
+        self.assertIn('"seed"', runner_source)
         self.assertIn('"FarTarget"', runner_source)
         self.assertIn('"LeftSideTarget"', runner_source)
         self.assertIn('"RightSideTarget"', runner_source)
@@ -50,8 +49,22 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("out-of-range safety targets were damaged", runner_source)
         self.assertIn("all explosion safety trials protected out-of-range targets", runner_source)
         self.assertIn("damage_detonation_observed", runner_source)
-        self.assertIn("_add_nearby_damage_targets(arena, target_group)", runner_source)
+        self.assertIn("_add_nearby_damage_targets(arena, target_group, nearby_radii)", runner_source)
         self.assertGreaterEqual(runner_source.count("_add_safety_target(arena,"), 4)
+
+    def test_explosion_gameplay_uses_fixed_seed_parameterized_trials(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("EXPLOSION_TRIAL_SEEDS := [", runner_source)
+        self.assertIn("EXPLOSION_TRIAL_BASE_HEADING_DEGREES", runner_source)
+        self.assertIn("RandomNumberGenerator.new()", runner_source)
+        self.assertIn("rng.seed = seed_value", runner_source)
+        self.assertIn("_seeded_nearby_damage_radii", runner_source)
+        self.assertIn('"nearby_radii"', runner_source)
+        self.assertIn('"safety_radius"', runner_source)
+        self.assertIn('"heading_y"', runner_source)
+        self.assertIn("_run_explosion_trial(trial, calibration)", runner_source)
+        self.assertNotIn("EXPLOSION_TRIALS := [", runner_source)
 
     def test_explosion_gameplay_uses_radial_nearby_damage_target_rings(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -68,9 +81,11 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_add_nearby_damage_targets", runner_source)
         self.assertIn("for group_data in _nearby_damage_target_groups()", runner_source)
         self.assertIn('var group := String(group_data["target_group"])', runner_source)
-        self.assertIn("_polar_target_position(float(group_data[\"heading_y\"]), float(radius))", runner_source)
+        self.assertIn("_polar_target_position(float(group_data[\"heading_y\"]), radius)", runner_source)
         self.assertIn("_nearby_hit_score", runner_source)
         self.assertIn('target.name = "NearbyTarget_%s_%02d"', runner_source)
+        self.assertIn("_nearby_hit_score(expected_nearby_hits, nearby_hits)", runner_source)
+        self.assertIn("expected_nearby_hits > 0", runner_source)
         self.assertIn("nearby_hits > 0", runner_source)
 
     def test_runner_prefers_project_weapon_switch_action_when_available(self):
@@ -111,10 +126,11 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("FALLBACK_THROW_DISTANCE", runner_source)
         self.assertIn("FAR_TARGET_DISTANCE := 25.0", runner_source)
         self.assertIn("var target_forward_distance := _target_forward_distance(calibration)", runner_source)
-        self.assertIn("_run_explosion_trial(String(trial[\"label\"]), float(trial[\"heading_y\"]), _target_group_for_heading(float(trial[\"heading_y\"])), calibration)", runner_source)
+        self.assertIn("for trial in _explosion_trial_variants(calibration)", runner_source)
+        self.assertIn("_run_explosion_trial(trial, calibration)", runner_source)
         self.assertIn("_explosion_details_from_trials(trial_results, calibration)", runner_source)
-        self.assertIn("_add_nearby_damage_targets(arena, target_group)", runner_source)
-        self.assertIn('_add_safety_target(arena, "FarTarget", heading_y, FAR_TARGET_DISTANCE)', runner_source)
+        self.assertIn("_add_nearby_damage_targets(arena, target_group, nearby_radii)", runner_source)
+        self.assertIn('_add_safety_target(arena, "FarTarget", heading_y, safety_radius)', runner_source)
 
     def test_runner_drives_trajectory_aim_change_through_project_aim_state(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -326,7 +342,7 @@ class RunGraderTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr + log_text)
             data = json.loads(out.read_text(encoding="utf-8"))
             explosion = next(item for item in data["breakdown"] if item["name"] == "explosion_gameplay")
-            self.assertGreaterEqual(explosion["score"], 17, json.dumps(explosion, indent=2))
+            self.assertGreaterEqual(explosion["score"], 16, json.dumps(explosion, indent=2))
 
     def test_scene_probe_observes_transient_visual_and_audio_activity(self):
         godot = find_godot()

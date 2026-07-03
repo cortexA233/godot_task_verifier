@@ -6,17 +6,13 @@ const ArenaBuilder = preload("res://__verifier__/arena_builder.gd")
 const InputDriver = preload("res://__verifier__/input_driver.gd")
 const SceneProbe = preload("res://__verifier__/scene_probe.gd")
 
-const EXPLOSION_TRIALS := [
-	{"label": "Front throw", "heading_y": 0.0},
-	{"label": "Left-front throw", "heading_y": -0.65},
-	{"label": "Right-front throw", "heading_y": 0.65},
-]
-
 const FALLBACK_THROW_DISTANCE := 8.0
 const TARGET_FIELD_RADIUS := 30.0
 const FAR_TARGET_DISTANCE := 25.0
 const NEARBY_TARGET_GROUP_DEGREES := 20
 const NEARBY_TARGET_GROUP_COUNT := 18
+const EXPLOSION_TRIAL_SEEDS := [17031, 27059, 37087]
+const EXPLOSION_TRIAL_BASE_HEADING_DEGREES := [-40.0, 0.0, 40.0]
 const CALIBRATION_FULL_MIN_DISTANCE := 6.0
 const CALIBRATION_FULL_MAX_DISTANCE := 12.0
 const CALIBRATION_BORDERLINE_MIN_DISTANCE := 4.0
@@ -392,10 +388,44 @@ func _score_projectile_physics() -> void:
 func _score_explosion_gameplay() -> void:
 	var calibration := await _calibrate_default_throw_distance()
 	var trial_results: Array[Dictionary] = []
-	for trial in EXPLOSION_TRIALS:
-		trial_results.append(await _run_explosion_trial(String(trial["label"]), float(trial["heading_y"]), _target_group_for_heading(float(trial["heading_y"])), calibration))
+	for trial in _explosion_trial_variants(calibration):
+		trial_results.append(await _run_explosion_trial(trial, calibration))
 	var details := _explosion_details_from_trials(trial_results, calibration)
 	board.add("explosion_gameplay", _detail_score(details), 20, _detail_notes(details), details)
+
+
+func _explosion_trial_variants(calibration: Dictionary) -> Array[Dictionary]:
+	var variants: Array[Dictionary] = []
+	var target_forward_distance := _target_forward_distance(calibration)
+	for index in range(EXPLOSION_TRIAL_SEEDS.size()):
+		var seed_value := int(EXPLOSION_TRIAL_SEEDS[index])
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var base_heading_degrees := float(EXPLOSION_TRIAL_BASE_HEADING_DEGREES[index % EXPLOSION_TRIAL_BASE_HEADING_DEGREES.size()])
+		var heading_y := deg_to_rad(base_heading_degrees + rng.randf_range(-6.0, 6.0))
+		var safety_radius := clampf(FAR_TARGET_DISTANCE + rng.randf_range(-1.0, 2.0), FAR_TARGET_DISTANCE - 1.0, TARGET_FIELD_RADIUS)
+		var nearby_radii := _seeded_nearby_damage_radii(rng, target_forward_distance)
+		variants.append({
+			"label": "Seed %d throw" % seed_value,
+			"seed": seed_value,
+			"heading_y": heading_y,
+			"target_group": _target_group_for_heading(heading_y),
+			"nearby_radii": nearby_radii,
+			"safety_radius": safety_radius,
+			"target_forward_distance": target_forward_distance,
+		})
+	return variants
+
+
+func _seeded_nearby_damage_radii(rng: RandomNumberGenerator, target_forward_distance: float) -> Array[float]:
+	var radii: Array[float] = []
+	for index in range(NEARBY_DAMAGE_TARGET_RADII.size()):
+		var base_radius := float(NEARBY_DAMAGE_TARGET_RADII[index])
+		if index == 2:
+			base_radius = target_forward_distance
+		var jittered_radius := clampf(base_radius + rng.randf_range(-0.35, 0.35), CALIBRATION_BORDERLINE_MIN_DISTANCE, TARGET_FIELD_RADIUS - 1.0)
+		radii.append(round(jittered_radius * 4.0) / 4.0)
+	return radii
 
 
 func _calibrate_default_throw_distance() -> Dictionary:
@@ -494,11 +524,18 @@ func _target_forward_distance(calibration: Dictionary) -> float:
 	return FALLBACK_THROW_DISTANCE
 
 
-func _run_explosion_trial(trial_label: String, heading_y: float, target_group: String, calibration: Dictionary) -> Dictionary:
+func _run_explosion_trial(trial: Dictionary, calibration: Dictionary) -> Dictionary:
+	var trial_label := String(trial.get("label", "Seeded explosion trial"))
+	var seed_value := int(trial.get("seed", 0))
+	var heading_y := float(trial.get("heading_y", 0.0))
+	var target_group := String(trial.get("target_group", _target_group_for_heading(heading_y)))
+	var nearby_radii: Array = trial.get("nearby_radii", NEARBY_DAMAGE_TARGET_RADII)
+	var safety_radius := float(trial.get("safety_radius", FAR_TARGET_DISTANCE))
 	await _build_arena()
 	if player == null:
 		return {
 			"label": trial_label,
+			"seed": seed_value,
 			"near_score": 0,
 			"detonation_observed": false,
 			"player_safe": false,
@@ -509,14 +546,14 @@ func _run_explosion_trial(trial_label: String, heading_y: float, target_group: S
 	_set_explosion_trial_heading(heading_y)
 	await input.wait_physics_frames(4)
 	var target_forward_distance := _target_forward_distance(calibration)
-	var nearby_layout := _add_nearby_damage_targets(arena, target_group)
+	var nearby_layout := _add_nearby_damage_targets(arena, target_group, nearby_radii)
 	var all_nearby_targets: Array = nearby_layout["all"]
 	var nearby_targets: Array = nearby_layout["scored"]
 	var safety_targets: Array = [
-		_add_safety_target(arena, "FarTarget", heading_y, FAR_TARGET_DISTANCE),
-		_add_safety_target(arena, "LeftSideTarget", heading_y - PI * 0.5, FAR_TARGET_DISTANCE),
-		_add_safety_target(arena, "RightSideTarget", heading_y + PI * 0.5, FAR_TARGET_DISTANCE),
-		_add_safety_target(arena, "RearTarget", heading_y + PI, FAR_TARGET_DISTANCE),
+		_add_safety_target(arena, "FarTarget", heading_y, safety_radius),
+		_add_safety_target(arena, "LeftSideTarget", heading_y - PI * 0.5, safety_radius),
+		_add_safety_target(arena, "RightSideTarget", heading_y + PI * 0.5, safety_radius),
+		_add_safety_target(arena, "RearTarget", heading_y + PI, safety_radius),
 	]
 	await input.wait_physics_frames(4)
 	await _tap_weapon_switch(3, 10)
@@ -530,11 +567,12 @@ func _run_explosion_trial(trial_label: String, heading_y: float, target_group: S
 			damaged_safety_targets.append(String(safety_target.name))
 	var expected_nearby_hits := _count_damaged_targets(nearby_targets)
 	var nearby_hits := _count_damaged_targets(all_nearby_targets)
-	var near_score := _nearby_hit_score(nearby_hits)
+	var near_score := _nearby_hit_score(expected_nearby_hits, nearby_hits)
 	var damage_detonation_observed: bool = nearby_hits > 0 or damaged_safety_targets.size() > 0
 	var player_safe := damage_detonation_observed and (not player is CharacterBody3D or (player as CharacterBody3D).velocity.length() < 20.0)
 	return {
 		"label": trial_label,
+		"seed": seed_value,
 		"near_score": near_score,
 		"nearby_hits": nearby_hits,
 		"expected_nearby_hits": expected_nearby_hits,
@@ -547,16 +585,21 @@ func _run_explosion_trial(trial_label: String, heading_y: float, target_group: S
 		"calibration_status": String(calibration.get("status", "failed")),
 		"calibration_distance": float(calibration.get("distance", FALLBACK_THROW_DISTANCE)),
 		"target_forward_distance": target_forward_distance,
+		"heading_y": heading_y,
+		"target_group": target_group,
+		"nearby_radii": nearby_radii,
+		"safety_radius": safety_radius,
 	}
 
 
-func _add_nearby_damage_targets(root_node: Node3D, target_group: String) -> Dictionary:
+func _add_nearby_damage_targets(root_node: Node3D, target_group: String, nearby_radii: Array) -> Dictionary:
 	var all_targets: Array = []
 	var scored_targets: Array = []
 	for group_data in _nearby_damage_target_groups():
 		var group := String(group_data["target_group"])
-		for radius in NEARBY_DAMAGE_TARGET_RADII:
-			var target = ArenaBuilder.add_damage_target(root_node, "NearbyTarget", _polar_target_position(float(group_data["heading_y"]), float(radius)))
+		for radius_value in nearby_radii:
+			var radius := float(radius_value)
+			var target = ArenaBuilder.add_damage_target(root_node, "NearbyTarget", _polar_target_position(float(group_data["heading_y"]), radius))
 			target.name = "NearbyTarget_%s_%02d" % [group, int(radius)]
 			all_targets.append(target)
 			if group == target_group:
@@ -609,9 +652,11 @@ func _count_damaged_targets(targets: Array) -> int:
 	return hits
 
 
-func _nearby_hit_score(nearby_hits: int) -> int:
-	if nearby_hits > 0:
+func _nearby_hit_score(expected_nearby_hits: int, nearby_hits: int) -> int:
+	if expected_nearby_hits > 0:
 		return 10
+	if nearby_hits > 0:
+		return 5
 	return 0
 
 
