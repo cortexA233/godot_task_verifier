@@ -2,10 +2,12 @@
 
 ## Claude Instructions
 
-Start by reading `AGENTS.md` in this repository and follow it as the primary
-project guide. This repository is the private RoboBlast grenade verifier, so
-keep verifier internals, scoring probes, and implementation details out of any
-ablated task workspace or rollout-agent prompt.
+Start by reading `AGENTS.md` and `game_take_home.html` in this repository.
+Treat `game_take_home.html` as the assignment source of truth for verifier
+implementation, scoring, calibration, anti-cheat probes, and report evidence.
+This repository is the private RoboBlast grenade verifier, so keep verifier
+internals, scoring probes, and implementation details out of any ablated task
+workspace or rollout-agent prompt.
 
 ## How To Work Here
 
@@ -13,6 +15,9 @@ ablated task workspace or rollout-agent prompt.
 - Prefer `rg` / `rg --files` for searching.
 - Keep edits small, deterministic, and tied to the verifier behavior being
   changed.
+- Before changing behavior, scoring, calibration data, anti-cheat probes, or
+  report generation, check the relevant requirement in `game_take_home.html`
+  and keep the implementation aligned with it.
 - Preserve existing user work. If the tree is dirty, inspect status and stage
   only the files that belong to the current task.
 - Use `apply_patch` for manual text edits.

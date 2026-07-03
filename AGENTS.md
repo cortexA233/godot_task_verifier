@@ -3,8 +3,9 @@
 ## Project Goal
 
 This repository is the private external verifier for the RoboBlast grenade
-weapon benchmark. It grades candidate Godot projects behaviorally, out of 100,
-by copying a candidate project to a temporary directory, injecting
+weapon benchmark. It implements the verifier side of the assignment described
+in `game_take_home.html`: grade candidate Godot projects behaviorally, out of
+100, by copying a candidate project to a temporary directory, injecting
 `verifier_godot/__verifier__`, running Godot headlessly, and writing structured
 score artifacts.
 
@@ -15,6 +16,11 @@ solution hints into the ablated game repository.
 
 ## Source Of Truth
 
+- `game_take_home.html` is the assignment source of truth for this verifier
+  repository. Read it before changing verifier behavior, scoring, calibration,
+  anti-cheat probes, report evidence, or rollout-run documentation. If local
+  docs disagree with the assignment, follow `game_take_home.html` and update the
+  docs as part of the same scoped change.
 - `README.md` documents the public command interface, score categories, report
   rendering, debug arena export, and latest calibration notes.
 - `probe_matrix.md` documents anti-cheat probe expectations.

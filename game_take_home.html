@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Take-Home Assignment — Build an Agent-Coding Eval Task for a Real Game</title>
+<style>
+  :root { --bg:#0d1016; --panel:#161a22; --panel2:#1b2130; --ink:#e8edf4; --muted:#9aa6b6;
+          --accent:#7fd4ff; --good:#7ee2a8; --warn:#ffd479; --bad:#ff8b7a; --line:#262c38; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  a { color:var(--accent); }
+  .wrap { max-width:900px; margin:0 auto; padding:44px 24px 80px; }
+  .kicker { color:var(--accent); font-size:13px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
+  h1 { font-size:34px; line-height:1.2; margin:8px 0 10px; }
+  .lead { color:var(--muted); font-size:18px; margin:0 0 26px; }
+  h2 { font-size:22px; margin:40px 0 10px; padding-top:26px; border-top:1px solid var(--line); }
+  h2 .n { color:var(--accent); font-variant-numeric:tabular-nums; margin-right:10px; }
+  h3 { font-size:17px; margin:22px 0 6px; }
+  p { margin:10px 0; }
+  ul, ol { margin:10px 0; padding-left:22px; }
+  li { margin:6px 0; }
+  code { background:#0b0e14; border:1px solid var(--line); border-radius:5px; padding:1px 6px; font-size:13.5px; color:#bcd; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px 24px; margin:20px 0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:680px){ .grid{ grid-template-columns:1fr; } }
+  .kv { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .kv .k { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  .kv .v { font-size:15px; margin-top:2px; }
+  .callout { border-left:3px solid var(--accent); background:var(--panel); border-radius:0 12px 12px 0;
+             padding:14px 20px; margin:20px 0; }
+  .callout.warn { border-left-color:var(--warn); }
+  .callout.bad  { border-left-color:var(--bad); }
+  .callout b { color:var(--ink); }
+  .step { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin:14px 0; }
+  .step .badge { display:inline-block; background:var(--accent); color:#062033; font-weight:800; font-size:13px;
+                 border-radius:20px; padding:2px 12px; margin-bottom:6px; }
+  table { border-collapse:collapse; width:100%; margin:14px 0; font-size:14.5px; }
+  th, td { border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top; }
+  th { background:var(--panel2); color:var(--ink); font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+  td .w { color:var(--muted); }
+  .check { list-style:none; padding-left:0; }
+  .check li { padding-left:28px; position:relative; }
+  .check li::before { content:"\2610"; position:absolute; left:0; color:var(--accent); font-size:18px; top:-1px; }
+  .pill { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+          border-radius:20px; padding:2px 10px; margin:0 4px 6px 0; }
+  .foot { color:var(--muted); font-size:13px; margin-top:44px; border-top:1px solid var(--line); padding-top:18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Take-Home Assignment</div>
+  <h1>Build an agent-coding evaluation task for a real game</h1>
+  <p class="lead">Take a real, open-source 3D game. Turn one of its elements — code, animation, a 3D model,
+     UI, an effect, <em>any</em> part of the game — into a self-contained task for an AI agent, build a
+     verifier that objectively grades the agent's attempt, run an agent against it, and analyze how it did.
+     The craft we are testing is the <b>verifier</b> — can you measure an agent's work on real game
+     development precisely and honestly?</p>
+
+  <div class="card">
+    <div class="grid">
+      <div class="kv"><div class="k">The game</div><div class="v"><a href="https://github.com/gdquest-demos/godot-4-3d-third-person-controller" target="_blank" rel="noopener">RoboBlast: TPS Demo</a> — Godot 4.6 (gdquest-demos)</div></div>
+      <div class="kv"><div class="k">Time</div><div class="v">4–8 focused hours. Timebox it.</div></div>
+      <div class="kv"><div class="k">You need</div><div class="v">Godot 4.6, a coding agent (Claude Code / Gemini CLI / Cursor …) wired to the <b><a href="https://github.com/Coding-Solo/godot-mcp" target="_blank" rel="noopener">Godot MCP</a></b>, git</div></div>
+      <div class="kv"><div class="k">You submit</div><div class="v">A public fork of the game — the ablated-task branch (what the agent sees), the verifier, agent-run branch(es), and a viewable HTML writeup</div></div>
+    </div>
+  </div>
+
+  <h2><span class="n">1.</span>Context</h2>
+  <p>We build evaluation environments that measure how well AI coding agents perform on <b>real
+     game-development work</b> — not toy puzzles. A good environment hands an agent a realistic task,
+     lets it work autonomously, and <b>grades the result objectively and reproducibly</b>. The hard,
+     interesting part is almost never the task — it's the <b>grader</b>. This assignment asks you to build
+     one, end to end, on a real game.</p>
+
+  <h2><span class="n">2.</span>The game</h2>
+  <p>You will work on <a href="https://github.com/gdquest-demos/godot-4-3d-third-person-controller" target="_blank" rel="noopener"><b>RoboBlast: TPS Demo</b></a>, a polished third-person shooter in
+     <b>Godot 4.6</b> — a real game (character controller, camera, navigation, enemies, weapons, physics,
+     HUD), not a prototype. Clone it, open it in Godot, and play it before you cut anything.</p>
+  <ul>
+    <li>Repo: <code>github.com/gdquest-demos/godot-4-3d-third-person-controller</code></li>
+    <li><b>Fork it (public)</b> and build on the current <code>master</code> — we lock the base to that, so
+        you don't pick or record a base commit.</li>
+  </ul>
+
+  <h2><span class="n">3.</span>Your task</h2>
+  <p>Produce a complete, self-contained task derived from this game, plus everything needed to grade an
+     agent's attempt at it.</p>
+
+  <div class="callout">
+    <b>Tooling — use the Godot MCP.</b> Equip your agents with the <b><a href="https://github.com/Coding-Solo/godot-mcp" target="_blank" rel="noopener">Godot MCP</a></b> — a Model Context Protocol
+    server that lets an agent drive the Godot editor/engine (open scenes, inspect nodes, run the project,
+    read errors). It matters in two places: <b>(1)</b> the agent <em>you</em> use to build this assignment
+    works far better with it; and <b>(2)</b> the <b>rollout agent you grade must have it available</b>.
+    Giving the graded agent real engine access keeps the run robust and fair — we want to measure the true
+    difficulty gap of <em>your task</em>, not penalize the agent for being unable to touch Godot.
+  </div>
+
+  <div class="step">
+    <span class="badge">Step 1</span>
+    <h3>Pick a substantial feature</h3>
+    <p>Choose one real element of the game with enough depth to be interesting and enough surface to grade.
+       It does <b>not have to be pure code</b> — it can be <b>any part of the game</b>: gameplay behavior, an
+       <b>animation</b>, a <b>3D model</b>, a <b>material / shader</b>, a <b>VFX / particle effect</b>,
+       <b>UI / HUD</b>, or <b>audio</b>. Prefer a whole element or behavior over a one-line tweak. Non-code /
+       visual elements are often the <em>harder</em> things to grade deterministically — leaning in is
+       welcome, but you still owe an honest, reproducible check for whatever you pick.</p>
+  </div>
+
+  <div class="step">
+    <span class="badge">Step 2</span>
+    <h3>Turn it into a task the agent must solve</h3>
+    <p>Remove or disable that element so the game is now missing it — a clean, self-contained change on its
+       own <b>branch/commit of your fork</b> (this can touch scripts, scenes, resources, animations, models,
+       or UI, whatever the element is). This branch is the exact version the agent sees. Write a
+       <b>behavioral specification</b> alongside it — what the feature should do or look like, in
+       player-facing terms, for the agent to implement.</p>
+    <ul>
+      <li>The spec must be <b>behavioral only</b>: describe <em>what</em> happens, never <em>how</em>. No
+          file names, class names, method names, node paths, or signal names. The agent should have to
+          understand the codebase, not follow a recipe.</li>
+      <li>The ablation should be <b>complete</b>: don't leave commented-out originals or obvious stubs that
+          let the agent reverse-engineer the answer instead of reasoning about the behavior.</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <span class="badge">Step 3</span>
+    <h3>Build a deterministic verifier</h3>
+    <p>Write an automated, <b>headless</b> grader that runs the game's real systems and checks the actual
+       behavioral <b>outcome</b> of the feature. It should <b>not be a single pass/fail</b> — grade out of
+       <b>100</b>, with each important sub-behavior worth a share of the points, so the final score reflects
+       <b>how completely</b> the agent implemented the feature (partial credit, not all-or-nothing). This
+       scored grader is the centerpiece of the assignment.</p>
+  </div>
+
+  <div class="step">
+    <span class="badge">Step 4</span>
+    <h3>Run agents against your task</h3>
+    <p>Give a coding agent <b>only</b> your behavioral spec and the ablated project (not the original, not
+       your verifier), let it work autonomously, and capture its output (the diff). Use <b>Claude Code at
+       minimum</b> (other agents welcome), give the graded agent the <b>Godot MCP</b> (fairness — see
+       tooling), and run each agent <b>at least 3 times</b> — agents are stochastic, so one run tells you
+       little; multiple show the spread and pass rate.</p>
+  </div>
+
+  <div class="step">
+    <span class="badge">Step 5</span>
+    <h3>Grade, analyze, and present</h3>
+    <p>Run your verifier on the attempts and report the scores. Then analyze: what did the agent get right,
+       what did it get wrong, and — critically — is each failure a <b>real defect in the agent's work</b> or
+       an <b>artifact of your verifier</b>? Inspect the agent's actual output to decide, and present it as the
+       HTML report described in deliverables.</p>
+  </div>
+
+  <h2><span class="n">4.</span>What makes a good verifier (the real test)</h2>
+  <p>Anyone can write an assertion. A trustworthy grader has to satisfy all of these at once:</p>
+
+  <div class="callout">
+    <b>Discrimination.</b> It must <b>fail the ablated game</b> and <b>pass the original</b> — if it can't
+    tell those apart, it measures nothing.
+  </div>
+  <div class="callout warn">
+    <b>Robust to reward hacking.</b> It must reject near-miss cheats that <em>look</em> right but don't
+    reproduce the behavior. Write a few "almost right" fake solutions and confirm your verifier catches
+    every one.
+  </div>
+  <div class="callout bad">
+    <b>No false negatives.</b> It must not fail a correct solution that's merely structured differently.
+    Grade the observable outcome, not one implementation; if you can't grade a dimension without assuming an
+    implementation, don't grade it.
+  </div>
+  <div class="callout warn">
+    <b>Calibrated difficulty &mdash; a hard requirement.</b> The agent <b>must not easily reach 100%</b>: a
+    strong agent should land on a <b>partial score</b> (clearly progressing, but missing something real), not
+    a clean sweep and not zero. If your first runs all score ~100%, make the task harder before you submit.
+  </div>
+  <div class="callout warn">
+    <b>Evaluation integrity.</b> The agent must not be able to reach the answer while it works — no original
+    source, git history, your verifier, or an online copy of the game. Note your fork also holds the original
+    (on <code>master</code>) and your verifier, so make sure the agent's working copy can't reach them via
+    other branches or history. If it can read the solution, the score is meaningless — tell us how you
+    prevented this.
+  </div>
+
+  <h2><span class="n">5.</span>Deliverables</h2>
+  <p>Submit a <b>public GitHub fork</b> of the game, forked from the current <code>master</code> (the locked
+     base). In the fork:</p>
+  <ul class="check">
+    <li>The <b>ablated task on its own branch</b> — the exact version the rollout agent is given (feature
+        removed/disabled), with the <b>behavioral spec</b> (the prompt) alongside it.</li>
+    <li>The <b>verifier</b> (runnable headless; include the exact command) — kept out of the agent's reach
+        (see evaluation integrity).</li>
+    <li>Your <b>anti-cheat probes</b> — the fake near-miss solutions proving the verifier isn't foolable, and
+        evidence they were all caught.</li>
+    <li><b>Agent runs</b>: Claude Code at minimum (more welcome), <b>≥3 runs each</b>, with the <b>Godot MCP
+        available</b> — each run's result on its own branch is welcome; report the diff, score, and which
+        agent/model/version + tools.</li>
+    <li>A <b>viewable HTML writeup</b> (~1 page, opens in a browser, no build step) with <b>visuals</b> —
+        before/after clips or screenshots + the agent's attempts. Cover why you chose this feature, how you
+        calibrated difficulty, how you prevented cheating, and your failure analysis (real agent bug vs.
+        verifier artifact). Show, don't just tell.</li>
+  </ul>
+
+  <h2><span class="n">6.</span>How we evaluate you</h2>
+  <table>
+    <tr><th>Dimension</th><th>What we look for</th></tr>
+    <tr><td><b>Verifier validity</b></td><td>Discriminates (ablated fails, original passes), is deterministic and reproducible, grades real outcomes. <span class="w">The single most important axis.</span></td></tr>
+    <tr><td><b>Anti-hack robustness</b></td><td>You thought adversarially and proved the grader rejects near-miss cheats without false-negativing valid variants.</td></tr>
+    <tr><td><b>Difficulty calibration</b></td><td>The task lands in the partial-credit zone for a strong agent, on purpose, and you can explain why.</td></tr>
+    <tr><td><b>Analysis</b></td><td>You inspected the agent's real output and can separate genuine agent defects from grader artifacts.</td></tr>
+    <tr><td><b>Craft</b></td><td>Clean diff, clear spec, readable verifier, reproducible run, honest writeup.</td></tr>
+  </table>
+  <p class="w" style="color:var(--muted);font-size:14px">A small task with a bullet-proof verifier beats an
+     ambitious task with a leaky one — we value a correct, honest end-to-end slice over breadth.</p>
+
+  <h2><span class="n">7.</span>Notes &amp; hints</h2>
+  <div class="callout warn">
+    <b>Use the visual dimension to make it hard.</b> A powerful way to keep the agent from an easy 100% is to
+    require the feature to be correct <b>visually</b>, not just logically. Agents very often get the
+    underlying logic right while the on-screen result is wrong — an effect that never actually renders, an
+    animation that's off, a model or material that looks incorrect. If your task <em>demands</em> that the
+    result looks right, and your verifier actually checks the visual outcome (e.g. rendered frames /
+    screenshots, pixel or region checks) rather than only internal state, you'll raise the bar and land in
+    the partial-score zone we're looking for. Figuring out how to grade "does it look right" reproducibly is
+    exactly the kind of craft we want to see.
+  </div>
+
+  <div class="foot">
+    Game: <a href="https://github.com/gdquest-demos/godot-4-3d-third-person-controller" target="_blank" rel="noopener">RoboBlast: TPS Demo</a> (gdquest-demos, Godot 4.6)
+    <div style="margin-top:10px">
+      <span class="pill">Godot 4.6</span><span class="pill">headless verifier</span>
+      <span class="pill">agent rollout</span><span class="pill">deterministic grading</span>
+      <span class="pill">anti reward-hacking</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
