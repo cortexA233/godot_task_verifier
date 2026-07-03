@@ -57,6 +57,14 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_weapon_switch_action", runner_source)
         self.assertIn('"weapon_switch"', runner_source)
 
+    def test_scene_probe_has_calibration_tracking_helpers(self):
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+
+        self.assertIn("track_nodes_positions", probe_source)
+        self.assertIn("horizontal_distance", probe_source)
+        self.assertIn("horizontal_travel_distance", probe_source)
+        self.assertIn("path_is_player_safe", probe_source)
+
     def test_copy_candidate_project_excludes_git_and_godot_cache(self):
         with tempfile.TemporaryDirectory() as src_dir, tempfile.TemporaryDirectory() as dst_dir:
             src = Path(src_dir)

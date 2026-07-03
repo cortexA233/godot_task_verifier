@@ -107,6 +107,41 @@ static func track_node_positions(tree: SceneTree, node: Node3D, frame_count: int
 	return points
 
 
+static func track_nodes_positions(tree: SceneTree, nodes: Array[Node3D], frame_count: int) -> Dictionary:
+	var tracks := {}
+	for node in nodes:
+		if is_instance_valid(node):
+			tracks[node.get_instance_id()] = []
+	for _i in range(frame_count):
+		for node in nodes:
+			if not is_instance_valid(node):
+				continue
+			var id := node.get_instance_id()
+			if not tracks.has(id):
+				tracks[id] = []
+			var points: Array = tracks[id]
+			points.append(node.global_position)
+		await tree.physics_frame
+	return tracks
+
+
+static func horizontal_distance(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z))
+
+
+static func horizontal_travel_distance(points: Array) -> float:
+	if points.size() < 2:
+		return 0.0
+	return horizontal_distance(points[0], points[points.size() - 1])
+
+
+static func path_is_player_safe(points: Array, player_position: Vector3, minimum_distance: float) -> bool:
+	for point in points:
+		if point.distance_to(player_position) < minimum_distance:
+			return false
+	return true
+
+
 static func has_arc_motion(points: Array[Vector3]) -> bool:
 	if points.size() < 6:
 		return false
