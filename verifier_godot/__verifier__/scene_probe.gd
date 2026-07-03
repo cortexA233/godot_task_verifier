@@ -152,6 +152,74 @@ static func horizontal_distance(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z))
 
 
+static func horizontal_direction(a: Vector3, b: Vector3) -> Vector2:
+	var delta := Vector2(b.x - a.x, b.z - a.z)
+	if delta.length() <= 0.001:
+		return Vector2.ZERO
+	return delta.normalized()
+
+
+static func track_horizontal_direction(points: Array, minimum_distance: float) -> Vector2:
+	if points.size() < 2:
+		return Vector2.ZERO
+	var start: Vector3 = points[0]
+	for index in range(points.size() - 1, 0, -1):
+		var point: Vector3 = points[index]
+		if horizontal_distance(start, point) >= minimum_distance:
+			return horizontal_direction(start, point)
+	return Vector2.ZERO
+
+
+static func average_horizontal_direction(nodes: Array[Node3D], origin: Vector3) -> Vector2:
+	var total := Vector2.ZERO
+	var count := 0
+	for node in nodes:
+		if not is_instance_valid(node):
+			continue
+		var position_direction := horizontal_direction(origin, node.global_position)
+		if not position_direction.is_zero_approx():
+			total += position_direction
+			count += 1
+			continue
+		var forward_3d := (node.global_transform.basis * Vector3.FORWARD).normalized()
+		var forward_2d := Vector2(forward_3d.x, forward_3d.z)
+		if forward_2d.length() > 0.001:
+			total += forward_2d.normalized()
+			count += 1
+	if count <= 0 or total.length() <= 0.001:
+		return Vector2.ZERO
+	return total.normalized()
+
+
+static func directions_match(a: Vector2, b: Vector2, minimum_dot: float) -> bool:
+	if a.length() <= 0.001 or b.length() <= 0.001:
+		return false
+	return a.normalized().dot(b.normalized()) >= minimum_dot
+
+
+static func visible_nodes_suggest_arc_or_landing(nodes: Array[Node3D], origin: Vector3) -> bool:
+	if nodes.is_empty():
+		return false
+	var min_distance := INF
+	var max_distance := 0.0
+	var min_y := INF
+	var max_y := -INF
+	var far_ground_marker := false
+	for node in nodes:
+		if not is_instance_valid(node):
+			continue
+		var distance := horizontal_distance(origin, node.global_position)
+		min_distance = minf(min_distance, distance)
+		max_distance = maxf(max_distance, distance)
+		min_y = minf(min_y, node.global_position.y)
+		max_y = maxf(max_y, node.global_position.y)
+		if distance >= 4.0 and absf(node.global_position.y - origin.y) <= 1.0:
+			far_ground_marker = true
+	var horizontal_span := max_distance - min_distance
+	var vertical_span := max_y - min_y
+	return far_ground_marker or (horizontal_span >= 2.0 and vertical_span >= 0.2)
+
+
 static func horizontal_travel_distance(points: Array) -> float:
 	if points.size() < 2:
 		return 0.0
