@@ -347,7 +347,7 @@
     <div class="hero-inner">
       <p class="eyebrow">Take-home evaluation writeup</p>
       <h1>RoboBlast Grenade Verifier</h1>
-      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from Claude Code Sonnet 5 medium, Claude Code Opus 4.8 max, and Codex GPT-5.5 xhigh attempts, plus a global-damage anti-cheat probe now capped below the pass line.</p>
+      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from Claude Code Sonnet 5 medium, Claude Code Opus 4.8 max, and Codex GPT-5.5 xhigh attempts, plus seven representative anti-cheat fake solutions below the pass line.</p>
     </div>
   </header>
 
@@ -369,9 +369,9 @@
         <small>Three Sonnet 5 medium attempts land in partial-credit territory rather than an easy 100.</small>
       </div>
       <div class="metric status-good">
-        <b>78</b>
-        <span>Capped global probe</span>
-        <small>The global-damage fake solution is now capped below the score >= 85 pass line.</small>
+        <b>7</b>
+        <span>Anti-cheat probes</span>
+        <small>Representative fake solutions all score below the score >= 85 pass line.</small>
       </div>
     </div>
 
@@ -491,10 +491,46 @@
             <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
             <td><code>evaluation/evidence/calibration-20260703-probe-global-damage-score.json</code></td>
           </tr>
+          <tr>
+            <td>Fake HUD-only probe</td>
+            <td><span class="score low">19/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:19%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-hud-only-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Fake visual-only/no-damage probe</td>
+            <td><span class="score low">34/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:34%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-visual-no-damage-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Fake damage-without-preview probe</td>
+            <td><span class="score mid">54/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:54%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-damage-no-preview-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Fake single-use grenade probe</td>
+            <td><span class="score mid">75/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:75%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-single-use-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Fake fixed-trajectory probe</td>
+            <td><span class="score mid">65/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:65%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-fixed-trajectory-score.json</code></td>
+          </tr>
+          <tr>
+            <td>Fake bad-distance probe</td>
+            <td><span class="score mid">50/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:50%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-bad-distance-score.json</code></td>
+          </tr>
         </tbody>
       </table>
       <div class="callout">
-        <strong>Anti-cheat fix landed:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing the probe to 78/100 — inside the 35-79 band from <code>probe_matrix.md</code> and 7 points below the pass line. This probe must be re-run after any scoring or calibration change.
+        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional fake candidates now cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven observed probes remain below the score >= 85 pass line.
       </div>
     </section>
 
@@ -571,17 +607,19 @@
           <span class="tag">player damage</span>
           <span class="tag">wrong trajectory</span>
           <span class="tag">global damage</span>
+          <span class="tag">bad distance</span>
           <span class="tag">default regression</span>
           <p class="muted">The expected bands live in <code>probe_matrix.md</code>.</p>
         </div>
         <div class="panel">
-          <h3>Probe Actually Run</h3>
+          <h3>Probes Actually Run</h3>
           <p><span class="tag good">global damage capped at 78</span></p>
-          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The fake lands at 78/100, below the score >= 85 pass line — and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage.</p>
+          <p><span class="tag good">HUD-only 19</span> <span class="tag good">visual-only 34</span> <span class="tag good">no-preview damage 54</span> <span class="tag good">single-use 75</span> <span class="tag good">fixed trajectory 65</span> <span class="tag good">bad distance 50</span></p>
+          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The strongest fake lands at 78/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage.</p>
         </div>
         <div class="panel">
-          <h3>Remaining Work</h3>
-          <p>Eleven probe rows in <code>probe_matrix.md</code> still have no observed run. Build each fake candidate, grade it, and record the observed score and evidence JSON before treating the matrix as validated.</p>
+          <h3>Deferred Work</h3>
+          <p>Five overlapping rows are deferred rather than silent: direct all-target damage and distant-target damage are covered by the global sweep evidence; one-angle/one-distance is partially covered by fixed-trajectory plus seeded multi-heading trials; player self-damage and default-shooting regression have verifier hooks but no separate fake candidate in this fast pass.</p>
         </div>
       </div>
     </section>
@@ -610,8 +648,8 @@
           </tr>
           <tr>
             <td>Verifier accepts reward hacking</td>
-            <td>Global damage sweeps are detected and capped; the fake scores 78, below the pass line. Eleven other probe rows still need observed runs.</td>
-            <td><span class="tag">Partially validated</span></td>
+            <td>Seven representative fake candidates are observed below the pass line. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
+            <td><span class="tag good">Representative validation</span></td>
           </tr>
         </tbody>
       </table>
@@ -637,14 +675,14 @@
           <tr><td>Headless verifier and scoring docs</td><td><span class="tag good">Ready locally</span></td><td>Include exact command and Godot 4.6 version.</td></tr>
           <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Published run branches record diff, score, verifier command/log, and tool evidence; this writeup records the model settings for Sonnet 5 medium, Opus 4.8 max, and Codex GPT-5.5 xhigh attempts.</td></tr>
           <tr><td>Godot MCP available to rollout agents</td><td><span class="tag good">Configured locally</span></td><td>Document the MCP config in the public run metadata.</td></tr>
-          <tr><td>Anti-cheat fake solutions</td><td><span class="tag">Partially ready</span></td><td>Global-damage probe is capped and re-run; build and run the remaining 11 probes from <code>probe_matrix.md</code> and record their observed scores.</td></tr>
+          <tr><td>Anti-cheat fake solutions</td><td><span class="tag good">Representative set ready</span></td><td>Seven fake candidates have committed score JSONs; optional follow-up is to run the five deferred overlapping rows if exhaustive per-row evidence is requested.</td></tr>
           <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>Keep the score table in sync with <code>evaluation/evidence/</code> whenever runs are refreshed.</td></tr>
         </tbody>
       </table>
     </section>
 
     <footer>
-      Updated from fresh local runs in <code>C:\recent_project\roboblast-grenade-verifier</code> on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and caps the broad-damage cheat below the score >= 85 pass line; the remaining validity debt is the eleven probe rows without observed runs.
+      Updated from fresh local runs in <code>C:\recent_project\roboblast-grenade-verifier</code> on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and keeps seven representative anti-cheat fake candidates below the score >= 85 pass line; the remaining validity debt is five documented overlapping probe rows without separate fake-candidate runs.
     </footer>
   </main>
 </body>

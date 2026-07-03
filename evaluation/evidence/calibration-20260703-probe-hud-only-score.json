@@ -1,0 +1,286 @@
+{
+  "artifacts": {
+    "log": "C:\\recent_project\\roboblast-grenade-verifier\\artifacts\\calibration-20260703-probe-hud-only-score.log",
+    "screenshots": []
+  },
+  "breakdown": [
+    {
+      "details": [
+        {
+          "label": "Controller weapon-switch binding",
+          "max": 2,
+          "notes": "a weapon-switch input route also carries a controller binding",
+          "score": 2,
+          "status": "earned"
+        },
+        {
+          "label": "Weapon switch input responds",
+          "max": 2,
+          "notes": "weapon mode did not observably switch through swap_weapons action",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Grenade attack after switching",
+          "max": 5,
+          "notes": "attack after weapon switch did not create observable runtime nodes",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Rapid attack rate limit",
+          "max": 3,
+          "notes": "rate limit not credited because no grenade attack was observed",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Default weapon still works",
+          "max": 3,
+          "notes": "default aimed attack still creates runtime nodes",
+          "score": 3,
+          "status": "earned"
+        }
+      ],
+      "max": 15,
+      "name": "weapon_controls",
+      "notes": "a weapon-switch input route also carries a controller binding; weapon mode did not observably switch through swap_weapons action; attack after weapon switch did not create observable runtime nodes; rate limit not credited because no grenade attack was observed; default aimed attack still creates runtime nodes",
+      "score": 5
+    },
+    {
+      "details": [
+        {
+          "label": "Visible UI controls",
+          "max": 3,
+          "notes": "player has visible UI controls",
+          "score": 3,
+          "status": "earned"
+        },
+        {
+          "label": "Weapon-switch UI state",
+          "max": 4,
+          "notes": "UI control state changed after weapon switch",
+          "score": 4,
+          "status": "earned"
+        },
+        {
+          "label": "Aiming UI feedback",
+          "max": 3,
+          "notes": "aiming changes UI feedback",
+          "score": 3,
+          "status": "earned"
+        }
+      ],
+      "max": 10,
+      "name": "hud_feedback",
+      "notes": "player has visible UI controls; UI control state changed after weapon switch; aiming changes UI feedback",
+      "score": 10
+    },
+    {
+      "details": [
+        {
+          "label": "Visible grenade aiming aid",
+          "max": 5,
+          "notes": "no visible grenade trajectory, landing marker, or equivalent aiming aid detected",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Communicates arcing throw",
+          "max": 6,
+          "notes": "trajectory details gated because no visible aiming aid was observed",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Updates with aim/camera direction",
+          "max": 8,
+          "notes": "trajectory details gated because no visible aiming aid was observed",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Preview matches projectile direction",
+          "max": 7,
+          "notes": "trajectory details gated because no visible aiming aid was observed",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Visibility lifecycle/cooldown behavior",
+          "max": 4,
+          "notes": "trajectory details gated because no visible aiming aid was observed",
+          "score": 0,
+          "status": "missed"
+        }
+      ],
+      "max": 30,
+      "name": "trajectory_preview",
+      "notes": "no visible grenade trajectory, landing marker, or equivalent aiming aid detected; trajectory details gated because no visible aiming aid was observed; trajectory details gated because no visible aiming aid was observed; trajectory details gated because no visible aiming aid was observed; trajectory details gated because no visible aiming aid was observed",
+      "score": 0
+    },
+    {
+      "details": [
+        {
+          "label": "Projectile spawned",
+          "max": 4,
+          "notes": "No nearby Node3D spawned after grenade attack.",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Arcing motion",
+          "max": 8,
+          "notes": "arc motion not credited because no projectile spawned",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Player-safe path",
+          "max": 3,
+          "notes": "player-safe path not credited because no projectile spawned",
+          "score": 0,
+          "status": "missed"
+        }
+      ],
+      "max": 15,
+      "name": "projectile_physics",
+      "notes": "No nearby Node3D spawned after grenade attack.; arc motion not credited because no projectile spawned; player-safe path not credited because no projectile spawned",
+      "score": 0
+    },
+    {
+      "details": [
+        {
+          "label": "Nearby target damage across angles",
+          "max": 5,
+          "notes": "default throw calibration failed at 8.00 units: default throw calibration failed: no nearby projectile-like node spawned; using fixed fallback target geometry; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 0/10; Seed 27059 throw raw nearby hit score 0/10; Seed 37087 throw raw nearby hit score 0/10",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Nearby destructible damage across angles",
+          "max": 3,
+          "notes": "nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was not damaged",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Blast locality across angles",
+          "max": 5,
+          "notes": "blast locality averaged across explosion trials: Seed 17031 throw locality not credited because no detonation was observed; Seed 27059 throw locality not credited because no detonation was observed; Seed 37087 throw locality not credited because no detonation was observed; not all explosion trials detonated",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Player safety across angles",
+          "max": 2,
+          "notes": "player safety averaged across explosion trials: Seed 17031 throw player safety not credited because no detonation was observed; Seed 27059 throw player safety not credited because no detonation was observed; Seed 37087 throw player safety not credited because no detonation was observed",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Detonation effects across angles",
+          "max": 3,
+          "notes": "detonation effects averaged across explosion trials: Seed 17031 throw no runtime detonation effects observed; Seed 27059 throw no runtime detonation effects observed; Seed 37087 throw no runtime detonation effects observed",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Throw distance calibration quality",
+          "max": 2,
+          "notes": "default throw calibration failed or landed outside the accepted envelope",
+          "score": 0,
+          "status": "missed"
+        }
+      ],
+      "max": 20,
+      "name": "explosion_gameplay",
+      "notes": "default throw calibration failed at 8.00 units: default throw calibration failed: no nearby projectile-like node spawned; using fixed fallback target geometry; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 0/10; Seed 27059 throw raw nearby hit score 0/10; Seed 37087 throw raw nearby hit score 0/10; nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was not damaged; blast locality averaged across explosion trials: Seed 17031 throw locality not credited because no detonation was observed; Seed 27059 throw locality not credited because no detonation was observed; Seed 37087 throw locality not credited because no detonation was observed; not all explosion trials detonated; player safety averaged across explosion trials: Seed 17031 throw player safety not credited because no detonation was observed; Seed 27059 throw player safety not credited because no detonation was observed; Seed 37087 throw player safety not credited because no detonation was observed; detonation effects averaged across explosion trials: Seed 17031 throw no runtime detonation effects observed; Seed 27059 throw no runtime detonation effects observed; Seed 37087 throw no runtime detonation effects observed; default throw calibration failed or landed outside the accepted envelope",
+      "score": 0
+    },
+    {
+      "details": [
+        {
+          "label": "Visible effect nodes",
+          "max": 2,
+          "notes": "no visible grenade or explosion nodes appeared",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Detonation audio",
+          "max": 2,
+          "notes": "detonation audio not observed during visible detonation window",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Temporary node cleanup",
+          "max": 1,
+          "notes": "no temporary visual nodes were created",
+          "score": 0,
+          "status": "missed"
+        }
+      ],
+      "max": 5,
+      "name": "visual_audio_polish",
+      "notes": "no visible grenade or explosion nodes appeared; detonation audio not observed during visible detonation window; no temporary visual nodes were created",
+      "score": 0
+    },
+    {
+      "details": [
+        {
+          "label": "Repeated grenade attacks",
+          "max": 1,
+          "notes": "repeated grenade attacks did not both produce runtime behavior",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Default attack after grenade use",
+          "max": 1,
+          "notes": "default aimed attack still works after grenade use",
+          "score": 1,
+          "status": "earned"
+        },
+        {
+          "label": "Main scene loads",
+          "max": 1,
+          "notes": "main scene loaded with a playable player",
+          "score": 1,
+          "status": "earned"
+        },
+        {
+          "label": "Main scene default attacks",
+          "max": 1,
+          "notes": "main scene default shooting and melee both produced runtime behavior",
+          "score": 1,
+          "status": "earned"
+        },
+        {
+          "label": "Main scene actors and pickups",
+          "max": 1,
+          "notes": "main scene kept targeteables, damageables, collect_coin, and damage-spawned pickup behavior",
+          "score": 1,
+          "status": "earned"
+        }
+      ],
+      "max": 5,
+      "name": "stability_repeatability",
+      "notes": "repeated grenade attacks did not both produce runtime behavior; default aimed attack still works after grenade use; main scene loaded with a playable player; main scene default shooting and melee both produced runtime behavior; main scene kept targeteables, damageables, collect_coin, and damage-spawned pickup behavior",
+      "score": 4
+    }
+  ],
+  "category_floor_failures": [
+    "trajectory_preview below pass floor 15",
+    "projectile_physics below pass floor 8",
+    "explosion_gameplay below pass floor 10"
+  ],
+  "godot_version": "4.6-stable (official)",
+  "max_score": 100,
+  "pass_threshold": 85,
+  "passed": false,
+  "score": 19,
+  "suspect": false,
+  "suspect_reasons": []
+}

@@ -109,6 +109,7 @@ Latest local calibration (2026-07-03, `score >= 85` pass line):
 - Global targetable sweep probe branch `codex/grenade-global-enemy-damage` commit `14310ca`: `78/100`, `passed: false`, with `explosion_gameplay` capped to `4/20` after global damage sweep detection.
 - Three Claude Code Sonnet 5 medium rollout candidates score `80/100`, `78/100`, and `13/100` under the refreshed calibration verifier; see `evaluation/writeup.html`.
 - Additional published rollout branches record three Claude Code Opus 4.8 max attempts (`74/100`, `88/100`, `80/100` in branch-captured score JSONs) and three Codex GPT-5.5 xhigh attempts (`6/100`, `28/100`, `28/100` in branch-captured score JSONs).
+- Seven representative anti-cheat fake candidates now have committed score JSONs: HUD-only `19/100`, visual-only/no-damage `34/100`, damage-without-preview `54/100`, single-use `75/100`, fixed-trajectory `65/100`, bad-distance `50/100`, and global damage `78/100`.
 - Committed score JSONs for these runs live under `evaluation/evidence/`.
 
 The ablated score is low because the grenade weapon behavior is absent. The
