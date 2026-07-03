@@ -25,6 +25,7 @@ EXCLUDED_FILE_NAMES = {
     "AGENTS.zh.md",
     "BENCHMARK.md",
     "CLAUDE.md",
+    "TASK_PROMPT.zh.md",
     "export_debug_arena.py",
     "game_take_home.html",
     "probe_matrix.md",

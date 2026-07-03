@@ -29,7 +29,7 @@ python C:\recent_project\roboblast-grenade-verifier\prepare_rollout_workspace.py
   --force
 ```
 
-The exporter keeps runnable Godot resources and task prompts while excluding git history, Godot caches, local agent config, verifier folders, generated artifacts, debug exports, temporary files, and assignment/verifier files such as `AGENTS.md`, `CLAUDE.md`, `game_take_home.html`, `BENCHMARK.md`, and `probe_matrix.md`.
+The exporter keeps runnable Godot resources and the agent-facing `TASK_PROMPT.md` while excluding git history, Godot caches, local agent config, verifier folders, generated artifacts, debug exports, temporary files, localized prompt drafts, and assignment/verifier files such as `AGENTS.md`, `CLAUDE.md`, `game_take_home.html`, `BENCHMARK.md`, and `probe_matrix.md`.
 
 To write a detailed PDF score report during grading, add `--pdf-report`:
 

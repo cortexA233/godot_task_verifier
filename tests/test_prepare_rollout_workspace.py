@@ -56,7 +56,7 @@ class PrepareRolloutWorkspaceTests(unittest.TestCase):
 
             self.assertTrue((output / "project.godot").exists())
             self.assertTrue((output / "TASK_PROMPT.md").exists())
-            self.assertTrue((output / "TASK_PROMPT.zh.md").exists())
+            self.assertFalse((output / "TASK_PROMPT.zh.md").exists())
             self.assertTrue((output / "README.md").exists())
             self.assertTrue((output / "player" / "player.gd").exists())
             self.assertTrue((output / "docs" / "notes.md").exists())
