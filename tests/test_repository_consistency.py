@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -32,6 +33,33 @@ class RepositoryConsistencyTests(unittest.TestCase):
                 offenders.append(str(path.relative_to(ROOT)))
 
         self.assertEqual([], offenders)
+
+    def test_pass_threshold_is_consistent_across_code_and_docs(self):
+        score_board = (
+            ROOT / "verifier_godot" / "__verifier__" / "score_board.gd"
+        ).read_text(encoding="utf-8")
+        match = re.search(r"score_total >= (\d+)", score_board)
+        self.assertIsNotNone(match, "score_board.gd must define the pass threshold")
+        threshold = match.group(1)
+
+        expected_phrase = f"score >= {threshold}"
+        documents = [
+            ROOT / "report_renderer.py",
+            ROOT / "BENCHMARK.md",
+            ROOT / "README.md",
+            ROOT / "probe_matrix.md",
+            ROOT / "evaluation" / "writeup.html",
+        ]
+        missing = [
+            str(path.relative_to(ROOT))
+            for path in documents
+            if expected_phrase not in path.read_text(encoding="utf-8")
+        ]
+        self.assertEqual(
+            [],
+            missing,
+            f"These files must state the pass threshold as '{expected_phrase}'",
+        )
 
 
 if __name__ == "__main__":

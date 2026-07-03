@@ -80,6 +80,8 @@ This scene uses the same deterministic arena shell and fixed seed target generat
 - `stability_repeatability`: 5 points
 
 The score is behavioral. It does not require historical filenames, class names, node paths, or signal names.
+The `passed` flag in the score JSON is a report convenience meaning `score >= 80`;
+the primary benchmark signal is the 0-100 score and category breakdown.
 The `stability_repeatability` category now includes a real `res://main.tscn`
 smoke check for default shooting, melee, targetable actors, damageable actors,
 and coin/pickup behavior in addition to the deterministic verifier arena.
@@ -94,13 +96,15 @@ Run:
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-grenade-verifier\run_calibration.ps1
 ```
 
-Latest local calibration:
+Latest local calibration (2026-07-03, `score >= 80` pass line):
 
 - Godot executable: `C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe`
 - Godot version: `4.6.stable.official.89cea1439`
-- Ablated task branch: `11/100`; no grenade projectile is available, so explosion calibration falls back, trajectory preview scores 0, and explosion gameplay scores 0.
+- Ablated task branch `codex/grenade-rollout-task` commit `fb0fd4f`: `13/100`, `passed: false`; no grenade projectile is available, so explosion calibration falls back, trajectory preview scores 0, and explosion gameplay scores 0.
 - Reference `main` commit `1cf08f7`: `91/100`, `passed: true`, with localized explosion gameplay at `17/20`.
 - Global targetable sweep probe branch `codex/grenade-global-enemy-damage` commit `14310ca`: `78/100`, `passed: false`, with `explosion_gameplay` capped to `4/20` after global damage sweep detection.
+- Three Claude Code Sonnet rollout candidates score `43/100`, `74/100`, and `13/100` under the same verifier; see `evaluation/writeup.html`.
+- Committed score JSONs for these runs live under `evaluation/evidence/`.
 
 The ablated score is low because the grenade weapon behavior is absent. The
 trajectory-preview gates, fixed-seed radial target variants, adaptive calibration,

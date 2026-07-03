@@ -23,12 +23,14 @@ credit when their observable behavior matches the task.
 Use these resources for the current local benchmark run:
 
 - Agent-facing task branch: `codex/grenade-rollout-task`
-- Agent-facing task commit: `886077385809a142f70e04188f43c276982f01d8`
+- Agent-facing task commit: `fb0fd4f3e74d12c9da82acf7f36a9add06dade02`
 - Ablation base branch: `codex/ablate-grenade-keep-assets`
 - Ablation base commit: `ed35453f23ee219747d8706f4cd147acb2de7d37`
 - Agent prompt: `TASK_PROMPT.md` in the task branch
-- Local reference project path: `C:\recent_project\godot-4-3d-third-person-controller-reference`
-- Local reference commit: `2f6d792fc83a1a6453437f4b9412bc31cc13584d`
+- Reference implementation: local `main` branch of the task repository
+- Local reference commit: `1cf08f7c9ff11cf3d9617b611c2447a04dc79fe4`
+- Local git-stripped reference copy used for grading:
+  `C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\reference-main-complete`
 
 The rollout agent should receive only the ablated task project and
 `TASK_PROMPT.md`. It must not receive this verifier repository, original
@@ -113,10 +115,15 @@ The scoring treats blast locality as a core requirement: broad damage sweeps
 that hit most nearby targets and multiple safety targets are capped inside
 `explosion_gameplay` even if they also hit the expected nearby targets.
 
-The `passed` flag currently uses `score >= 85` as a report convenience. The
-primary benchmark signal is the 0-100 score and category breakdown. A reference
-score below 100 should be inspected as either reference incompleteness or a
-possible verifier false negative; it is not proof that the verifier is perfect.
+The `passed` flag currently uses `score >= 80` as a report convenience. The
+primary benchmark signal is the 0-100 score and category breakdown. The pass
+line was chosen to sit between the strongest observed near-miss probe (the
+capped global targetable sweep at `78/100`) and the reference implementation
+(`91/100`). That leaves only a 2-point margin over the strongest probe, so any
+scoring or calibration change must re-run the global-sweep probe and confirm it
+still lands below 80. A reference score below 100 should be inspected as either
+reference incompleteness or a possible verifier false negative; it is not proof
+that the verifier is perfect.
 
 ## Reproducibility
 
@@ -143,8 +150,11 @@ exact Godot executable and version from the logs with every published result.
 
 ## Validity Probes
 
-`probe_matrix.md` lists anti-cheat probes and expected score bands. At minimum,
-local validation should demonstrate:
+`probe_matrix.md` lists anti-cheat probes, expected score bands, and observed
+results. Every probe must stay below the `score >= 80` pass line; record each
+probe run in the matrix's Observed column and keep the score JSON as curated
+evidence under `evaluation/evidence/`. At minimum, local validation should
+demonstrate:
 
 - the ablated task scores low
 - the reference behavior scores high

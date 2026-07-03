@@ -36,7 +36,7 @@ func to_dictionary(godot_version: String) -> Dictionary:
 	return {
 		"score": score_total,
 		"max_score": max_total,
-		"passed": score_total >= 85,
+		"passed": score_total >= 80,
 		"godot_version": godot_version,
 		"breakdown": _items,
 		"artifacts": {
