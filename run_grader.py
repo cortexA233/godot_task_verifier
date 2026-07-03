@@ -87,7 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--godot-arg", action="append", default=[], help="Additional argument placed before --headless. Used by tests.")
     parser.add_argument("--verifier-root", type=Path, default=Path(__file__).resolve().parent, help="Root directory containing verifier_godot.")
     parser.add_argument("--out", required=True, type=Path, help="Path to write score JSON.")
-    parser.add_argument("--pdf-report", type=Path, help="Optional path to write a one-page PDF score report.")
+    parser.add_argument("--pdf-report", type=Path, help="Optional path to write a detailed PDF score report.")
     parser.add_argument("--log", type=Path, help="Path to write Godot stdout/stderr log.")
     parser.add_argument("--keep-temp", action="store_true", help="Keep the temporary project copy for inspection.")
     return parser

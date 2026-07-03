@@ -237,18 +237,26 @@ def _styles() -> dict[str, ParagraphStyle]:
             "detail_title",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=9,
-            leading=11,
+            fontSize=8.4,
+            leading=9.4,
             textColor=INK,
-            spaceBefore=2,
-            spaceAfter=3,
+            spaceBefore=1,
+            spaceAfter=2,
+        ),
+        "detail_cell": ParagraphStyle(
+            "detail_cell",
+            parent=base["Normal"],
+            fontName="Helvetica",
+            fontSize=7.4,
+            leading=8.4,
+            textColor=INK,
         ),
         "detail_status": ParagraphStyle(
             "detail_status",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=7.5,
-            leading=9.5,
+            fontSize=7.2,
+            leading=8.2,
             textColor=INK,
         ),
     }
@@ -411,8 +419,8 @@ def _detail_analysis_flowables(breakdown: list[dict], styles: dict) -> list:
             rows.append(
                 [
                     Paragraph(_escape(_detail_result_label(detail)), styles["detail_status"]),
-                    Paragraph(_escape(detail["label"]), styles["cell"]),
-                    Paragraph(_escape(detail["notes"]), styles["cell"]),
+                    Paragraph(_escape(detail["label"]), styles["detail_cell"]),
+                    Paragraph(_escape(detail["notes"]), styles["detail_cell"]),
                 ]
             )
         table = Table(rows, colWidths=[1.0 * inch, 1.7 * inch, 4.0 * inch], repeatRows=1)
@@ -425,12 +433,12 @@ def _detail_analysis_flowables(breakdown: list[dict], styles: dict) -> list:
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 6),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                 ]
             )
         )
-        block = [title, table, Spacer(1, 0.08 * inch)]
+        block = [title, table, Spacer(1, 0.045 * inch)]
         if index == 0:
             block = [Paragraph("Detailed Item Analysis", styles["section"]), Spacer(1, 0.06 * inch), *block]
         flowables.append(KeepTogether(block))

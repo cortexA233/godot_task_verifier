@@ -61,6 +61,18 @@ func _build_arena() -> void:
 		print("Player scene instantiated in deterministic arena.")
 
 
+func _weapon_switch_action() -> String:
+	if InputMap.has_action("swap_weapons"):
+		return "swap_weapons"
+	if InputMap.has_action("weapon_switch"):
+		return "weapon_switch"
+	return "swap_weapons"
+
+
+func _tap_weapon_switch(frames_pressed: int = 3, frames_after: int = 8) -> void:
+	await input.tap(_weapon_switch_action(), frames_pressed, frames_after)
+
+
 func _detail(label: String, score: int, max_score: int, status: String, notes: String) -> Dictionary:
 	return {
 		"label": label,
@@ -308,7 +320,7 @@ func _run_explosion_trial(trial_label: String, heading_y: float) -> Dictionary:
 		ArenaBuilder.add_damage_target(arena, "RearTarget", _explosion_target_position(forward, right, -6.0, 0.0)),
 	]
 	await input.wait_physics_frames(4)
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch(3, 10)
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
 	await input.wait_physics_frames(180)
@@ -322,16 +334,16 @@ func _run_explosion_trial(trial_label: String, heading_y: float) -> Dictionary:
 		near_score += 5
 	if near_b.damage_calls > 0:
 		near_score += 5
-	var detonation_observed: bool = near_a.damage_calls > 0 or near_b.damage_calls > 0 or damaged_safety_targets.size() > 0 or new_nodes.size() > 0
-	var player_safe := detonation_observed and (not player is CharacterBody3D or (player as CharacterBody3D).velocity.length() < 20.0)
+	var damage_detonation_observed: bool = near_a.damage_calls > 0 or near_b.damage_calls > 0 or damaged_safety_targets.size() > 0
+	var player_safe := damage_detonation_observed and (not player is CharacterBody3D or (player as CharacterBody3D).velocity.length() < 20.0)
 	return {
 		"label": trial_label,
 		"near_score": near_score,
 		"near_a_damaged": near_a.damage_calls > 0,
 		"near_b_damaged": near_b.damage_calls > 0,
-		"detonation_observed": detonation_observed,
+		"detonation_observed": damage_detonation_observed,
 		"player_safe": player_safe,
-		"effects_observed": new_nodes.size() > 0,
+		"effects_observed": damage_detonation_observed and new_nodes.size() > 0,
 		"damaged_safety_targets": damaged_safety_targets,
 	}
 

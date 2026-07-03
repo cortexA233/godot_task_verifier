@@ -48,7 +48,14 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('"RearTarget"', runner_source)
         self.assertIn("out-of-range safety targets were damaged", runner_source)
         self.assertIn("all explosion safety trials protected out-of-range targets", runner_source)
+        self.assertIn("damage_detonation_observed", runner_source)
         self.assertGreaterEqual(runner_source.count("ArenaBuilder.add_damage_target(arena,"), 6)
+
+    def test_runner_prefers_project_weapon_switch_action_when_available(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("_weapon_switch_action", runner_source)
+        self.assertIn('"weapon_switch"', runner_source)
 
     def test_copy_candidate_project_excludes_git_and_godot_cache(self):
         with tempfile.TemporaryDirectory() as src_dir, tempfile.TemporaryDirectory() as dst_dir:
