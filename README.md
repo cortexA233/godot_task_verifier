@@ -51,7 +51,7 @@ Open the exported project in Godot, then run:
 res://__verifier__/debug_arena.tscn
 ```
 
-This scene uses the same deterministic arena shell as the grader and shows the fixed fallback front explosion layout: the real `player/player.tscn`, optional weapon UI, `NearTargetA`, `NearTargetB`, `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget`. During headless grading, the verifier first makes a target-free default throw, measures the safe arcing landing distance, and may adapt the near target cluster to that measured distance before running the front, left-front, and right-front explosion trials. If calibration fails or lands outside the accepted band, the grader falls back to the fixed debug layout. The debug scene adds a camera, light, visible floor, and labels so the fallback target placement is easy to inspect.
+This scene uses the same deterministic arena shell as the grader. When it starts, it performs one target-free default throw, measures the safe projectile travel distance, rebuilds the arena, and places `NearTargetA`, `NearTargetB`, `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget` from that measured distance. If debug-scene calibration cannot measure a usable throw, it shows a 4-14 unit distance band of labeled damage targets instead of pretending the fixed 8-unit fallback is authoritative. The debug scene adds a camera, light, visible floor, and labels so manual inspection matches the grader's adaptive setup.
 
 ## Score Categories
 
@@ -67,7 +67,7 @@ The score is behavioral. It does not require historical filenames, class names, 
 
 ## Calibration
 
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe arc, gives the strongest credit to a 6-12 unit default landing distance, treats 4-14 units as borderline usable, and otherwise uses the fixed fallback target geometry. Safety targets stay strict and do not move inward with explosion radius.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives the strongest credit to a 6-12 unit default landing distance, treats 4-14 units as borderline usable, and otherwise uses the fixed fallback target geometry. Safety targets stay strict and do not move inward with explosion radius.
 
 Run:
 
@@ -77,8 +77,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-
 
 Latest local calibration:
 
-- Ablated task branch: `13/100`
-- Reference branch: `87/100`
+- Ablated task branch: `13/100`; no grenade projectile is available, so explosion calibration falls back and explosion gameplay scores 0.
+- Reference branch: `87/100`; explosion calibration measures a full-credit default throw at about 11.2 units and the front, left-front, and right-front explosion trials hit nearby targets.
 
 The ablated score is low because the grenade weapon behavior is absent. The reference score is high enough to prove discrimination, while leaving room for the verifier to distinguish partial agent attempts.
 

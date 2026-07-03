@@ -322,22 +322,24 @@ func _calibrate_default_throw_distance() -> Dictionary:
 	var spawned := SceneProbe.node3d_candidates(SceneProbe.new_nodes_since(arena, before_ids), player.global_position, CALIBRATION_SPAWN_RADIUS)
 	if spawned.is_empty():
 		return _calibration_result("failed", FALLBACK_THROW_DISTANCE, "default throw calibration failed: no nearby projectile-like node spawned")
+	var candidate_records: Array[Dictionary] = []
+	for candidate in spawned:
+		if is_instance_valid(candidate):
+			candidate_records.append({
+				"id": candidate.get_instance_id(),
+				"name": String(candidate.name),
+			})
 	var tracks: Dictionary = await SceneProbe.track_nodes_positions(self, spawned, CALIBRATION_TRACK_FRAMES)
 	var best_distance := -1.0
 	var best_score := -999999.0
 	var best_note := ""
-	for candidate in spawned:
-		if not is_instance_valid(candidate):
-			continue
-		var id := candidate.get_instance_id()
+	for candidate_record in candidate_records:
+		var id: int = int(candidate_record.get("id", 0))
+		var candidate_name := String(candidate_record.get("name", "candidate"))
 		var points: Array = tracks.get(id, [])
-		if not SceneProbe.has_arc_motion(points):
-			continue
-		if not SceneProbe.path_is_player_safe(points, player.global_position, PROJECTILE_PLAYER_MIN_DISTANCE):
+		if not SceneProbe.calibration_path_is_usable(points, player.global_position, PROJECTILE_PLAYER_MIN_DISTANCE, CALIBRATION_MIN_TRAVEL_DISTANCE):
 			continue
 		var travel := SceneProbe.horizontal_travel_distance(points)
-		if travel < CALIBRATION_MIN_TRAVEL_DISTANCE:
-			continue
 		var end_point: Vector3 = points[points.size() - 1]
 		var proxy_point := _detonation_proxy_point(before_visible, end_point)
 		var distance := SceneProbe.horizontal_distance(player.global_position, proxy_point)
@@ -345,9 +347,9 @@ func _calibrate_default_throw_distance() -> Dictionary:
 		if candidate_score > best_score:
 			best_score = candidate_score
 			best_distance = distance
-			best_note = "default throw calibration measured %.2f units after %.2f units of horizontal travel" % [distance, travel]
+			best_note = "default throw calibration measured %.2f units from %s after %.2f units of horizontal travel" % [distance, candidate_name, travel]
 	if best_distance < 0.0:
-		return _calibration_result("failed", FALLBACK_THROW_DISTANCE, "default throw calibration failed: spawned nodes did not show safe arcing projectile motion")
+		return _calibration_result("failed", FALLBACK_THROW_DISTANCE, "default throw calibration failed: spawned nodes did not produce a safe measurable travel path")
 	return _calibration_result(_calibration_band(best_distance), best_distance, best_note)
 
 
@@ -364,8 +366,8 @@ func _detonation_proxy_point(before_visible: Dictionary, fallback_point: Vector3
 
 
 func _calibration_candidate_score(distance: float) -> float:
-	var center := (CALIBRATION_FULL_MIN_DISTANCE + CALIBRATION_FULL_MAX_DISTANCE) * 0.5
-	var distance_from_center := abs(distance - center)
+	var center: float = (CALIBRATION_FULL_MIN_DISTANCE + CALIBRATION_FULL_MAX_DISTANCE) * 0.5
+	var distance_from_center: float = absf(distance - center)
 	if distance >= CALIBRATION_FULL_MIN_DISTANCE and distance <= CALIBRATION_FULL_MAX_DISTANCE:
 		return 1000.0 - distance_from_center
 	if distance >= CALIBRATION_BORDERLINE_MIN_DISTANCE and distance <= CALIBRATION_BORDERLINE_MAX_DISTANCE:
@@ -403,7 +405,7 @@ func _target_forward_distance(calibration: Dictionary) -> float:
 
 
 func _far_forward_distance(target_forward_distance: float) -> float:
-	return max(FAR_TARGET_MIN_DISTANCE, target_forward_distance + FAR_TARGET_EXTRA_DISTANCE)
+	return maxf(FAR_TARGET_MIN_DISTANCE, target_forward_distance + FAR_TARGET_EXTRA_DISTANCE)
 
 
 func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Dictionary) -> Dictionary:
@@ -465,11 +467,22 @@ func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Di
 
 
 func _set_explosion_trial_heading(heading_y: float) -> void:
+	var heading_basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward := (heading_basis * Vector3.FORWARD).normalized()
 	player.rotation.y = heading_y
+	if _object_has_property(player, "_last_strong_direction"):
+		player.set("_last_strong_direction", forward)
 	var camera_controller := player.get_node_or_null("CameraController")
 	if camera_controller != null:
 		camera_controller.set("_euler_rotation", Vector3.ZERO)
 		(camera_controller as Node3D).transform.basis = Basis.IDENTITY
+
+
+func _object_has_property(object: Object, property_name: String) -> bool:
+	for property_info in object.get_property_list():
+		if String(property_info.get("name", "")) == property_name:
+			return true
+	return false
 
 
 func _explosion_target_position(forward: Vector3, right: Vector3, forward_distance: float, right_offset: float) -> Vector3:

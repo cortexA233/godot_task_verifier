@@ -64,6 +64,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("horizontal_distance", probe_source)
         self.assertIn("horizontal_travel_distance", probe_source)
         self.assertIn("path_is_player_safe", probe_source)
+        self.assertIn("calibration_path_is_usable", probe_source)
 
     def test_runner_declares_default_throw_calibration_flow(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -74,6 +75,9 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("CALIBRATION_BORDERLINE_MAX_DISTANCE", runner_source)
         self.assertIn("_calibrate_default_throw_distance", runner_source)
         self.assertIn("_calibration_band", runner_source)
+        self.assertIn("candidate_records", runner_source)
+        self.assertIn("_object_has_property", runner_source)
+        self.assertIn("_last_strong_direction", runner_source)
         self.assertIn("_target_forward_distance", runner_source)
         self.assertIn("_far_forward_distance", runner_source)
         self.assertIn("calibration[\"status\"]", runner_source)

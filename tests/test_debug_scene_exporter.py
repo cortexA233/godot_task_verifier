@@ -67,11 +67,20 @@ class DebugSceneExporterTests(unittest.TestCase):
             self.assertIn("res://__verifier__/debug_arena.tscn", completed.stdout)
             self.assertTrue((output / "__verifier__" / "debug_arena.tscn").exists())
 
-    def test_debug_arena_label_describes_fallback_layout(self):
+    def test_debug_arena_label_describes_adaptive_layout(self):
         debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
 
-        self.assertIn("fallback front explosion trial", debug_source)
-        self.assertIn("grader may adapt target distance", debug_source)
+        self.assertIn("adaptive target distance", debug_source)
+        self.assertIn("distance band fallback", debug_source)
+
+    def test_debug_arena_calibrates_or_shows_distance_band(self):
+        debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
+
+        self.assertIn("_calibrate_default_throw_distance", debug_source)
+        self.assertIn("_apply_adaptive_target_layout", debug_source)
+        self.assertIn("_add_distance_band_targets", debug_source)
+        self.assertIn("candidate_records", debug_source)
+        self.assertIn("DistanceBandTarget", debug_source)
 
 
 if __name__ == "__main__":

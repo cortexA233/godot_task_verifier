@@ -142,15 +142,23 @@ static func path_is_player_safe(points: Array, player_position: Vector3, minimum
 	return true
 
 
-static func has_arc_motion(points: Array[Vector3]) -> bool:
+static func calibration_path_is_usable(points: Array, player_position: Vector3, minimum_distance: float, minimum_travel_distance: float) -> bool:
+	if points.size() < 2:
+		return false
+	if not path_is_player_safe(points, player_position, minimum_distance):
+		return false
+	return horizontal_travel_distance(points) >= minimum_travel_distance
+
+
+static func has_arc_motion(points: Array) -> bool:
 	if points.size() < 6:
 		return false
-	var max_y := points[0].y
+	var max_y: float = points[0].y
 	for point in points:
-		max_y = max(max_y, point.y)
-	var start_y := points[0].y
-	var end_y := points[points.size() - 1].y
+		max_y = maxf(max_y, point.y)
+	var start_y: float = points[0].y
+	var end_y: float = points[points.size() - 1].y
 	var start_xz := Vector2(points[0].x, points[0].z)
 	var end_xz := Vector2(points[points.size() - 1].x, points[points.size() - 1].z)
-	var horizontal_distance := start_xz.distance_to(end_xz)
+	var horizontal_distance: float = start_xz.distance_to(end_xz)
 	return max_y > start_y + 0.15 and end_y < max_y - 0.1 and horizontal_distance > 0.5
