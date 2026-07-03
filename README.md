@@ -51,7 +51,7 @@ Open the exported project in Godot, then run:
 res://__verifier__/debug_arena.tscn
 ```
 
-This scene uses the same deterministic arena layout as the grader's front explosion trial: the real `player/player.tscn`, optional weapon UI, `NearTargetA`, `NearTargetB`, `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget`. The grader also runs rotated left-front and right-front explosion trials headlessly. The debug scene adds a camera, light, visible floor, and labels so the target placement is easy to inspect.
+This scene uses the same deterministic arena shell as the grader and shows the fixed fallback front explosion layout: the real `player/player.tscn`, optional weapon UI, `NearTargetA`, `NearTargetB`, `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget`. During headless grading, the verifier first makes a target-free default throw, measures the safe arcing landing distance, and may adapt the near target cluster to that measured distance before running the front, left-front, and right-front explosion trials. If calibration fails or lands outside the accepted band, the grader falls back to the fixed debug layout. The debug scene adds a camera, light, visible floor, and labels so the fallback target placement is easy to inspect.
 
 ## Score Categories
 
@@ -66,6 +66,8 @@ This scene uses the same deterministic arena layout as the grader's front explos
 The score is behavioral. It does not require historical filenames, class names, node paths, or signal names.
 
 ## Calibration
+
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe arc, gives the strongest credit to a 6-12 unit default landing distance, treats 4-14 units as borderline usable, and otherwise uses the fixed fallback target geometry. Safety targets stay strict and do not move inward with explosion radius.
 
 Run:
 

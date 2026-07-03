@@ -67,6 +67,12 @@ class DebugSceneExporterTests(unittest.TestCase):
             self.assertIn("res://__verifier__/debug_arena.tscn", completed.stdout)
             self.assertTrue((output / "__verifier__" / "debug_arena.tscn").exists())
 
+    def test_debug_arena_label_describes_fallback_layout(self):
+        debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
+
+        self.assertIn("fallback front explosion trial", debug_source)
+        self.assertIn("grader may adapt target distance", debug_source)
+
 
 if __name__ == "__main__":
     unittest.main()

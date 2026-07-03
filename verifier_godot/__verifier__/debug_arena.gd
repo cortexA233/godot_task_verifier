@@ -69,7 +69,7 @@ func _add_target_label(label_text: String, position: Vector3) -> void:
 func _add_controls_label() -> void:
 	var label := Label3D.new()
 	label.name = "DebugControlsLabel"
-	label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\nTargets show the front explosion trial"
+	label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\nTargets show fallback front explosion trial\ngrader may adapt target distance after calibration"
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 22
 	label.outline_size = 6

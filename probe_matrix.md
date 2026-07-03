@@ -11,12 +11,13 @@ python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
 
 | Probe | Expected Score Band | Required Failure Evidence |
 | --- | ---: | --- |
-| HUD-only weapon switch, no projectile | 10-30 | `projectile_physics`, `explosion_gameplay`, and `stability_repeatability` stay low. |
-| Attack directly damages all targets | 15-40 | `projectile_physics` low and far target penalty appears. |
+| HUD-only weapon switch, no projectile | 10-30 | `projectile_physics`, calibration, `explosion_gameplay`, and `stability_repeatability` stay low. |
+| Attack directly damages all targets | 15-40 | `projectile_physics` low and far/side/rear target penalty appears. |
 | Visual explosion with no damage | 10-35 | `visual_audio_polish` may score, `explosion_gameplay` remains low. |
-| Damage with no trajectory feedback | 35-65 | `trajectory_preview` remains low. |
+| Damage with no trajectory feedback | 35-65 | `trajectory_preview` remains low even if adaptive explosion placement gives some damage credit. |
 | Single-use grenade | 40-75 | `stability_repeatability` loses repeated-use points. |
-| Grenade damages player | 30-70 | `explosion_gameplay` notes player impact. |
-| Fixed trajectory that ignores aim | 35-70 | `trajectory_preview` loses aim-change points. |
-| Explosion affects distant targets | 35-75 | `explosion_gameplay` notes far target damage. |
+| Grenade damages player | 30-70 | `explosion_gameplay` notes player impact or unsafe path. |
+| Fixed trajectory that ignores aim | 35-70 | `trajectory_preview` loses aim-change points and rotated explosion trials miss adaptive target placement. |
+| Explosion affects distant targets | 35-75 | `explosion_gameplay` notes far, side, rear, or player safety target damage. |
+| Very short or very long default throw | 25-70 | Calibration notes failed or borderline distance; fixed fallback or safety targets prevent full explosion credit. |
 | Grenade mode breaks default shooting | 35-75 | `stability_repeatability` loses default-weapon regression points. |
