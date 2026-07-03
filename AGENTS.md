@@ -44,6 +44,9 @@ solution hints into the ablated game repository.
 - Maintain deterministic headless execution. Control timing, scene setup,
   target placement, input events, random seeds, viewport assumptions, and
   artifact paths where relevant.
+- Pin verifier runs, calibration, and assignment evidence to Godot 4.6 unless a
+  human explicitly approves an engine-version change and the verifier is
+  recalibrated against the new version.
 - Keep scoring meaningful and out of 100. When scoring changes, update the
   README, tests, calibration notes, and probe matrix as needed.
 - Reject reward hacking and near-miss implementations with behavioral probes,
@@ -78,7 +81,7 @@ Run the verifier against a candidate project:
 ```powershell
 python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
   --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe" `
+  --godot "C:\Godot_v4.6-stable_mono_win64\Godot_v4.6-stable_mono_win64_console.exe" `
   --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json
 ```
 
@@ -87,7 +90,7 @@ Run with a PDF report:
 ```powershell
 python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
   --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe" `
+  --godot "C:\Godot_v4.6-stable_mono_win64\Godot_v4.6-stable_mono_win64_console.exe" `
   --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
   --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf
 ```
