@@ -167,6 +167,20 @@ class RunGraderTests(unittest.TestCase):
 
         self.assertIn('visible_effects > 0 and bool(activity.get("saw_audio", false))', runner_source)
 
+    def test_runner_declares_main_scene_integration_smoke_check(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("_score_main_scene_integration", runner_source)
+        self.assertIn("res://main.tscn", runner_source)
+        self.assertIn('"Main scene loads"', runner_source)
+        self.assertIn('"Main scene default attacks"', runner_source)
+        self.assertIn('"Main scene actors and pickups"', runner_source)
+        self.assertIn("collect_coin", runner_source)
+        self.assertIn("damageables", runner_source)
+        self.assertIn("targeteables", runner_source)
+        self.assertIn("_stop_audio_players_under", runner_source)
+        self.assertIn("AudioStreamPlayer3D", runner_source)
+
     def test_explosion_gameplay_detects_nearby_damage_when_actual_throw_angle_differs(self):
         godot = find_godot()
         if godot is None:

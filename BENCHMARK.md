@@ -52,6 +52,9 @@ Record the following for each rollout attempt:
 Recommended protocol for comparable runs:
 
 - Give the agent the ablated task workspace and `TASK_PROMPT.md`.
+- Prefer generating that workspace with `prepare_rollout_workspace.py` so local
+  git history, verifier files, generated artifacts, and assignment/verifier
+  instruction files are stripped before rollout.
 - Do not expose the verifier source, score rubric internals, calibration
   artifacts, reference implementation, git history, or other task branches.
 - Allow normal local inspection and Godot execution inside the candidate
@@ -95,6 +98,10 @@ The verifier grades out of 100:
 - `explosion_gameplay`: 20
 - `visual_audio_polish`: 5
 - `stability_repeatability`: 5
+
+`stability_repeatability` includes both deterministic verifier-arena repeat use
+checks and a real `res://main.tscn` smoke check for default shooting, melee,
+targetable/damageable actors, and coin/pickup behavior.
 
 The `passed` flag currently uses `score >= 85` as a report convenience. The
 primary benchmark signal is the 0-100 score and category breakdown. A reference

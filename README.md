@@ -18,6 +18,19 @@ The verifier copies the candidate project to a temporary directory, imports reso
 
 For weapon switching, the verifier first drives the `swap_weapons` input action when it exists. If a candidate implements the player-facing `Tab` key directly instead of registering that action, the verifier falls back to injecting a real `Tab` key event through Godot's input event path.
 
+## Rollout Workspace Export
+
+Before giving an ablated task project to a rollout agent, create a clean agent-facing copy:
+
+```powershell
+python C:\recent_project\roboblast-grenade-verifier\prepare_rollout_workspace.py `
+  --project C:\path\to\ablated-task-project `
+  --out C:\path\to\clean-rollout-workspace `
+  --force
+```
+
+The exporter keeps runnable Godot resources and task prompts while excluding git history, Godot caches, local agent config, verifier folders, generated artifacts, debug exports, temporary files, and assignment/verifier files such as `AGENTS.md`, `CLAUDE.md`, `game_take_home.html`, `BENCHMARK.md`, and `probe_matrix.md`.
+
 To write a detailed PDF score report during grading, add `--pdf-report`:
 
 ```powershell
@@ -67,6 +80,9 @@ This scene uses the same deterministic arena shell as the grader. When it starts
 - `stability_repeatability`: 5 points
 
 The score is behavioral. It does not require historical filenames, class names, node paths, or signal names.
+The `stability_repeatability` category now includes a real `res://main.tscn`
+smoke check for default shooting, melee, targetable actors, damageable actors,
+and coin/pickup behavior in addition to the deterministic verifier arena.
 
 ## Calibration
 

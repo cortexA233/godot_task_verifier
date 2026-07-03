@@ -62,12 +62,26 @@ func _run() -> void:
 	await _score_visual_audio_polish()
 	await _build_arena()
 	await _score_stability_repeatability()
+	await _cleanup_before_quit()
 	JsonWriter.write_result(board.to_dictionary(Engine.get_version_info().get("string", "")))
 	quit()
 
 
+func _cleanup_before_quit() -> void:
+	paused = false
+	_stop_audio_players_under(root)
+	if arena != null and is_instance_valid(arena):
+		arena.queue_free()
+		arena = null
+		player = null
+		weapon_ui = null
+	await process_frame
+	await process_frame
+
+
 func _build_arena() -> void:
 	if arena != null and is_instance_valid(arena):
+		_stop_audio_players_under(arena)
 		arena.queue_free()
 		await process_frame
 	arena = ArenaBuilder.create_arena()
@@ -771,40 +785,207 @@ func _score_visual_audio_polish() -> void:
 	board.add("visual_audio_polish", _detail_score(details), 5, _detail_notes(details), details)
 
 
-func _score_stability_repeatability() -> void:
-	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 5, "missed", "No player available.")]
-		board.add("stability_repeatability", 0, 5, _detail_notes(details), details)
-		return
+func _score_main_scene_integration() -> Array[Dictionary]:
 	var details: Array[Dictionary] = []
-	await input.tap("swap_weapons")
-	var first_before := SceneProbe.collect_instance_ids(arena)
-	await input.tap("attack")
-	await input.wait_physics_frames(90)
-	var first_nodes := SceneProbe.new_nodes_since(arena, first_before).size()
+	var main_scene_resource := load("res://main.tscn")
+	if main_scene_resource == null or not main_scene_resource is PackedScene:
+		details.append(_detail("Main scene loads", 0, 1, "missed", "res://main.tscn could not be loaded"))
+		details.append(_detail("Main scene default attacks", 0, 1, "missed", "default attacks not checked because main scene did not load"))
+		details.append(_detail("Main scene actors and pickups", 0, 1, "missed", "actors and pickups not checked because main scene did not load"))
+		return details
+
+	var main_scene: Node = (main_scene_resource as PackedScene).instantiate()
+	main_scene.name = "VerifierMainSceneSmoke"
+	root.add_child(main_scene)
+	await process_frame
+	paused = false
 	await input.wait_physics_frames(60)
-	var second_before := SceneProbe.collect_instance_ids(arena)
-	await input.tap("attack")
-	await input.wait_physics_frames(90)
-	var second_nodes := SceneProbe.new_nodes_since(arena, second_before).size()
+
+	var main_player := _find_main_scene_player(main_scene)
 	details.append(_score_detail(
-		"Repeated grenade attacks",
-		3,
-		first_nodes > 0 and second_nodes > 0,
-		"two separated grenade attacks produced runtime behavior",
-		"repeated grenade attacks did not both produce runtime behavior"
+		"Main scene loads",
+		1,
+		main_player != null,
+		"main scene loaded with a playable player",
+		"main scene loaded but no playable player was found"
 	))
-	await input.tap("swap_weapons")
-	var default_before := SceneProbe.collect_instance_ids(arena)
+	details.append(await _score_main_scene_default_attacks(main_scene, main_player))
+	details.append(await _score_main_scene_actors_and_pickups(main_scene, main_player))
+
+	_stop_audio_players_under(main_scene)
+	await process_frame
+	main_scene.queue_free()
+	paused = false
+	await process_frame
+	await process_frame
+	return details
+
+
+func _score_main_scene_default_attacks(main_scene: Node, main_player: Node) -> Dictionary:
+	if main_player == null:
+		return _detail("Main scene default attacks", 0, 1, "missed", "default attacks not checked because main scene player was missing")
+	if main_player is CharacterBody3D:
+		await _wait_for_character_floor(main_player as CharacterBody3D, 90)
+	var before_shoot := SceneProbe.collect_instance_ids(main_scene)
 	await input.hold("aim", 4)
-	await input.tap("attack")
-	await input.release("aim")
-	var default_nodes := SceneProbe.new_nodes_since(arena, default_before).size()
-	details.append(_score_detail(
-		"Default attack after grenade use",
-		2,
-		default_nodes > 0,
-		"default aimed attack still works after grenade use",
-		"default aimed attack did not produce runtime behavior after grenade use"
-	))
+	await input.tap("attack", 2, 8)
+	await input.release("aim", 8)
+	var shoot_nodes := SceneProbe.new_nodes_since(main_scene, before_shoot).size()
+
+	await input.wait_physics_frames(20)
+	var melee_velocity_before := 0.0
+	var melee_position_before := Vector3.ZERO
+	if main_player is CharacterBody3D:
+		melee_velocity_before = (main_player as CharacterBody3D).velocity.length()
+		melee_position_before = (main_player as CharacterBody3D).global_position
+	await input.tap("attack", 2, 8)
+	await input.wait_physics_frames(12)
+	var melee_velocity_after := melee_velocity_before
+	var melee_position_delta := 0.0
+	if main_player is CharacterBody3D:
+		melee_velocity_after = (main_player as CharacterBody3D).velocity.length()
+		melee_position_delta = (main_player as CharacterBody3D).global_position.distance_to(melee_position_before)
+	var melee_animation_observed := _scene_has_playing_animation(main_scene, "Attack")
+	var melee_observed := melee_animation_observed or melee_velocity_after > melee_velocity_before + 0.1 or melee_position_delta > 0.02
+	if shoot_nodes > 0 and melee_observed:
+		return _detail("Main scene default attacks", 1, 1, "earned", "main scene default shooting and melee both produced runtime behavior")
+	return _detail(
+		"Main scene default attacks",
+		0,
+		1,
+		"missed",
+		"main scene default attack observation was incomplete: shoot_nodes=%d, melee_animation=%s, melee_velocity_delta=%.2f, melee_position_delta=%.2f" % [
+			shoot_nodes,
+			str(melee_animation_observed),
+			melee_velocity_after - melee_velocity_before,
+			melee_position_delta,
+		]
+	)
+
+
+func _wait_for_character_floor(character: CharacterBody3D, max_frames: int) -> void:
+	for _i in range(max_frames):
+		if character.is_on_floor():
+			return
+		await input.wait_physics_frames(1)
+
+
+func _score_main_scene_actors_and_pickups(main_scene: Node, main_player: Node) -> Dictionary:
+	var targetables := _group_nodes_under(main_scene, "targeteables")
+	var damageables := _group_nodes_under(main_scene, "damageables")
+	var coin_system := main_player != null and main_player.has_method("collect_coin")
+	var damage_spawned_pickups := await _damage_main_scene_actor_spawns_runtime_nodes(main_scene, targetables)
+	return _score_detail(
+		"Main scene actors and pickups",
+		1,
+		targetables.size() > 0 and damageables.size() > 1 and coin_system and damage_spawned_pickups,
+		"main scene kept targeteables, damageables, collect_coin, and damage-spawned pickup behavior",
+		"main scene actors, crates, enemies, or coin pickup behavior appeared incomplete"
+	)
+
+
+func _damage_main_scene_actor_spawns_runtime_nodes(main_scene: Node, targetables: Array[Node]) -> bool:
+	var target := _preferred_main_scene_damage_target(targetables)
+	if target == null or not target.has_method("damage"):
+		return false
+	var before := SceneProbe.collect_instance_ids(main_scene)
+	target.call("damage", Vector3.ZERO, Vector3.UP)
+	await input.wait_physics_frames(150)
+	return SceneProbe.new_nodes_since(main_scene, before).size() > 0
+
+
+func _preferred_main_scene_damage_target(targetables: Array[Node]) -> Node:
+	for target in targetables:
+		if target.has_method("damage") and _node_name_contains(target, "box"):
+			return target
+	for target in targetables:
+		if target.has_method("damage"):
+			return target
+	return null
+
+
+func _find_main_scene_player(main_scene: Node) -> Node:
+	for node in SceneProbe.flatten(main_scene):
+		if node.name == "Player" or (node is CharacterBody3D and node.has_method("collect_coin")):
+			return node
+	return null
+
+
+func _group_nodes_under(root_node: Node, group_name: String) -> Array[Node]:
+	var result: Array[Node] = []
+	for node in get_nodes_in_group(group_name):
+		if _is_descendant_of(node, root_node):
+			result.append(node)
+	return result
+
+
+func _is_descendant_of(node: Node, possible_ancestor: Node) -> bool:
+	var current := node
+	while current != null:
+		if current == possible_ancestor:
+			return true
+		current = current.get_parent()
+	return false
+
+
+func _scene_has_playing_animation(root_node: Node, animation_name: String) -> bool:
+	for node in SceneProbe.flatten(root_node):
+		if node is AnimationPlayer:
+			var animation_player := node as AnimationPlayer
+			if animation_player.is_playing() and animation_player.current_animation == animation_name:
+				return true
+	return false
+
+
+func _stop_audio_players_under(root_node: Node) -> void:
+	for node in SceneProbe.flatten(root_node):
+		if node is AudioStreamPlayer:
+			(node as AudioStreamPlayer).stop()
+		elif node is AudioStreamPlayer2D:
+			(node as AudioStreamPlayer2D).stop()
+		elif node is AudioStreamPlayer3D:
+			(node as AudioStreamPlayer3D).stop()
+
+
+func _node_name_contains(node: Node, text: String) -> bool:
+	return String(node.name).to_lower().find(text.to_lower()) >= 0
+
+
+func _score_stability_repeatability() -> void:
+	var details: Array[Dictionary] = []
+	if player == null:
+		details.append(_detail("Repeated grenade attacks", 0, 1, "missed", "No player available."))
+		details.append(_detail("Default attack after grenade use", 0, 1, "missed", "No player available."))
+	else:
+		await input.tap("swap_weapons")
+		var first_before := SceneProbe.collect_instance_ids(arena)
+		await input.tap("attack")
+		await input.wait_physics_frames(90)
+		var first_nodes := SceneProbe.new_nodes_since(arena, first_before).size()
+		await input.wait_physics_frames(60)
+		var second_before := SceneProbe.collect_instance_ids(arena)
+		await input.tap("attack")
+		await input.wait_physics_frames(90)
+		var second_nodes := SceneProbe.new_nodes_since(arena, second_before).size()
+		details.append(_score_detail(
+			"Repeated grenade attacks",
+			1,
+			first_nodes > 0 and second_nodes > 0,
+			"two separated grenade attacks produced runtime behavior",
+			"repeated grenade attacks did not both produce runtime behavior"
+		))
+		await input.tap("swap_weapons")
+		var default_before := SceneProbe.collect_instance_ids(arena)
+		await input.hold("aim", 4)
+		await input.tap("attack")
+		await input.release("aim")
+		var default_nodes := SceneProbe.new_nodes_since(arena, default_before).size()
+		details.append(_score_detail(
+			"Default attack after grenade use",
+			1,
+			default_nodes > 0,
+			"default aimed attack still works after grenade use",
+			"default aimed attack did not produce runtime behavior after grenade use"
+		))
+	details.append_array(await _score_main_scene_integration())
 	board.add("stability_repeatability", _detail_score(details), 5, _detail_notes(details), details)
