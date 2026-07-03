@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare Agent Run Workspace"
+  short_description: "Prepare clean rollout workspaces with baseline evidence."
+  default_prompt: "Use $prepare-agent-run-workspace to prepare a clean isolated workspace and baseline evidence for an evaluated agent run."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Collect Agent Run Evidence"
+  short_description: "Collect diffs, commits, scores, and run evidence."
+  default_prompt: "Use $collect-agent-run-evidence to finalize an evaluated agent run and collect objective diff and score evidence."
