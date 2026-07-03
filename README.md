@@ -82,13 +82,14 @@ Latest local calibration:
 
 - Godot executable: `C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe`
 - Godot version: `4.6.stable.official.89cea1439`
-- Ablated task branch: `13/100`; no grenade projectile is available, so explosion calibration falls back and explosion gameplay scores 0.
+- Ablated task branch: `11/100`; no grenade projectile is available, so explosion calibration falls back, trajectory preview scores 0, and explosion gameplay scores 0.
 - Reference branch: not available at `C:\recent_project\godot-4-3d-third-person-controller-reference` during the latest local run.
 
 The ablated score is low because the grenade weapon behavior is absent. The
-radial nearby target rings, adaptive calibration, and frame-window effect
-observation reduce false negatives from exact throw-distance mismatch and
-short-lived presentation effects.
+trajectory-preview gates, radial nearby target rings, adaptive calibration, and
+frame-window effect observation reduce false negatives from exact
+throw-distance mismatch and short-lived presentation effects while keeping
+missing grenade behavior low-scoring.
 
 ## Probe Matrix
 
