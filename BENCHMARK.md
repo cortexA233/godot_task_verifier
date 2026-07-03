@@ -89,11 +89,11 @@ the historical grenade implementation.
 The verifier grades out of 100:
 
 - `weapon_controls`: 15
-- `hud_feedback`: 15
-- `trajectory_preview`: 20
+- `hud_feedback`: 10
+- `trajectory_preview`: 30
 - `projectile_physics`: 15
 - `explosion_gameplay`: 20
-- `visual_audio_polish`: 10
+- `visual_audio_polish`: 5
 - `stability_repeatability`: 5
 
 The `passed` flag currently uses `score >= 85` as a report convenience. The
@@ -131,8 +131,9 @@ local validation should demonstrate:
 
 - the ablated task scores low
 - the reference behavior scores high
-- HUD-only, direct-damage, visual-only, fixed-trajectory, broad-damage, and
-  single-use implementations do not receive high scores
+- HUD-only, direct-damage, visual-only, fixed or wrong trajectory, broad-damage,
+  borderline throw-distance, and single-use implementations do not receive high
+  scores
 - repeated runs of the same candidate produce stable scores
 
 Probe candidates should be kept outside rollout-agent workspaces.

@@ -59,18 +59,18 @@ This scene uses the same deterministic arena shell as the grader. When it starts
 ## Score Categories
 
 - `weapon_controls`: 15 points
-- `hud_feedback`: 15 points
-- `trajectory_preview`: 20 points
+- `hud_feedback`: 10 points
+- `trajectory_preview`: 30 points
 - `projectile_physics`: 15 points
 - `explosion_gameplay`: 20 points
-- `visual_audio_polish`: 10 points
+- `visual_audio_polish`: 5 points
 - `stability_repeatability`: 5 points
 
 The score is behavioral. It does not require historical filenames, class names, node paths, or signal names.
 
 ## Calibration
 
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives the strongest calibration confidence to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable. Formal explosion trials place nearby damage targets on radial 6, 8, 10, and 12 unit rings for all 18 direction groups around the player, one group every 20 degrees; a trial receives nearby-damage credit when any radial nearby target is damaged, so valid camera-forward or player-forward implementations are not false-negatived by the verifier's angle convention. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. The `FarTarget` distance is fixed at 25 units, and side/rear safety targets also sit on the 25-unit ring within the 30-unit target field so safety stays strict and does not move inward with explosion radius. Aim-reactivity is scored in `trajectory_preview`, not by assuming a specific explosion heading.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials place nearby damage targets on radial 6, 8, 10, and 12 unit rings for all 18 direction groups around the player, one group every 20 degrees; a trial receives nearby-damage credit when any radial nearby target is damaged, so valid camera-forward or player-forward implementations are not false-negatived by the verifier's angle convention. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. The `FarTarget` distance is fixed at 25 units, and side/rear safety targets also sit on the 25-unit ring within the 30-unit target field so safety stays strict and does not move inward with explosion radius. Trajectory preview scoring now emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
 
 Run:
 
