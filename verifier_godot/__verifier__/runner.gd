@@ -7,14 +7,16 @@ const InputDriver = preload("res://__verifier__/input_driver.gd")
 const SceneProbe = preload("res://__verifier__/scene_probe.gd")
 
 const EXPLOSION_TRIALS := [
-	{"label": "Front throw", "heading_y": 0.0, "target_group": "Front"},
-	{"label": "Left-front throw", "heading_y": -0.65, "target_group": "LeftFront"},
-	{"label": "Right-front throw", "heading_y": 0.65, "target_group": "RightFront"},
+	{"label": "Front throw", "heading_y": 0.0},
+	{"label": "Left-front throw", "heading_y": -0.65},
+	{"label": "Right-front throw", "heading_y": 0.65},
 ]
 
 const FALLBACK_THROW_DISTANCE := 8.0
 const TARGET_FIELD_RADIUS := 30.0
 const FAR_TARGET_DISTANCE := 25.0
+const NEARBY_TARGET_GROUP_DEGREES := 20
+const NEARBY_TARGET_GROUP_COUNT := 18
 const CALIBRATION_FULL_MIN_DISTANCE := 6.0
 const CALIBRATION_FULL_MAX_DISTANCE := 12.0
 const CALIBRATION_BORDERLINE_MIN_DISTANCE := 4.0
@@ -311,7 +313,7 @@ func _score_explosion_gameplay() -> void:
 	var calibration := await _calibrate_default_throw_distance()
 	var trial_results: Array[Dictionary] = []
 	for trial in EXPLOSION_TRIALS:
-		trial_results.append(await _run_explosion_trial(String(trial["label"]), float(trial["heading_y"]), String(trial["target_group"]), calibration))
+		trial_results.append(await _run_explosion_trial(String(trial["label"]), float(trial["heading_y"]), _target_group_for_heading(float(trial["heading_y"])), calibration))
 	var details := _explosion_details_from_trials(trial_results, calibration)
 	board.add("explosion_gameplay", _detail_score(details), 20, _detail_notes(details), details)
 
@@ -469,10 +471,10 @@ func _run_explosion_trial(trial_label: String, heading_y: float, target_group: S
 func _add_nearby_damage_targets(root_node: Node3D, target_group: String) -> Dictionary:
 	var all_targets: Array = []
 	var scored_targets: Array = []
-	for trial in EXPLOSION_TRIALS:
-		var group := String(trial["target_group"])
+	for group_data in _nearby_damage_target_groups():
+		var group := String(group_data["target_group"])
 		for radius in NEARBY_DAMAGE_TARGET_RADII:
-			var target = ArenaBuilder.add_damage_target(root_node, "NearbyTarget", _polar_target_position(float(trial["heading_y"]), float(radius)))
+			var target = ArenaBuilder.add_damage_target(root_node, "NearbyTarget", _polar_target_position(float(group_data["heading_y"]), float(radius)))
 			target.name = "NearbyTarget_%s_%02d" % [group, int(radius)]
 			all_targets.append(target)
 			if group == target_group:
@@ -481,6 +483,36 @@ func _add_nearby_damage_targets(root_node: Node3D, target_group: String) -> Dict
 		"all": all_targets,
 		"scored": scored_targets,
 	}
+
+
+func _nearby_damage_target_groups() -> Array[Dictionary]:
+	var groups: Array[Dictionary] = []
+	for index in range(NEARBY_TARGET_GROUP_COUNT):
+		var degrees := index * NEARBY_TARGET_GROUP_DEGREES
+		groups.append({
+			"target_group": _nearby_target_group_name(degrees),
+			"heading_y": deg_to_rad(float(degrees)),
+			"degrees": degrees,
+		})
+	return groups
+
+
+func _target_group_for_heading(heading_y: float) -> String:
+	var snapped_degrees := int(round(rad_to_deg(heading_y) / float(NEARBY_TARGET_GROUP_DEGREES))) * NEARBY_TARGET_GROUP_DEGREES
+	return _nearby_target_group_name(snapped_degrees)
+
+
+func _nearby_target_group_name(degrees: int) -> String:
+	return "Angle%03d" % _wrapped_degrees(degrees)
+
+
+func _wrapped_degrees(degrees: int) -> int:
+	var wrapped := degrees
+	while wrapped < 0:
+		wrapped += 360
+	while wrapped >= 360:
+		wrapped -= 360
+	return wrapped
 
 
 func _add_safety_target(root_node: Node3D, target_name: String, heading_y: float, radius: float) -> Node3D:

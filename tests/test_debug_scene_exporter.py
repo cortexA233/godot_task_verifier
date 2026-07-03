@@ -87,12 +87,15 @@ class DebugSceneExporterTests(unittest.TestCase):
 
         self.assertIn("TARGET_FIELD_RADIUS := 30.0", debug_source)
         self.assertIn("FAR_TARGET_DISTANCE := 25.0", debug_source)
+        self.assertIn("NEARBY_TARGET_GROUP_DEGREES := 20", debug_source)
+        self.assertIn("NEARBY_TARGET_GROUP_COUNT := 18", debug_source)
         self.assertIn("NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]", debug_source)
-        self.assertIn('"target_group": "Front"', debug_source)
-        self.assertIn('"target_group": "LeftFront"', debug_source)
-        self.assertIn('"target_group": "RightFront"', debug_source)
+        self.assertIn("_nearby_damage_target_groups", debug_source)
+        self.assertIn("_nearby_target_group_name", debug_source)
+        self.assertIn("for index in range(NEARBY_TARGET_GROUP_COUNT)", debug_source)
+        self.assertIn("var degrees := index * NEARBY_TARGET_GROUP_DEGREES", debug_source)
         self.assertIn("_add_radial_nearby_damage_targets", debug_source)
-        self.assertIn("_polar_target_position(float(group[\"heading_y\"]), float(radius))", debug_source)
+        self.assertIn("_polar_target_position(float(group_data[\"heading_y\"]), float(radius))", debug_source)
         self.assertIn("NearbyTarget", debug_source)
 
 

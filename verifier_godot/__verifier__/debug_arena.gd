@@ -8,6 +8,8 @@ const SceneProbe = preload("res://__verifier__/scene_probe.gd")
 const FALLBACK_THROW_DISTANCE := 8.0
 const TARGET_FIELD_RADIUS := 30.0
 const FAR_TARGET_DISTANCE := 25.0
+const NEARBY_TARGET_GROUP_DEGREES := 20
+const NEARBY_TARGET_GROUP_COUNT := 18
 const CALIBRATION_SPAWN_RADIUS := 6.0
 const CALIBRATION_TRACK_FRAMES := 180
 const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
@@ -15,11 +17,6 @@ const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
 const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
 const DISTANCE_BAND_TARGETS := [4.0, 6.0, 8.0, 10.0, 12.0, 14.0]
 const NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]
-const NEARBY_DAMAGE_TARGET_GROUPS := [
-	{"target_group": "Front", "heading_y": 0.0},
-	{"target_group": "LeftFront", "heading_y": -0.65},
-	{"target_group": "RightFront", "heading_y": 0.65},
-]
 
 var input
 var arena: Node3D
@@ -148,29 +145,50 @@ func _add_standard_target_layout() -> void:
 
 
 func _add_radial_nearby_damage_targets() -> void:
-	for group in NEARBY_DAMAGE_TARGET_GROUPS:
-		var group_name := String(group["target_group"])
+	for group_data in _nearby_damage_target_groups():
+		var group_name := String(group_data["target_group"])
 		for radius in NEARBY_DAMAGE_TARGET_RADII:
-			var position := _polar_target_position(float(group["heading_y"]), float(radius))
+			var position := _polar_target_position(float(group_data["heading_y"]), float(radius))
 			var target_name := "NearbyTarget_%s_%02d" % [group_name, int(radius)]
 			_add_damage_target(target_name, position)
 			_add_target_label("%s %dm" % [group_name, int(radius)], position + Vector3.UP * 1.05, Color(0.9, 1.0, 0.5))
 
 
 func _add_safety_target_ring() -> void:
-	for group in NEARBY_DAMAGE_TARGET_GROUPS:
-		var group_name := String(group["target_group"])
-		var heading_y := float(group["heading_y"])
-		_add_debug_safety_target("FarTarget_%s" % group_name, "Far %s 25m" % group_name, heading_y)
-		_add_debug_safety_target("LeftSideTarget_%s" % group_name, "Left %s 25m" % group_name, heading_y - PI * 0.5)
-		_add_debug_safety_target("RightSideTarget_%s" % group_name, "Right %s 25m" % group_name, heading_y + PI * 0.5)
-		_add_debug_safety_target("RearTarget_%s" % group_name, "Rear %s 25m" % group_name, heading_y + PI)
+	for group_data in _nearby_damage_target_groups():
+		var group_name := String(group_data["target_group"])
+		_add_debug_safety_target("FarTarget_%s" % group_name, "%s 25m" % group_name, float(group_data["heading_y"]))
 
 
 func _add_debug_safety_target(target_name: String, label_text: String, heading_y: float) -> void:
 	var position := _polar_target_position(heading_y, FAR_TARGET_DISTANCE)
 	_add_damage_target(target_name, position)
 	_add_target_label(label_text, position + Vector3.UP * 1.05)
+
+
+func _nearby_damage_target_groups() -> Array[Dictionary]:
+	var groups: Array[Dictionary] = []
+	for index in range(NEARBY_TARGET_GROUP_COUNT):
+		var degrees := index * NEARBY_TARGET_GROUP_DEGREES
+		groups.append({
+			"target_group": _nearby_target_group_name(degrees),
+			"heading_y": deg_to_rad(float(degrees)),
+			"degrees": degrees,
+		})
+	return groups
+
+
+func _nearby_target_group_name(degrees: int) -> String:
+	return "Angle%03d" % _wrapped_degrees(degrees)
+
+
+func _wrapped_degrees(degrees: int) -> int:
+	var wrapped := degrees
+	while wrapped < 0:
+		wrapped += 360
+	while wrapped >= 360:
+		wrapped -= 360
+	return wrapped
 
 
 func _add_distance_band_targets() -> void:
