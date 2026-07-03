@@ -26,6 +26,10 @@ const CALIBRATION_TRACK_FRAMES := 180
 const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
 const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
 const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
+const TRAJECTORY_AID_RADIUS := 25.0
+const TRAJECTORY_AIM_CHANGE_HEADING := 0.45
+const TRAJECTORY_DIRECTION_MIN_DOT := 0.5
+const TRAJECTORY_PROJECTILE_TRACK_FRAMES := 35
 const NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]
 
 var board
@@ -171,8 +175,8 @@ func _score_weapon_controls() -> void:
 
 func _score_hud_feedback() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 15, "missed", "No player available.")]
-		board.add("hud_feedback", 0, 15, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 10, "missed", "No player available.")]
+		board.add("hud_feedback", 0, 10, _detail_notes(details), details)
 		return
 	await input.wait_physics_frames(8)
 	var before := SceneProbe.control_snapshot(arena)
@@ -183,83 +187,147 @@ func _score_hud_feedback() -> void:
 	var can_switch_weapons: bool = input.can_drive("swap_weapons")
 	details.append(_score_detail(
 		"Visible UI controls",
-		4,
+		3,
 		before.size() >= 2,
 		"player has visible UI controls",
 		"player has little or no visible UI control tree"
 	))
 	if can_switch_weapons and changed > 0:
-		details.append(_detail("Weapon-switch UI state", 7, 7, "earned", "UI control state changed after weapon switch"))
+		details.append(_detail("Weapon-switch UI state", 4, 4, "earned", "UI control state changed after weapon switch"))
 	elif not can_switch_weapons:
-		details.append(_detail("Weapon-switch UI state", 0, 7, "missed", "weapon-switch UI change not credited because weapon-switch input is missing"))
+		details.append(_detail("Weapon-switch UI state", 0, 4, "missed", "weapon-switch UI change not credited because weapon-switch input is missing"))
 	else:
-		details.append(_detail("Weapon-switch UI state", 0, 7, "missed", "UI did not visibly change after weapon switch"))
+		details.append(_detail("Weapon-switch UI state", 0, 4, "missed", "UI did not visibly change after weapon switch"))
 	await input.hold("aim", 8)
 	var aiming_snapshot := SceneProbe.control_snapshot(arena)
 	await input.release("aim")
 	details.append(_score_detail(
 		"Aiming UI feedback",
-		4,
+		3,
 		SceneProbe.count_changed_controls(after, aiming_snapshot) > 0,
 		"aiming changes UI feedback",
 		"aiming did not change UI feedback"
 	))
-	board.add("hud_feedback", _detail_score(details), 15, _detail_notes(details), details)
+	board.add("hud_feedback", _detail_score(details), 10, _detail_notes(details), details)
+
+
+func _count_visible_nodes(nodes: Array[Node3D]) -> int:
+	var count := 0
+	for node in nodes:
+		if is_instance_valid(node) and node.visible:
+			count += 1
+	return count
+
+
+func _nodes_moved_or_rotated(nodes: Array[Node3D], first_transforms: Array[Transform3D], origin_threshold: float, angle_threshold: float) -> bool:
+	for index in range(nodes.size()):
+		var node := nodes[index]
+		if not is_instance_valid(node) or index >= first_transforms.size():
+			continue
+		var first_transform := first_transforms[index]
+		var origin_moved := node.global_transform.origin.distance_to(first_transform.origin) > origin_threshold
+		var basis_moved := node.global_transform.basis.get_euler().distance_to(first_transform.basis.get_euler()) > angle_threshold
+		if origin_moved or basis_moved:
+			return true
+	return false
+
+
+func _projectile_direction_after_attack(before_attack: Dictionary) -> Vector2:
+	await input.tap("attack")
+	await input.wait_physics_frames(2)
+	var spawned := SceneProbe.node3d_candidates(SceneProbe.new_nodes_since(arena, before_attack), player.global_position, CALIBRATION_SPAWN_RADIUS)
+	if spawned.is_empty():
+		return Vector2.ZERO
+	var tracks: Dictionary = await SceneProbe.track_nodes_positions(self, spawned, TRAJECTORY_PROJECTILE_TRACK_FRAMES)
+	for candidate in spawned:
+		if not is_instance_valid(candidate):
+			continue
+		var points: Array = tracks.get(candidate.get_instance_id(), [])
+		var direction := SceneProbe.track_horizontal_direction(points, CALIBRATION_MIN_TRAVEL_DISTANCE)
+		if not direction.is_zero_approx():
+			return direction
+	return Vector2.ZERO
 
 
 func _score_trajectory_preview() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 20, "missed", "No player available.")]
-		board.add("trajectory_preview", 0, 20, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 30, "missed", "No player available.")]
+		board.add("trajectory_preview", 0, 30, _detail_notes(details), details)
 		return
 	var details: Array[Dictionary] = []
 	var before_visible := SceneProbe.visible_3d_node_ids(arena)
-	await input.tap("swap_weapons")
-	await input.hold("aim", 10)
-	var newly_visible := SceneProbe.newly_visible_3d_nodes(arena, before_visible, player.global_position, 25.0)
-	details.append(_score_detail(
-		"Visible trajectory feedback",
-		8,
-		newly_visible.size() > 0,
-		"new visible 3D aim feedback appears in grenade mode",
-		"no new visible 3D trajectory or landing feedback detected"
-	))
-	var first_transforms: Array[Transform3D] = []
-	for node in newly_visible:
-		first_transforms.append(node.global_transform)
-	_set_explosion_trial_heading(0.45)
-	await input.wait_physics_frames(10)
-	var moved_feedback := false
-	for index in range(newly_visible.size()):
-		var node := newly_visible[index]
-		if not is_instance_valid(node):
-			continue
-		var first_transform := first_transforms[index]
-		var origin_moved := node.global_transform.origin.distance_to(first_transform.origin) > 0.2
-		var basis_moved := node.global_transform.basis.get_euler().distance_to(first_transform.basis.get_euler()) > 0.05
-		if origin_moved or basis_moved:
-			moved_feedback = true
-	details.append(_score_detail(
-		"Trajectory reacts to aim",
-		7,
-		moved_feedback,
-		"aim feedback moves after aim direction changes",
-		"aim feedback did not visibly move after aim direction changes"
-	))
-	await input.release("aim")
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch(3, 10)
 	await input.wait_physics_frames(8)
-	var still_visible := 0
-	for node in newly_visible:
-		if is_instance_valid(node) and node.visible:
-			still_visible += 1
-	if newly_visible.size() > 0 and still_visible < newly_visible.size():
-		details.append(_detail("Trajectory hides outside grenade mode", 5, 5, "earned", "some trajectory feedback hides outside grenade mode"))
-	elif newly_visible.size() == 0:
-		details.append(_detail("Trajectory hides outside grenade mode", 0, 5, "missed", "no trajectory feedback existed to hide"))
+	var aiming_aid_nodes := SceneProbe.newly_visible_3d_nodes(arena, before_visible, player.global_position, TRAJECTORY_AID_RADIUS)
+	var visible_aid := aiming_aid_nodes.size() > 0
+	details.append(_score_detail(
+		"Visible grenade aiming aid",
+		5,
+		visible_aid,
+		"visible grenade aiming aid appears in grenade mode",
+		"no visible grenade trajectory, landing marker, or equivalent aiming aid detected"
+	))
+	if not visible_aid:
+		details.append(_detail("Communicates arcing throw", 0, 6, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Updates with aim/camera direction", 0, 8, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Visibility lifecycle/cooldown behavior", 0, 4, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		board.add("trajectory_preview", _detail_score(details), 30, _detail_notes(details), details)
+		return
+
+	var first_transforms: Array[Transform3D] = []
+	for node in aiming_aid_nodes:
+		first_transforms.append(node.global_transform)
+	var first_direction := SceneProbe.average_horizontal_direction(aiming_aid_nodes, player.global_position)
+	var communicates_arc := SceneProbe.visible_nodes_suggest_arc_or_landing(aiming_aid_nodes, player.global_position)
+	details.append(_score_detail(
+		"Communicates arcing throw",
+		6,
+		communicates_arc,
+		"aiming aid communicates an arcing throw or landing area",
+		"aiming aid does not clearly communicate an arcing grenade throw"
+	))
+
+	_set_explosion_trial_heading(0.45)
+	await input.wait_physics_frames(12)
+	var second_direction := SceneProbe.average_horizontal_direction(aiming_aid_nodes, player.global_position)
+	var moved_feedback := _nodes_moved_or_rotated(aiming_aid_nodes, first_transforms, 0.2, 0.05)
+	var changed_direction := (not first_direction.is_zero_approx() and not second_direction.is_zero_approx() and first_direction.dot(second_direction) < 0.95)
+	var updates_with_aim := moved_feedback or changed_direction
+	details.append(_score_detail(
+		"Updates with aim/camera direction",
+		8,
+		updates_with_aim,
+		"aiming aid updates after aim or camera direction changes",
+		"aiming aid did not update after aim or camera direction changed"
+	))
+
+	var before_attack := SceneProbe.collect_instance_ids(arena)
+	var projectile_direction := await _projectile_direction_after_attack(before_attack)
+	var consistency := updates_with_aim and SceneProbe.directions_match(second_direction, projectile_direction, TRAJECTORY_DIRECTION_MIN_DOT)
+	if consistency:
+		details.append(_detail("Preview matches projectile direction", 7, 7, "earned", "aiming aid direction matches the thrown grenade direction"))
+	elif not updates_with_aim:
+		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "consistency not credited because aiming aid did not update"))
+	elif projectile_direction.is_zero_approx():
+		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "consistency not credited because no measurable grenade projectile direction was observed"))
 	else:
-		details.append(_detail("Trajectory hides outside grenade mode", 0, 5, "missed", "trajectory feedback remains visible outside grenade mode"))
-	board.add("trajectory_preview", _detail_score(details), 20, _detail_notes(details), details)
+		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "aiming aid direction did not match the thrown grenade direction"))
+
+	await input.wait_physics_frames(12)
+	var visible_during_cooldown := _count_visible_nodes(aiming_aid_nodes) > 0
+	await _tap_weapon_switch(3, 8)
+	await input.wait_physics_frames(8)
+	var visible_after_switch := _count_visible_nodes(aiming_aid_nodes)
+	var lifecycle_ok := visible_during_cooldown and visible_after_switch < aiming_aid_nodes.size()
+	details.append(_score_detail(
+		"Visibility lifecycle/cooldown behavior",
+		4,
+		lifecycle_ok,
+		"aiming aid remains available in grenade mode and hides after leaving grenade mode",
+		"aiming aid did not show the expected grenade-mode lifecycle"
+	))
+	board.add("trajectory_preview", _detail_score(details), 30, _detail_notes(details), details)
 
 
 func _score_projectile_physics() -> void:
@@ -650,8 +718,8 @@ func _score_status(score: int, max_score: int) -> String:
 
 func _score_visual_audio_polish() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 10, "missed", "No player available.")]
-		board.add("visual_audio_polish", 0, 10, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 5, "missed", "No player available.")]
+		board.add("visual_audio_polish", 0, 5, _detail_notes(details), details)
 		return
 	await input.tap("swap_weapons")
 	var before := SceneProbe.collect_instance_ids(arena)
@@ -661,26 +729,26 @@ func _score_visual_audio_polish() -> void:
 	var visible_effects := int(activity.get("visible_count", 0))
 	details.append(_score_detail(
 		"Visible effect nodes",
-		4,
+		2,
 		visible_effects > 0,
 		"visible grenade or explosion nodes appeared",
 		"no visible grenade or explosion nodes appeared"
 	))
 	details.append(_score_detail(
 		"Detonation audio",
-		3,
+		2,
 		visible_effects > 0 and bool(activity.get("saw_audio", false)),
 		"audio player was active during detonation window",
-		"no active audio player detected during detonation window"
+		"detonation audio not observed during visible detonation window"
 	))
 	var remaining_new := int(activity.get("remaining_visible_count", 0))
 	if visible_effects > 0 and remaining_new < visible_effects:
-		details.append(_detail("Temporary node cleanup", 3, 3, "earned", "some temporary nodes cleaned up"))
+		details.append(_detail("Temporary node cleanup", 1, 1, "earned", "some temporary nodes cleaned up"))
 	elif visible_effects == 0:
-		details.append(_detail("Temporary node cleanup", 0, 3, "missed", "no temporary visual nodes were created"))
+		details.append(_detail("Temporary node cleanup", 0, 1, "missed", "no temporary visual nodes were created"))
 	else:
-		details.append(_detail("Temporary node cleanup", 0, 3, "missed", "temporary nodes did not clean up during observation window"))
-	board.add("visual_audio_polish", _detail_score(details), 10, _detail_notes(details), details)
+		details.append(_detail("Temporary node cleanup", 0, 1, "missed", "temporary visual nodes did not visibly clean up"))
+	board.add("visual_audio_polish", _detail_score(details), 5, _detail_notes(details), details)
 
 
 func _score_stability_repeatability() -> void:
