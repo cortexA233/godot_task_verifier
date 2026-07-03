@@ -65,6 +65,33 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("horizontal_travel_distance", probe_source)
         self.assertIn("path_is_player_safe", probe_source)
 
+    def test_runner_declares_default_throw_calibration_flow(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("CALIBRATION_FULL_MIN_DISTANCE", runner_source)
+        self.assertIn("CALIBRATION_FULL_MAX_DISTANCE", runner_source)
+        self.assertIn("CALIBRATION_BORDERLINE_MIN_DISTANCE", runner_source)
+        self.assertIn("CALIBRATION_BORDERLINE_MAX_DISTANCE", runner_source)
+        self.assertIn("_calibrate_default_throw_distance", runner_source)
+        self.assertIn("_calibration_band", runner_source)
+        self.assertIn("_target_forward_distance", runner_source)
+        self.assertIn("_far_forward_distance", runner_source)
+        self.assertIn("calibration[\"status\"]", runner_source)
+        self.assertIn("default throw calibration", runner_source)
+
+    def test_runner_uses_adaptive_explosion_target_placement_with_fixed_fallback(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("FALLBACK_THROW_DISTANCE", runner_source)
+        self.assertIn("FAR_TARGET_MIN_DISTANCE", runner_source)
+        self.assertIn("FAR_TARGET_EXTRA_DISTANCE", runner_source)
+        self.assertIn("var target_forward_distance := _target_forward_distance(calibration)", runner_source)
+        self.assertIn("var far_forward_distance := _far_forward_distance(target_forward_distance)", runner_source)
+        self.assertIn("_run_explosion_trial(String(trial[\"label\"]), float(trial[\"heading_y\"]), calibration)", runner_source)
+        self.assertIn("_explosion_details_from_trials(trial_results, calibration)", runner_source)
+        self.assertIn("_explosion_target_position(forward, right, target_forward_distance, 0.0)", runner_source)
+        self.assertIn("_explosion_target_position(forward, right, far_forward_distance, 0.0)", runner_source)
+
     def test_copy_candidate_project_excludes_git_and_godot_cache(self):
         with tempfile.TemporaryDirectory() as src_dir, tempfile.TemporaryDirectory() as dst_dir:
             src = Path(src_dir)

@@ -12,6 +12,19 @@ const EXPLOSION_TRIALS := [
 	{"label": "Right-front throw", "heading_y": 0.65},
 ]
 
+const FALLBACK_THROW_DISTANCE := 8.0
+const FAR_TARGET_MIN_DISTANCE := 20.0
+const FAR_TARGET_EXTRA_DISTANCE := 12.0
+const CALIBRATION_FULL_MIN_DISTANCE := 6.0
+const CALIBRATION_FULL_MAX_DISTANCE := 12.0
+const CALIBRATION_BORDERLINE_MIN_DISTANCE := 4.0
+const CALIBRATION_BORDERLINE_MAX_DISTANCE := 14.0
+const CALIBRATION_SPAWN_RADIUS := 6.0
+const CALIBRATION_TRACK_FRAMES := 180
+const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
+const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
+const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
+
 var board
 var input
 var arena: Node3D
@@ -287,14 +300,113 @@ func _score_projectile_physics() -> void:
 
 
 func _score_explosion_gameplay() -> void:
+	var calibration := await _calibrate_default_throw_distance()
 	var trial_results: Array[Dictionary] = []
 	for trial in EXPLOSION_TRIALS:
-		trial_results.append(await _run_explosion_trial(String(trial["label"]), float(trial["heading_y"])))
-	var details := _explosion_details_from_trials(trial_results)
+		trial_results.append(await _run_explosion_trial(String(trial["label"]), float(trial["heading_y"]), calibration))
+	var details := _explosion_details_from_trials(trial_results, calibration)
 	board.add("explosion_gameplay", _detail_score(details), 20, _detail_notes(details), details)
 
 
-func _run_explosion_trial(trial_label: String, heading_y: float) -> Dictionary:
+func _calibrate_default_throw_distance() -> Dictionary:
+	await _build_arena()
+	if player == null:
+		return _calibration_result("failed", FALLBACK_THROW_DISTANCE, "default throw calibration failed: no player available")
+	_set_explosion_trial_heading(0.0)
+	await input.wait_physics_frames(4)
+	await _tap_weapon_switch(3, 10)
+	var before_ids := SceneProbe.collect_instance_ids(arena)
+	var before_visible := SceneProbe.visible_3d_node_ids(arena)
+	await input.tap("attack")
+	await input.wait_physics_frames(2)
+	var spawned := SceneProbe.node3d_candidates(SceneProbe.new_nodes_since(arena, before_ids), player.global_position, CALIBRATION_SPAWN_RADIUS)
+	if spawned.is_empty():
+		return _calibration_result("failed", FALLBACK_THROW_DISTANCE, "default throw calibration failed: no nearby projectile-like node spawned")
+	var tracks: Dictionary = await SceneProbe.track_nodes_positions(self, spawned, CALIBRATION_TRACK_FRAMES)
+	var best_distance := -1.0
+	var best_score := -999999.0
+	var best_note := ""
+	for candidate in spawned:
+		if not is_instance_valid(candidate):
+			continue
+		var id := candidate.get_instance_id()
+		var points: Array = tracks.get(id, [])
+		if not SceneProbe.has_arc_motion(points):
+			continue
+		if not SceneProbe.path_is_player_safe(points, player.global_position, PROJECTILE_PLAYER_MIN_DISTANCE):
+			continue
+		var travel := SceneProbe.horizontal_travel_distance(points)
+		if travel < CALIBRATION_MIN_TRAVEL_DISTANCE:
+			continue
+		var end_point: Vector3 = points[points.size() - 1]
+		var proxy_point := _detonation_proxy_point(before_visible, end_point)
+		var distance := SceneProbe.horizontal_distance(player.global_position, proxy_point)
+		var candidate_score := _calibration_candidate_score(distance)
+		if candidate_score > best_score:
+			best_score = candidate_score
+			best_distance = distance
+			best_note = "default throw calibration measured %.2f units after %.2f units of horizontal travel" % [distance, travel]
+	if best_distance < 0.0:
+		return _calibration_result("failed", FALLBACK_THROW_DISTANCE, "default throw calibration failed: spawned nodes did not show safe arcing projectile motion")
+	return _calibration_result(_calibration_band(best_distance), best_distance, best_note)
+
+
+func _detonation_proxy_point(before_visible: Dictionary, fallback_point: Vector3) -> Vector3:
+	var proxies := SceneProbe.newly_visible_3d_nodes(arena, before_visible, fallback_point, CALIBRATION_EFFECT_PROXY_RADIUS)
+	var best_point := fallback_point
+	var best_distance := INF
+	for proxy in proxies:
+		var distance := proxy.global_position.distance_to(fallback_point)
+		if distance < best_distance:
+			best_distance = distance
+			best_point = proxy.global_position
+	return best_point
+
+
+func _calibration_candidate_score(distance: float) -> float:
+	var center := (CALIBRATION_FULL_MIN_DISTANCE + CALIBRATION_FULL_MAX_DISTANCE) * 0.5
+	var distance_from_center := abs(distance - center)
+	if distance >= CALIBRATION_FULL_MIN_DISTANCE and distance <= CALIBRATION_FULL_MAX_DISTANCE:
+		return 1000.0 - distance_from_center
+	if distance >= CALIBRATION_BORDERLINE_MIN_DISTANCE and distance <= CALIBRATION_BORDERLINE_MAX_DISTANCE:
+		return 500.0 - distance_from_center
+	return -distance_from_center
+
+
+func _calibration_band(distance: float) -> String:
+	if distance >= CALIBRATION_FULL_MIN_DISTANCE and distance <= CALIBRATION_FULL_MAX_DISTANCE:
+		return "full"
+	if distance >= CALIBRATION_BORDERLINE_MIN_DISTANCE and distance <= CALIBRATION_BORDERLINE_MAX_DISTANCE:
+		return "borderline"
+	return "failed"
+
+
+func _calibration_result(status: String, distance: float, notes: String) -> Dictionary:
+	var effective_distance := distance
+	if status == "failed":
+		effective_distance = FALLBACK_THROW_DISTANCE
+		notes += "; using fixed fallback target geometry"
+	elif status == "borderline":
+		notes += "; default throw distance is outside the preferred 6-12 unit envelope but still usable"
+	var calibration := {}
+	calibration["status"] = status
+	calibration["distance"] = effective_distance
+	calibration["notes"] = notes
+	return calibration
+
+
+func _target_forward_distance(calibration: Dictionary) -> float:
+	var status := String(calibration.get("status", "failed"))
+	if status == "full" or status == "borderline":
+		return float(calibration.get("distance", FALLBACK_THROW_DISTANCE))
+	return FALLBACK_THROW_DISTANCE
+
+
+func _far_forward_distance(target_forward_distance: float) -> float:
+	return max(FAR_TARGET_MIN_DISTANCE, target_forward_distance + FAR_TARGET_EXTRA_DISTANCE)
+
+
+func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Dictionary) -> Dictionary:
 	await _build_arena()
 	if player == null:
 		return {
@@ -311,12 +423,14 @@ func _run_explosion_trial(trial_label: String, heading_y: float) -> Dictionary:
 	var basis := Basis.from_euler(Vector3(0, heading_y, 0))
 	var forward := (basis * Vector3.FORWARD).normalized()
 	var right := (basis * Vector3.RIGHT).normalized()
-	var near_a = ArenaBuilder.add_damage_target(arena, "NearTargetA", _explosion_target_position(forward, right, 8.0, 0.0))
-	var near_b = ArenaBuilder.add_damage_target(arena, "NearTargetB", _explosion_target_position(forward, right, 8.0, 1.5))
+	var target_forward_distance := _target_forward_distance(calibration)
+	var far_forward_distance := _far_forward_distance(target_forward_distance)
+	var near_a = ArenaBuilder.add_damage_target(arena, "NearTargetA", _explosion_target_position(forward, right, target_forward_distance, 0.0))
+	var near_b = ArenaBuilder.add_damage_target(arena, "NearTargetB", _explosion_target_position(forward, right, target_forward_distance, 1.5))
 	var safety_targets: Array = [
-		ArenaBuilder.add_damage_target(arena, "FarTarget", _explosion_target_position(forward, right, 18.0, 0.0)),
-		ArenaBuilder.add_damage_target(arena, "LeftSideTarget", _explosion_target_position(forward, right, 8.0, -7.0)),
-		ArenaBuilder.add_damage_target(arena, "RightSideTarget", _explosion_target_position(forward, right, 8.0, 8.5)),
+		ArenaBuilder.add_damage_target(arena, "FarTarget", _explosion_target_position(forward, right, far_forward_distance, 0.0)),
+		ArenaBuilder.add_damage_target(arena, "LeftSideTarget", _explosion_target_position(forward, right, target_forward_distance, -7.0)),
+		ArenaBuilder.add_damage_target(arena, "RightSideTarget", _explosion_target_position(forward, right, target_forward_distance, 8.5)),
 		ArenaBuilder.add_damage_target(arena, "RearTarget", _explosion_target_position(forward, right, -6.0, 0.0)),
 	]
 	await input.wait_physics_frames(4)
@@ -345,6 +459,8 @@ func _run_explosion_trial(trial_label: String, heading_y: float) -> Dictionary:
 		"player_safe": player_safe,
 		"effects_observed": damage_detonation_observed and new_nodes.size() > 0,
 		"damaged_safety_targets": damaged_safety_targets,
+		"calibration_status": String(calibration.get("status", "failed")),
+		"calibration_distance": float(calibration.get("distance", FALLBACK_THROW_DISTANCE)),
 	}
 
 
@@ -360,11 +476,15 @@ func _explosion_target_position(forward: Vector3, right: Vector3, forward_distan
 	return forward * forward_distance + right * right_offset + Vector3.UP * 0.5
 
 
-func _explosion_details_from_trials(trial_results: Array[Dictionary]) -> Array[Dictionary]:
+func _explosion_details_from_trials(trial_results: Array[Dictionary], calibration: Dictionary) -> Array[Dictionary]:
 	var details: Array[Dictionary] = []
 	if trial_results.is_empty():
 		details.append(_detail("Explosion trials", 0, 20, "missed", "No explosion trials were configured."))
 		return details
+	var calibration_status := String(calibration.get("status", "failed"))
+	var calibration_distance := float(calibration.get("distance", FALLBACK_THROW_DISTANCE))
+	var calibration_notes := String(calibration.get("notes", "default throw calibration did not run"))
+	var calibration_prefix := "default throw calibration %s at %.2f units: %s" % [calibration_status, calibration_distance, calibration_notes]
 	var total_near_score := 0
 	var player_safe_count := 0
 	var effects_count := 0
@@ -402,7 +522,7 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary]) -> Array[D
 		nearby_score,
 		10,
 		_score_status(nearby_score, 10),
-		"nearby target damage averaged across explosion trials: " + "; ".join(near_notes)
+		calibration_prefix + "; nearby target damage averaged across explosion trials: " + "; ".join(near_notes)
 	))
 	if all_trials_detonated and safety_misses.is_empty():
 		details.append(_detail("Out-of-range safety across angles", 4, 4, "earned", "all explosion safety trials protected out-of-range targets"))
