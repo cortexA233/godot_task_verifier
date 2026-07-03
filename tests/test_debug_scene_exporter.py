@@ -70,7 +70,7 @@ class DebugSceneExporterTests(unittest.TestCase):
     def test_debug_arena_label_describes_adaptive_layout(self):
         debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
 
-        self.assertIn("adaptive target distance", debug_source)
+        self.assertIn("radial target rings; calibrated throw", debug_source)
         self.assertIn("distance band fallback", debug_source)
 
     def test_debug_arena_calibrates_or_shows_distance_band(self):
@@ -82,12 +82,17 @@ class DebugSceneExporterTests(unittest.TestCase):
         self.assertIn("candidate_records", debug_source)
         self.assertIn("DistanceBandTarget", debug_source)
 
-    def test_debug_arena_shows_nearby_damage_target_band(self):
+    def test_debug_arena_shows_radial_nearby_damage_target_rings(self):
         debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
 
-        self.assertIn("NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]", debug_source)
-        self.assertIn("NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]", debug_source)
-        self.assertIn("_add_nearby_damage_target_band", debug_source)
+        self.assertIn("TARGET_FIELD_RADIUS := 30.0", debug_source)
+        self.assertIn("FAR_TARGET_DISTANCE := 25.0", debug_source)
+        self.assertIn("NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]", debug_source)
+        self.assertIn('"target_group": "Front"', debug_source)
+        self.assertIn('"target_group": "LeftFront"', debug_source)
+        self.assertIn('"target_group": "RightFront"', debug_source)
+        self.assertIn("_add_radial_nearby_damage_targets", debug_source)
+        self.assertIn("_polar_target_position(float(group[\"heading_y\"]), float(radius))", debug_source)
         self.assertIn("NearbyTarget", debug_source)
 
 

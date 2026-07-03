@@ -49,17 +49,23 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("out-of-range safety targets were damaged", runner_source)
         self.assertIn("all explosion safety trials protected out-of-range targets", runner_source)
         self.assertIn("damage_detonation_observed", runner_source)
-        self.assertIn("_add_nearby_damage_targets(arena, forward, right)", runner_source)
-        self.assertGreaterEqual(runner_source.count("ArenaBuilder.add_damage_target(arena,"), 4)
+        self.assertIn("_add_nearby_damage_targets(arena, target_group)", runner_source)
+        self.assertGreaterEqual(runner_source.count("_add_safety_target(arena,"), 4)
 
-    def test_explosion_gameplay_uses_nearby_damage_target_band(self):
+    def test_explosion_gameplay_uses_radial_nearby_damage_target_rings(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
-        self.assertIn("NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]", runner_source)
-        self.assertIn("NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]", runner_source)
+        self.assertIn("TARGET_FIELD_RADIUS := 30.0", runner_source)
+        self.assertIn("NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]", runner_source)
+        self.assertIn('"target_group": "Front"', runner_source)
+        self.assertIn('"target_group": "LeftFront"', runner_source)
+        self.assertIn('"target_group": "RightFront"', runner_source)
         self.assertIn("_add_nearby_damage_targets", runner_source)
+        self.assertIn("for trial in EXPLOSION_TRIALS", runner_source)
+        self.assertIn('var group := String(trial["target_group"])', runner_source)
+        self.assertIn("_polar_target_position(float(trial[\"heading_y\"]), float(radius))", runner_source)
         self.assertIn("_nearby_hit_score", runner_source)
-        self.assertIn('target.name = "NearbyTarget_%02d_%s"', runner_source)
+        self.assertIn('target.name = "NearbyTarget_%s_%02d"', runner_source)
         self.assertIn("nearby_hits > 0", runner_source)
 
     def test_runner_prefers_project_weapon_switch_action_when_available(self):
@@ -90,7 +96,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_object_has_property", runner_source)
         self.assertIn("_last_strong_direction", runner_source)
         self.assertIn("_target_forward_distance", runner_source)
-        self.assertIn("_far_forward_distance", runner_source)
+        self.assertIn("_polar_target_position", runner_source)
         self.assertIn("calibration[\"status\"]", runner_source)
         self.assertIn("default throw calibration", runner_source)
 
@@ -98,14 +104,12 @@ class RunGraderTests(unittest.TestCase):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
         self.assertIn("FALLBACK_THROW_DISTANCE", runner_source)
-        self.assertIn("FAR_TARGET_MIN_DISTANCE", runner_source)
-        self.assertIn("FAR_TARGET_EXTRA_DISTANCE", runner_source)
+        self.assertIn("FAR_TARGET_DISTANCE := 25.0", runner_source)
         self.assertIn("var target_forward_distance := _target_forward_distance(calibration)", runner_source)
-        self.assertIn("var far_forward_distance := _far_forward_distance(target_forward_distance)", runner_source)
-        self.assertIn("_run_explosion_trial(String(trial[\"label\"]), float(trial[\"heading_y\"]), calibration)", runner_source)
+        self.assertIn("_run_explosion_trial(String(trial[\"label\"]), float(trial[\"heading_y\"]), String(trial[\"target_group\"]), calibration)", runner_source)
         self.assertIn("_explosion_details_from_trials(trial_results, calibration)", runner_source)
-        self.assertIn("_add_nearby_damage_targets(arena, forward, right)", runner_source)
-        self.assertIn("_explosion_target_position(forward, right, far_forward_distance, 0.0)", runner_source)
+        self.assertIn("_add_nearby_damage_targets(arena, target_group)", runner_source)
+        self.assertIn('_add_safety_target(arena, "FarTarget", heading_y, FAR_TARGET_DISTANCE)', runner_source)
 
     def test_runner_drives_trajectory_aim_change_through_project_aim_state(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")

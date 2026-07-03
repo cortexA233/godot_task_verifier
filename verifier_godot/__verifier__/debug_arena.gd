@@ -6,16 +6,20 @@ const InputDriver = preload("res://__verifier__/input_driver.gd")
 const SceneProbe = preload("res://__verifier__/scene_probe.gd")
 
 const FALLBACK_THROW_DISTANCE := 8.0
-const FAR_TARGET_MIN_DISTANCE := 20.0
-const FAR_TARGET_EXTRA_DISTANCE := 12.0
+const TARGET_FIELD_RADIUS := 30.0
+const FAR_TARGET_DISTANCE := 25.0
 const CALIBRATION_SPAWN_RADIUS := 6.0
 const CALIBRATION_TRACK_FRAMES := 180
 const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
 const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
 const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
 const DISTANCE_BAND_TARGETS := [4.0, 6.0, 8.0, 10.0, 12.0, 14.0]
-const NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]
-const NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]
+const NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]
+const NEARBY_DAMAGE_TARGET_GROUPS := [
+	{"target_group": "Front", "heading_y": 0.0},
+	{"target_group": "LeftFront", "heading_y": -0.65},
+	{"target_group": "RightFront", "heading_y": 0.65},
+]
 
 var input
 var arena: Node3D
@@ -134,40 +138,39 @@ func _weapon_switch_action() -> String:
 	return "swap_weapons"
 
 
-func _apply_adaptive_target_layout(target_forward_distance: float) -> void:
-	var far_forward_distance: float = maxf(FAR_TARGET_MIN_DISTANCE, target_forward_distance + FAR_TARGET_EXTRA_DISTANCE)
-	_add_standard_target_layout(target_forward_distance, far_forward_distance)
+func _apply_adaptive_target_layout(_target_forward_distance: float) -> void:
+	_add_standard_target_layout()
 
 
-func _add_standard_target_layout(target_forward_distance: float, far_forward_distance: float) -> void:
-	_add_nearby_damage_target_band()
-	_add_damage_target("FarTarget", Vector3(0, 0.5, -far_forward_distance))
-	_add_damage_target("LeftSideTarget", Vector3(-7, 0.5, -target_forward_distance))
-	_add_damage_target("RightSideTarget", Vector3(8.5, 0.5, -target_forward_distance))
-	_add_damage_target("RearTarget", Vector3(0, 0.5, 6))
-	_add_target_label("FarTarget", Vector3(0, 1.55, -far_forward_distance))
-	_add_target_label("LeftSideTarget", Vector3(-7, 1.55, -target_forward_distance))
-	_add_target_label("RightSideTarget", Vector3(8.5, 1.55, -target_forward_distance))
-	_add_target_label("RearTarget", Vector3(0, 1.55, 6))
+func _add_standard_target_layout() -> void:
+	_add_radial_nearby_damage_targets()
+	_add_safety_target_ring()
 
 
-func _add_nearby_damage_target_band() -> void:
-	for distance in NEARBY_DAMAGE_TARGET_DISTANCES:
-		for side_offset in NEARBY_DAMAGE_TARGET_SIDE_OFFSETS:
-			var forward_distance: float = float(distance)
-			var offset: float = float(side_offset)
-			var side_label := _nearby_side_label(offset)
-			var target_name := "NearbyTarget_%02d_%s" % [int(forward_distance), side_label]
-			_add_damage_target(target_name, Vector3(offset, 0.5, -forward_distance))
-			_add_target_label("%dm%s" % [int(forward_distance), side_label], Vector3(offset, 1.55, -forward_distance), Color(0.9, 1.0, 0.5))
+func _add_radial_nearby_damage_targets() -> void:
+	for group in NEARBY_DAMAGE_TARGET_GROUPS:
+		var group_name := String(group["target_group"])
+		for radius in NEARBY_DAMAGE_TARGET_RADII:
+			var position := _polar_target_position(float(group["heading_y"]), float(radius))
+			var target_name := "NearbyTarget_%s_%02d" % [group_name, int(radius)]
+			_add_damage_target(target_name, position)
+			_add_target_label("%s %dm" % [group_name, int(radius)], position + Vector3.UP * 1.05, Color(0.9, 1.0, 0.5))
 
 
-func _nearby_side_label(side_offset: float) -> String:
-	if side_offset < 0.0:
-		return "L"
-	if side_offset > 0.0:
-		return "R"
-	return "C"
+func _add_safety_target_ring() -> void:
+	for group in NEARBY_DAMAGE_TARGET_GROUPS:
+		var group_name := String(group["target_group"])
+		var heading_y := float(group["heading_y"])
+		_add_debug_safety_target("FarTarget_%s" % group_name, "Far %s 25m" % group_name, heading_y)
+		_add_debug_safety_target("LeftSideTarget_%s" % group_name, "Left %s 25m" % group_name, heading_y - PI * 0.5)
+		_add_debug_safety_target("RightSideTarget_%s" % group_name, "Right %s 25m" % group_name, heading_y + PI * 0.5)
+		_add_debug_safety_target("RearTarget_%s" % group_name, "Rear %s 25m" % group_name, heading_y + PI)
+
+
+func _add_debug_safety_target(target_name: String, label_text: String, heading_y: float) -> void:
+	var position := _polar_target_position(heading_y, FAR_TARGET_DISTANCE)
+	_add_damage_target(target_name, position)
+	_add_target_label(label_text, position + Vector3.UP * 1.05)
 
 
 func _add_distance_band_targets() -> void:
@@ -176,6 +179,12 @@ func _add_distance_band_targets() -> void:
 		var target_name := "DistanceBandTarget%d" % int(forward_distance)
 		_add_damage_target(target_name, Vector3(0, 0.5, -forward_distance))
 		_add_target_label("%dm" % int(forward_distance), Vector3(0, 1.55, -forward_distance), Color(0.9, 1.0, 0.5))
+
+
+func _polar_target_position(heading_y: float, radius: float) -> Vector3:
+	var basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward := (basis * Vector3.FORWARD).normalized()
+	return forward * minf(radius, TARGET_FIELD_RADIUS) + Vector3.UP * 0.5
 
 
 func _add_damage_target(target_name: String, position: Vector3) -> Node3D:
@@ -190,9 +199,9 @@ func _add_visible_floor() -> void:
 	var mesh := MeshInstance3D.new()
 	mesh.name = "DebugVisibleFloor"
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(28, 36)
+	plane.size = Vector2(TARGET_FIELD_RADIUS * 2.2, TARGET_FIELD_RADIUS * 2.2)
 	mesh.mesh = plane
-	mesh.position = Vector3(0, -0.03, -8)
+	mesh.position = Vector3(0, -0.03, 0)
 	var material := StandardMaterial3D.new()
 	material.albedo_color = Color(0.18, 0.22, 0.28, 0.35)
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -219,14 +228,14 @@ func _add_controls_label(calibration: Dictionary) -> void:
 	var distance := float(calibration.get("distance", FALLBACK_THROW_DISTANCE))
 	var notes := String(calibration.get("notes", "calibration did not run"))
 	if _calibration_usable(calibration):
-		label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\nadaptive target distance %.2fm\n%s" % [distance, notes]
+		label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\nradial target rings; calibrated throw %.2fm\n%s" % [distance, notes]
 	else:
 		label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\ncalibration %s; showing distance band fallback\n%s" % [status, notes]
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 22
 	label.outline_size = 6
 	label.modulate = Color(0.8, 0.92, 1.0)
-	label.position = Vector3(-4.5, 2.5, -3.2)
+	label.position = Vector3(-16, 3.2, 12)
 	add_child(label)
 
 
@@ -235,8 +244,8 @@ func _add_debug_camera() -> void:
 	camera.name = "DebugCamera"
 	camera.current = true
 	add_child(camera)
-	camera.global_position = Vector3(7, 7, 10)
-	camera.look_at(Vector3(0, 0.8, -8), Vector3.UP)
+	camera.global_position = Vector3(18, 24, 26)
+	camera.look_at(Vector3(0, 0.8, 0), Vector3.UP)
 
 
 func _add_debug_light() -> void:
