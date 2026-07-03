@@ -70,7 +70,7 @@ class DebugSceneExporterTests(unittest.TestCase):
     def test_debug_arena_label_describes_adaptive_layout(self):
         debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
 
-        self.assertIn("radial target rings; calibrated throw", debug_source)
+        self.assertIn("fixed seed target variants; calibrated throw", debug_source)
         self.assertIn("distance band fallback", debug_source)
 
     def test_debug_arena_calibrates_or_shows_distance_band(self):
@@ -82,7 +82,7 @@ class DebugSceneExporterTests(unittest.TestCase):
         self.assertIn("candidate_records", debug_source)
         self.assertIn("DistanceBandTarget", debug_source)
 
-    def test_debug_arena_shows_radial_nearby_damage_target_rings(self):
+    def test_debug_arena_uses_fixed_seed_target_variants(self):
         debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
 
         self.assertIn("TARGET_FIELD_RADIUS := 30.0", debug_source)
@@ -90,12 +90,14 @@ class DebugSceneExporterTests(unittest.TestCase):
         self.assertIn("NEARBY_TARGET_GROUP_DEGREES := 20", debug_source)
         self.assertIn("NEARBY_TARGET_GROUP_COUNT := 18", debug_source)
         self.assertIn("NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]", debug_source)
-        self.assertIn("_nearby_damage_target_groups", debug_source)
-        self.assertIn("_nearby_target_group_name", debug_source)
-        self.assertIn("for index in range(NEARBY_TARGET_GROUP_COUNT)", debug_source)
-        self.assertIn("var degrees := index * NEARBY_TARGET_GROUP_DEGREES", debug_source)
-        self.assertIn("_add_radial_nearby_damage_targets", debug_source)
-        self.assertIn("_polar_target_position(float(group_data[\"heading_y\"]), float(radius))", debug_source)
+        self.assertIn("EXPLOSION_TRIAL_SEEDS := [", debug_source)
+        self.assertIn("EXPLOSION_TRIAL_BASE_HEADING_DEGREES", debug_source)
+        self.assertIn("_explosion_trial_variants", debug_source)
+        self.assertIn("_seeded_nearby_damage_radii", debug_source)
+        self.assertIn("rng.seed = seed_value", debug_source)
+        self.assertIn("_add_seeded_trial_layout", debug_source)
+        self.assertIn("_target_group_for_heading", debug_source)
+        self.assertIn("_add_debug_safety_target", debug_source)
         self.assertIn("NearbyTarget", debug_source)
 
 

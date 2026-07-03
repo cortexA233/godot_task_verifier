@@ -1,5 +1,5 @@
 param(
-  [string]$Godot = "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe",
+  [string]$Godot = "C:\Godot_v4.6-stable_mono_win64\Godot_v4.6-stable_mono_win64_console.exe",
   [string]$Verifier = "C:\recent_project\roboblast-grenade-verifier",
   [string]$Ablated = "C:\recent_project\godot-4-3d-third-person-controller",
   [string]$Reference = "C:\recent_project\godot-4-3d-third-person-controller-reference"

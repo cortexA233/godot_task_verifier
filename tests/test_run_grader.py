@@ -18,7 +18,7 @@ def find_godot() -> Path | None:
     candidates = [
         os.environ.get("GODOT_PATH"),
         r"C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe",
-        r"C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe",
+        r"C:\Godot_v4.6-stable_mono_win64\Godot_v4.6-stable_mono_win64_console.exe",
     ]
     for candidate in candidates:
         if candidate and Path(candidate).exists():

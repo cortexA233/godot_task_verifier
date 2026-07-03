@@ -22,7 +22,7 @@ def sample_result() -> dict:
         "score": 35,
         "max_score": 100,
         "passed": False,
-        "godot_version": "4.7-stable (official)",
+        "godot_version": "4.6-stable (official)",
         "breakdown": [
             {
                 "name": "weapon_controls",

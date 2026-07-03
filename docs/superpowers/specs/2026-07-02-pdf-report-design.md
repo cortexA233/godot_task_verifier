@@ -40,7 +40,7 @@ python C:\recent_project\roboblast-grenade-verifier\render_report.py `
 ```powershell
 python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
   --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe" `
+  --godot "C:\Godot_v4.6-stable_mono_win64\Godot_v4.6-stable_mono_win64_console.exe" `
   --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
   --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf
 ```

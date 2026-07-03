@@ -10,6 +10,8 @@ const TARGET_FIELD_RADIUS := 30.0
 const FAR_TARGET_DISTANCE := 25.0
 const NEARBY_TARGET_GROUP_DEGREES := 20
 const NEARBY_TARGET_GROUP_COUNT := 18
+const EXPLOSION_TRIAL_SEEDS := [17031, 27059, 37087]
+const EXPLOSION_TRIAL_BASE_HEADING_DEGREES := [-40.0, 0.0, 40.0]
 const CALIBRATION_SPAWN_RADIUS := 6.0
 const CALIBRATION_TRACK_FRAMES := 180
 const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
@@ -135,47 +137,70 @@ func _weapon_switch_action() -> String:
 	return "swap_weapons"
 
 
-func _apply_adaptive_target_layout(_target_forward_distance: float) -> void:
-	_add_standard_target_layout()
+func _apply_adaptive_target_layout(target_forward_distance: float) -> void:
+	for trial in _explosion_trial_variants(target_forward_distance):
+		_add_seeded_trial_layout(trial)
 
 
-func _add_standard_target_layout() -> void:
-	_add_radial_nearby_damage_targets()
-	_add_safety_target_ring()
+func _explosion_trial_variants(target_forward_distance: float) -> Array[Dictionary]:
+	var variants: Array[Dictionary] = []
+	for index in range(EXPLOSION_TRIAL_SEEDS.size()):
+		var seed_value := int(EXPLOSION_TRIAL_SEEDS[index])
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var base_heading_degrees := float(EXPLOSION_TRIAL_BASE_HEADING_DEGREES[index % EXPLOSION_TRIAL_BASE_HEADING_DEGREES.size()])
+		var heading_y := deg_to_rad(base_heading_degrees + rng.randf_range(-6.0, 6.0))
+		var safety_radius := clampf(FAR_TARGET_DISTANCE + rng.randf_range(-1.0, 2.0), FAR_TARGET_DISTANCE - 1.0, TARGET_FIELD_RADIUS)
+		var nearby_radii := _seeded_nearby_damage_radii(rng, target_forward_distance)
+		variants.append({
+			"label": "Seed %d throw" % seed_value,
+			"seed": seed_value,
+			"heading_y": heading_y,
+			"target_group": _target_group_for_heading(heading_y),
+			"nearby_radii": nearby_radii,
+			"safety_radius": safety_radius,
+		})
+	return variants
 
 
-func _add_radial_nearby_damage_targets() -> void:
-	for group_data in _nearby_damage_target_groups():
-		var group_name := String(group_data["target_group"])
-		for radius in NEARBY_DAMAGE_TARGET_RADII:
-			var position := _polar_target_position(float(group_data["heading_y"]), float(radius))
-			var target_name := "NearbyTarget_%s_%02d" % [group_name, int(radius)]
-			_add_damage_target(target_name, position)
-			_add_target_label("%s %dm" % [group_name, int(radius)], position + Vector3.UP * 1.05, Color(0.9, 1.0, 0.5))
+func _seeded_nearby_damage_radii(rng: RandomNumberGenerator, target_forward_distance: float) -> Array[float]:
+	var radii: Array[float] = []
+	for index in range(NEARBY_DAMAGE_TARGET_RADII.size()):
+		var base_radius := float(NEARBY_DAMAGE_TARGET_RADII[index])
+		if index == 2:
+			base_radius = target_forward_distance
+		var jittered_radius := clampf(base_radius + rng.randf_range(-0.35, 0.35), 4.0, TARGET_FIELD_RADIUS - 1.0)
+		radii.append(round(jittered_radius * 4.0) / 4.0)
+	return radii
 
 
-func _add_safety_target_ring() -> void:
-	for group_data in _nearby_damage_target_groups():
-		var group_name := String(group_data["target_group"])
-		_add_debug_safety_target("FarTarget_%s" % group_name, "%s 25m" % group_name, float(group_data["heading_y"]))
+func _add_seeded_trial_layout(trial: Dictionary) -> void:
+	var seed_value := int(trial["seed"])
+	var heading_y := float(trial["heading_y"])
+	var target_group := String(trial["target_group"])
+	var safety_radius := float(trial["safety_radius"])
+	var nearby_radii: Array = trial["nearby_radii"]
+	for radius_value in nearby_radii:
+		var radius := float(radius_value)
+		var position := _polar_target_position(heading_y, radius)
+		var target_name := "NearbyTarget_Seed%d_%s_%04d" % [seed_value, target_group, int(round(radius * 100.0))]
+		_add_damage_target(target_name, position)
+		_add_target_label("Seed %d %s %.2fm" % [seed_value, target_group, radius], position + Vector3.UP * 1.05, Color(0.9, 1.0, 0.5))
+	_add_debug_safety_target("FarTarget_Seed%d" % seed_value, "Seed %d far %.1fm" % [seed_value, safety_radius], heading_y, safety_radius)
+	_add_debug_safety_target("LeftSideTarget_Seed%d" % seed_value, "Seed %d left %.1fm" % [seed_value, safety_radius], heading_y - PI * 0.5, safety_radius)
+	_add_debug_safety_target("RightSideTarget_Seed%d" % seed_value, "Seed %d right %.1fm" % [seed_value, safety_radius], heading_y + PI * 0.5, safety_radius)
+	_add_debug_safety_target("RearTarget_Seed%d" % seed_value, "Seed %d rear %.1fm" % [seed_value, safety_radius], heading_y + PI, safety_radius)
 
 
-func _add_debug_safety_target(target_name: String, label_text: String, heading_y: float) -> void:
-	var position := _polar_target_position(heading_y, FAR_TARGET_DISTANCE)
+func _add_debug_safety_target(target_name: String, label_text: String, heading_y: float, radius: float) -> void:
+	var position := _polar_target_position(heading_y, radius)
 	_add_damage_target(target_name, position)
 	_add_target_label(label_text, position + Vector3.UP * 1.05)
 
 
-func _nearby_damage_target_groups() -> Array[Dictionary]:
-	var groups: Array[Dictionary] = []
-	for index in range(NEARBY_TARGET_GROUP_COUNT):
-		var degrees := index * NEARBY_TARGET_GROUP_DEGREES
-		groups.append({
-			"target_group": _nearby_target_group_name(degrees),
-			"heading_y": deg_to_rad(float(degrees)),
-			"degrees": degrees,
-		})
-	return groups
+func _target_group_for_heading(heading_y: float) -> String:
+	var snapped_degrees := int(round(rad_to_deg(heading_y) / float(NEARBY_TARGET_GROUP_DEGREES))) * NEARBY_TARGET_GROUP_DEGREES
+	return _nearby_target_group_name(snapped_degrees)
 
 
 func _nearby_target_group_name(degrees: int) -> String:
@@ -246,7 +271,7 @@ func _add_controls_label(calibration: Dictionary) -> void:
 	var distance := float(calibration.get("distance", FALLBACK_THROW_DISTANCE))
 	var notes := String(calibration.get("notes", "calibration did not run"))
 	if _calibration_usable(calibration):
-		label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\nradial target rings; calibrated throw %.2fm\n%s" % [distance, notes]
+		label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\nfixed seed target variants; calibrated throw %.2fm\n%s" % [distance, notes]
 	else:
 		label.text = "Verifier debug arena\nTab: switch weapon\nAttack: throw grenade\ncalibration %s; showing distance band fallback\n%s" % [status, notes]
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED

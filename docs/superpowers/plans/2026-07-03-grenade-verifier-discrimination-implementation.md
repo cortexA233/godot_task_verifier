@@ -82,7 +82,7 @@ def sample_result() -> dict:
         "score": 35,
         "max_score": 100,
         "passed": False,
-        "godot_version": "4.7-stable (official)",
+        "godot_version": "4.6-stable (official)",
         "breakdown": [
             {
                 "name": "weapon_controls",
@@ -616,7 +616,7 @@ In `README.md`, replace the score category bullets with:
 In `README.md`, replace the calibration paragraph under `## Calibration` with:
 
 ```markdown
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials place nearby damage targets on radial 6, 8, 10, and 12 unit rings for all 18 direction groups around the player, one group every 20 degrees; a trial receives nearby-damage credit when any radial nearby target is damaged, so valid camera-forward or player-forward implementations are not false-negatived by the verifier's angle convention. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. The `FarTarget` distance is fixed at 25 units, and side/rear safety targets also sit on the 25-unit ring within the 30-unit target field so safety stays strict and does not move inward with explosion radius. Trajectory preview scoring now emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives full throw-distance quality credit to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable but worth `0/2` calibration-quality points. Formal explosion trials are generated from fixed seed constants: each seed deterministically picks a heading, nearby target radii around the canonical 6, 8, 10, and 12 unit rings plus the measured landing distance, and a far/side/rear safety radius inside the 30-unit target field. Every run of the same verifier version uses the same seeded variants. Detonation effects are observed inside the same 30-unit target field, but explosion gameplay still requires real damage evidence before effect or safety credit is awarded. Safety targets remain far enough to catch over-large explosions without moving inward with explosion radius. Trajectory preview scoring now emphasizes visible aiming aid behavior, arcing or landing-area communication, aim/camera reactivity, and broad direction consistency with the actual thrown grenade.
 ```
 
 - [ ] **Step 3: Update BENCHMARK score categories**

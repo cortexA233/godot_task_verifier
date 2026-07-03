@@ -182,7 +182,7 @@ Run:
 
 ```powershell
 python -m unittest discover -s tests -v
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller --godot "C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe" --out C:\recent_project\roboblast-grenade-verifier\artifacts\score-with-report.json --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-with-report.pdf
+python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller --godot "C:\Godot_v4.6-stable_mono_win64\Godot_v4.6-stable_mono_win64_console.exe" --out C:\recent_project\roboblast-grenade-verifier\artifacts\score-with-report.json --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-with-report.pdf
 ```
 
 Expected: tests pass; grader writes JSON and PDF.

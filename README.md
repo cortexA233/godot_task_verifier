@@ -67,7 +67,7 @@ Open the exported project in Godot, then run:
 res://__verifier__/debug_arena.tscn
 ```
 
-This scene uses the same deterministic arena shell as the grader. When it starts, it performs one target-free default throw, measures the safe projectile travel distance, rebuilds the arena, and places radial nearby damage targets at 6, 8, 10, and 12 units for every 20-degree direction group around the player inside a 30-unit target field. It also shows a 25-unit safety ring used by the formal `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget` checks. If debug-scene calibration cannot measure a usable throw, it shows a 4-14 unit distance band of labeled damage targets instead of pretending the fixed 8-unit fallback is authoritative. The debug scene adds a camera, light, visible floor, and labels so manual inspection matches the grader's radial setup.
+This scene uses the same deterministic arena shell and fixed seed target generation as the grader. When it starts, it performs one target-free default throw, measures the safe projectile travel distance, rebuilds the arena, and places the seeded nearby damage targets plus far/side/rear safety targets used by the formal explosion trials. If debug-scene calibration cannot measure a usable throw, it shows a 4-14 unit distance band of labeled damage targets instead of pretending the fixed 8-unit fallback is authoritative. The debug scene adds a camera, light, visible floor, and labels so manual inspection matches the grader's seeded layout.
 
 ## Score Categories
 
