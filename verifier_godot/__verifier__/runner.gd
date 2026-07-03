@@ -24,6 +24,10 @@ const CALIBRATION_TRACK_FRAMES := 180
 const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
 const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
 const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
+const NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]
+const NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]
+const NEARBY_EFFECT_OBSERVATION_DISTANCE := 9.0
+const NEARBY_EFFECT_OBSERVATION_RADIUS := 10.0
 
 var board
 var input
@@ -432,8 +436,7 @@ func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Di
 	var right := (basis * Vector3.RIGHT).normalized()
 	var target_forward_distance := _target_forward_distance(calibration)
 	var far_forward_distance := _far_forward_distance(target_forward_distance)
-	var near_a = ArenaBuilder.add_damage_target(arena, "NearTargetA", _explosion_target_position(forward, right, target_forward_distance, 0.0))
-	var near_b = ArenaBuilder.add_damage_target(arena, "NearTargetB", _explosion_target_position(forward, right, target_forward_distance, 1.5))
+	var nearby_targets := _add_nearby_damage_targets(arena, forward, right)
 	var safety_targets: Array = [
 		ArenaBuilder.add_damage_target(arena, "FarTarget", _explosion_target_position(forward, right, far_forward_distance, 0.0)),
 		ArenaBuilder.add_damage_target(arena, "LeftSideTarget", _explosion_target_position(forward, right, target_forward_distance, -7.0)),
@@ -444,24 +447,21 @@ func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Di
 	await _tap_weapon_switch(3, 10)
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
-	var effect_origin := _explosion_target_position(forward, right, target_forward_distance, 0.75)
-	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, effect_origin, 8.0, 180)
+	var effect_origin := _explosion_target_position(forward, right, NEARBY_EFFECT_OBSERVATION_DISTANCE, 0.0)
+	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, effect_origin, NEARBY_EFFECT_OBSERVATION_RADIUS, 180)
 	var damaged_safety_targets: Array[String] = []
 	for safety_target in safety_targets:
 		if safety_target.damage_calls > 0:
 			damaged_safety_targets.append(String(safety_target.name))
-	var near_score := 0
-	if near_a.damage_calls > 0:
-		near_score += 5
-	if near_b.damage_calls > 0:
-		near_score += 5
-	var damage_detonation_observed: bool = near_a.damage_calls > 0 or near_b.damage_calls > 0 or damaged_safety_targets.size() > 0
+	var nearby_hits := _count_damaged_targets(nearby_targets)
+	var near_score := _nearby_hit_score(nearby_hits)
+	var damage_detonation_observed: bool = nearby_hits > 0 or damaged_safety_targets.size() > 0
 	var player_safe := damage_detonation_observed and (not player is CharacterBody3D or (player as CharacterBody3D).velocity.length() < 20.0)
 	return {
 		"label": trial_label,
 		"near_score": near_score,
-		"near_a_damaged": near_a.damage_calls > 0,
-		"near_b_damaged": near_b.damage_calls > 0,
+		"nearby_hits": nearby_hits,
+		"nearby_target_count": nearby_targets.size(),
 		"detonation_observed": damage_detonation_observed,
 		"player_safe": player_safe,
 		"effects_observed": damage_detonation_observed and int(activity.get("visible_count", 0)) > 0,
@@ -469,6 +469,38 @@ func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Di
 		"calibration_status": String(calibration.get("status", "failed")),
 		"calibration_distance": float(calibration.get("distance", FALLBACK_THROW_DISTANCE)),
 	}
+
+
+func _add_nearby_damage_targets(root_node: Node3D, forward: Vector3, right: Vector3) -> Array:
+	var targets: Array = []
+	for distance in NEARBY_DAMAGE_TARGET_DISTANCES:
+		for side_offset in NEARBY_DAMAGE_TARGET_SIDE_OFFSETS:
+			var target = ArenaBuilder.add_damage_target(root_node, "NearbyTarget", _explosion_target_position(forward, right, float(distance), float(side_offset)))
+			target.name = "NearbyTarget_%02d_%s" % [int(distance), _nearby_side_label(float(side_offset))]
+			targets.append(target)
+	return targets
+
+
+func _nearby_side_label(side_offset: float) -> String:
+	if side_offset < 0.0:
+		return "L"
+	if side_offset > 0.0:
+		return "R"
+	return "C"
+
+
+func _count_damaged_targets(targets: Array) -> int:
+	var hits := 0
+	for target in targets:
+		if target.damage_calls > 0:
+			hits += 1
+	return hits
+
+
+func _nearby_hit_score(nearby_hits: int) -> int:
+	if nearby_hits > 0:
+		return 10
+	return 0
 
 
 func _set_explosion_trial_heading(heading_y: float) -> void:

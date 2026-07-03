@@ -82,6 +82,14 @@ class DebugSceneExporterTests(unittest.TestCase):
         self.assertIn("candidate_records", debug_source)
         self.assertIn("DistanceBandTarget", debug_source)
 
+    def test_debug_arena_shows_nearby_damage_target_band(self):
+        debug_source = (ROOT / "verifier_godot" / "__verifier__" / "debug_arena.gd").read_text(encoding="utf-8")
+
+        self.assertIn("NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]", debug_source)
+        self.assertIn("NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]", debug_source)
+        self.assertIn("_add_nearby_damage_target_band", debug_source)
+        self.assertIn("NearbyTarget", debug_source)
+
 
 if __name__ == "__main__":
     unittest.main()

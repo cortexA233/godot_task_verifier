@@ -14,6 +14,8 @@ const CALIBRATION_EFFECT_PROXY_RADIUS := 6.0
 const CALIBRATION_MIN_TRAVEL_DISTANCE := 0.75
 const PROJECTILE_PLAYER_MIN_DISTANCE := 0.4
 const DISTANCE_BAND_TARGETS := [4.0, 6.0, 8.0, 10.0, 12.0, 14.0]
+const NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]
+const NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]
 
 var input
 var arena: Node3D
@@ -138,18 +140,34 @@ func _apply_adaptive_target_layout(target_forward_distance: float) -> void:
 
 
 func _add_standard_target_layout(target_forward_distance: float, far_forward_distance: float) -> void:
-	_add_damage_target("NearTargetA", Vector3(0, 0.5, -target_forward_distance))
-	_add_damage_target("NearTargetB", Vector3(1.5, 0.5, -target_forward_distance))
+	_add_nearby_damage_target_band()
 	_add_damage_target("FarTarget", Vector3(0, 0.5, -far_forward_distance))
 	_add_damage_target("LeftSideTarget", Vector3(-7, 0.5, -target_forward_distance))
 	_add_damage_target("RightSideTarget", Vector3(8.5, 0.5, -target_forward_distance))
 	_add_damage_target("RearTarget", Vector3(0, 0.5, 6))
-	_add_target_label("NearTargetA", Vector3(0, 1.55, -target_forward_distance))
-	_add_target_label("NearTargetB", Vector3(1.5, 1.55, -target_forward_distance))
 	_add_target_label("FarTarget", Vector3(0, 1.55, -far_forward_distance))
 	_add_target_label("LeftSideTarget", Vector3(-7, 1.55, -target_forward_distance))
 	_add_target_label("RightSideTarget", Vector3(8.5, 1.55, -target_forward_distance))
 	_add_target_label("RearTarget", Vector3(0, 1.55, 6))
+
+
+func _add_nearby_damage_target_band() -> void:
+	for distance in NEARBY_DAMAGE_TARGET_DISTANCES:
+		for side_offset in NEARBY_DAMAGE_TARGET_SIDE_OFFSETS:
+			var forward_distance: float = float(distance)
+			var offset: float = float(side_offset)
+			var side_label := _nearby_side_label(offset)
+			var target_name := "NearbyTarget_%02d_%s" % [int(forward_distance), side_label]
+			_add_damage_target(target_name, Vector3(offset, 0.5, -forward_distance))
+			_add_target_label("%dm%s" % [int(forward_distance), side_label], Vector3(offset, 1.55, -forward_distance), Color(0.9, 1.0, 0.5))
+
+
+func _nearby_side_label(side_offset: float) -> String:
+	if side_offset < 0.0:
+		return "L"
+	if side_offset > 0.0:
+		return "R"
+	return "C"
 
 
 func _add_distance_band_targets() -> void:

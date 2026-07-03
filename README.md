@@ -54,7 +54,7 @@ Open the exported project in Godot, then run:
 res://__verifier__/debug_arena.tscn
 ```
 
-This scene uses the same deterministic arena shell as the grader. When it starts, it performs one target-free default throw, measures the safe projectile travel distance, rebuilds the arena, and places `NearTargetA`, `NearTargetB`, `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget` from that measured distance. If debug-scene calibration cannot measure a usable throw, it shows a 4-14 unit distance band of labeled damage targets instead of pretending the fixed 8-unit fallback is authoritative. The debug scene adds a camera, light, visible floor, and labels so manual inspection matches the grader's adaptive setup.
+This scene uses the same deterministic arena shell as the grader. When it starts, it performs one target-free default throw, measures the safe projectile travel distance, rebuilds the arena, and places nearby damage targets across the 6-12 unit forward band with left/center/right offsets, plus `FarTarget`, `LeftSideTarget`, `RightSideTarget`, and `RearTarget` safety targets. If debug-scene calibration cannot measure a usable throw, it shows a 4-14 unit distance band of labeled damage targets instead of pretending the fixed 8-unit fallback is authoritative. The debug scene adds a camera, light, visible floor, and labels so manual inspection matches the grader's adaptive setup.
 
 ## Score Categories
 
@@ -70,7 +70,7 @@ The score is behavioral. It does not require historical filenames, class names, 
 
 ## Calibration
 
-Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives the strongest credit to a 6-12 unit default landing distance, treats 4-14 units as borderline usable, and otherwise uses the fixed fallback target geometry. Safety targets stay strict and do not move inward with explosion radius.
+Explosion scoring calibrates default throw distance behaviorally. The runner measures a target-free throw, accepts only a nearby player-safe travel path, gives the strongest calibration confidence to a 6-12 unit default landing distance, and treats 4-14 units as borderline usable. Formal explosion trials place several nearby damage targets across the 6-12 unit forward band with left/center/right offsets; each trial receives nearby-damage credit when any nearby target is damaged. Safety targets stay strict and do not move inward with explosion radius.
 
 Run:
 
@@ -83,12 +83,12 @@ Latest local calibration:
 - Godot executable: `C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe`
 - Godot version: `4.7.stable.mono.official.5b4e0cb0f`
 - Ablated task branch: `13/100`; no grenade projectile is available, so explosion calibration falls back and explosion gameplay scores 0.
-- Reference branch: `100/100`; explosion calibration measures a full-credit default throw at about 11.20 units, the front, left-front, and right-front explosion trials hit nearby targets, trajectory feedback reacts to verifier-driven aim state, and transient visual/audio effects are observed during their active frame window.
+- Reference branch: not available at `C:\recent_project\godot-4-3d-third-person-controller-reference` during the latest local run.
 
 The ablated score is low because the grenade weapon behavior is absent. The
-reference score proves the verifier can pass the intended behavior, while
-adaptive calibration and frame-window effect observation reduce false negatives
-from default throw-distance mismatch and short-lived presentation effects.
+nearby target band, adaptive calibration, and frame-window effect observation
+reduce false negatives from exact throw-distance mismatch and short-lived
+presentation effects.
 
 ## Probe Matrix
 

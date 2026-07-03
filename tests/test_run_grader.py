@@ -49,7 +49,18 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("out-of-range safety targets were damaged", runner_source)
         self.assertIn("all explosion safety trials protected out-of-range targets", runner_source)
         self.assertIn("damage_detonation_observed", runner_source)
-        self.assertGreaterEqual(runner_source.count("ArenaBuilder.add_damage_target(arena,"), 6)
+        self.assertIn("_add_nearby_damage_targets(arena, forward, right)", runner_source)
+        self.assertGreaterEqual(runner_source.count("ArenaBuilder.add_damage_target(arena,"), 4)
+
+    def test_explosion_gameplay_uses_nearby_damage_target_band(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("NEARBY_DAMAGE_TARGET_DISTANCES := [6.0, 8.0, 10.0, 12.0]", runner_source)
+        self.assertIn("NEARBY_DAMAGE_TARGET_SIDE_OFFSETS := [-1.5, 0.0, 1.5]", runner_source)
+        self.assertIn("_add_nearby_damage_targets", runner_source)
+        self.assertIn("_nearby_hit_score", runner_source)
+        self.assertIn('target.name = "NearbyTarget_%02d_%s"', runner_source)
+        self.assertIn("nearby_hits > 0", runner_source)
 
     def test_runner_prefers_project_weapon_switch_action_when_available(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -93,7 +104,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("var far_forward_distance := _far_forward_distance(target_forward_distance)", runner_source)
         self.assertIn("_run_explosion_trial(String(trial[\"label\"]), float(trial[\"heading_y\"]), calibration)", runner_source)
         self.assertIn("_explosion_details_from_trials(trial_results, calibration)", runner_source)
-        self.assertIn("_explosion_target_position(forward, right, target_forward_distance, 0.0)", runner_source)
+        self.assertIn("_add_nearby_damage_targets(arena, forward, right)", runner_source)
         self.assertIn("_explosion_target_position(forward, right, far_forward_distance, 0.0)", runner_source)
 
     def test_runner_drives_trajectory_aim_change_through_project_aim_state(self):
