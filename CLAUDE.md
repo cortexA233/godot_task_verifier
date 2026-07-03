@@ -24,6 +24,20 @@ workspace or rollout-agent prompt.
 - Do not use destructive git commands unless the user explicitly asks for them.
 - Commit any verifier-repository changes in this repository after verification.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for this repo; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default mattpocock/skills triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single-context layout: root `CONTEXT.md` plus root `docs/adr/` when they exist. See `docs/agents/domain.md`.
+
 ## Verification
 
 For documentation-only changes, verify the relevant files and diff. For Python
