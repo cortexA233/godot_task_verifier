@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 
-EXCLUDED_DIRS = {".git", ".godot", ".superpowers", ".worktrees", "exports", "bin"}
+EXCLUDED_DIRS = {".git", ".godot", ".superpowers", ".worktrees", "exports", "bin", "output", "tmp"}
 RESULT_FILE_NAME = "__verifier_result.json"
 
 

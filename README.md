@@ -2,6 +2,9 @@
 
 External verifier for the RoboBlast grenade weapon benchmark.
 
+See `BENCHMARK.md` for the evaluation objective, agent protocol, candidate
+interface contract, and reproducibility notes.
+
 Run:
 
 ```powershell
@@ -77,10 +80,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-
 
 Latest local calibration:
 
+- Godot executable: `C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe`
+- Godot version: `4.7.stable.mono.official.5b4e0cb0f`
 - Ablated task branch: `13/100`; no grenade projectile is available, so explosion calibration falls back and explosion gameplay scores 0.
-- Reference branch: `87/100`; explosion calibration measures a full-credit default throw at about 11.2 units and the front, left-front, and right-front explosion trials hit nearby targets.
+- Reference branch: `87/100`; explosion calibration measures a full-credit default throw at about 11.20 units and the front, left-front, and right-front explosion trials hit nearby targets.
 
-The ablated score is low because the grenade weapon behavior is absent. The reference score is high enough to prove discrimination, while leaving room for the verifier to distinguish partial agent attempts.
+The ablated score is low because the grenade weapon behavior is absent. The
+reference score remains high enough to prove discrimination, while adaptive
+calibration reduces false negatives from default throw-distance mismatch.
 
 ## Probe Matrix
 

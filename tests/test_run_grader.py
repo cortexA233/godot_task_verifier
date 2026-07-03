@@ -105,6 +105,10 @@ class RunGraderTests(unittest.TestCase):
             (src / ".git" / "HEAD").write_text("secret", encoding="utf-8")
             (src / ".godot").mkdir()
             (src / ".godot" / "cache").write_text("cache", encoding="utf-8")
+            (src / "output").mkdir()
+            (src / "output" / "report.html").write_text("report", encoding="utf-8")
+            (src / "tmp").mkdir()
+            (src / "tmp" / "scratch.txt").write_text("scratch", encoding="utf-8")
             (src / "player").mkdir()
             (src / "player" / "player.gd").write_text("extends Node\n", encoding="utf-8")
 
@@ -114,6 +118,8 @@ class RunGraderTests(unittest.TestCase):
             self.assertTrue((dst / "player" / "player.gd").exists())
             self.assertFalse((dst / ".git").exists())
             self.assertFalse((dst / ".godot").exists())
+            self.assertFalse((dst / "output").exists())
+            self.assertFalse((dst / "tmp").exists())
 
     def test_inject_verifier_copies_verifier_folder(self):
         with tempfile.TemporaryDirectory() as verifier_dir, tempfile.TemporaryDirectory() as project_dir:
