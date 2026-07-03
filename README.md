@@ -83,11 +83,12 @@ Latest local calibration:
 - Godot executable: `C:\Godot_v4.7-stable_mono_win64\Godot_v4.7-stable_mono_win64_console.exe`
 - Godot version: `4.7.stable.mono.official.5b4e0cb0f`
 - Ablated task branch: `13/100`; no grenade projectile is available, so explosion calibration falls back and explosion gameplay scores 0.
-- Reference branch: `87/100`; explosion calibration measures a full-credit default throw at about 11.20 units and the front, left-front, and right-front explosion trials hit nearby targets.
+- Reference branch: `100/100`; explosion calibration measures a full-credit default throw at about 11.20 units, the front, left-front, and right-front explosion trials hit nearby targets, trajectory feedback reacts to verifier-driven aim state, and transient visual/audio effects are observed during their active frame window.
 
 The ablated score is low because the grenade weapon behavior is absent. The
-reference score remains high enough to prove discrimination, while adaptive
-calibration reduces false negatives from default throw-distance mismatch.
+reference score proves the verifier can pass the intended behavior, while
+adaptive calibration and frame-window effect observation reduce false negatives
+from default throw-distance mismatch and short-lived presentation effects.
 
 ## Probe Matrix
 

@@ -96,6 +96,88 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_explosion_target_position(forward, right, target_forward_distance, 0.0)", runner_source)
         self.assertIn("_explosion_target_position(forward, right, far_forward_distance, 0.0)", runner_source)
 
+    def test_runner_drives_trajectory_aim_change_through_project_aim_state(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("_set_explosion_trial_heading(0.45)", runner_source)
+        self.assertIn("first_transforms", runner_source)
+
+    def test_runner_requires_visible_effect_for_detonation_audio_credit(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('visible_effects > 0 and bool(activity.get("saw_audio", false))', runner_source)
+
+    def test_scene_probe_observes_transient_visual_and_audio_activity(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            verifier_dir = tmp_path / "__verifier__"
+            verifier_dir.mkdir()
+            shutil.copy(ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd", verifier_dir / "scene_probe.gd")
+            (tmp_path / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (tmp_path / "test_runner.gd").write_text(textwrap.dedent(
+                """
+                extends SceneTree
+
+                const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+
+                func _init() -> void:
+                    call_deferred("_run")
+
+                func _spawn_transient_activity(arena: Node3D) -> void:
+                    await physics_frame
+                    var effect := MeshInstance3D.new()
+                    effect.name = "TransientEffect"
+                    effect.mesh = BoxMesh.new()
+                    arena.add_child(effect)
+
+                    var audio := AudioStreamPlayer.new()
+                    audio.stream = AudioStreamGenerator.new()
+                    arena.add_child(audio)
+                    audio.play()
+
+                    await physics_frame
+                    await physics_frame
+                    effect.queue_free()
+                    audio.queue_free()
+
+                func _run() -> void:
+                    var arena := Node3D.new()
+                    root.add_child(arena)
+                    var before := SceneProbe.collect_instance_ids(arena)
+                    _spawn_transient_activity(arena)
+
+                    var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, Vector3.ZERO, 5.0, 8)
+                    var file := FileAccess.open("res://result.json", FileAccess.WRITE)
+                    file.store_string(JSON.stringify(activity))
+                    quit(0 if int(activity.get("visible_count", 0)) > 0 and bool(activity.get("saw_audio", false)) else 1)
+                """
+            ), encoding="utf-8")
+
+            completed = subprocess.run(
+                [
+                    str(godot),
+                    "--headless",
+                    "--path",
+                    str(tmp_path),
+                    "--script",
+                    "res://test_runner.gd",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=30,
+            )
+
+            self.assertTrue((tmp_path / "result.json").exists(), completed.stdout + completed.stderr)
+            result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+            self.assertGreater(result["visible_count"], 0, completed.stdout + completed.stderr)
+            self.assertTrue(result["saw_audio"], completed.stdout + completed.stderr)
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
     def test_copy_candidate_project_excludes_git_and_godot_cache(self):
         with tempfile.TemporaryDirectory() as src_dir, tempfile.TemporaryDirectory() as dst_dir:
             src = Path(src_dir)

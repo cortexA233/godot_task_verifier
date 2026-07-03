@@ -45,6 +45,29 @@ static func audio_players_playing(root: Node) -> Array[Node]:
 	return found
 
 
+static func observe_runtime_activity(tree: SceneTree, root: Node, before: Dictionary, point: Vector3, radius: float, frame_count: int) -> Dictionary:
+	var visible_ids := {}
+	var saw_audio := false
+	for _i in range(frame_count):
+		for node in new_nodes_since(root, before):
+			if node is Node3D:
+				var node_3d := node as Node3D
+				if node_3d.visible and node_3d.global_position.distance_to(point) <= radius:
+					visible_ids[node_3d.get_instance_id()] = true
+		if audio_players_playing(root).size() > 0:
+			saw_audio = true
+		await tree.physics_frame
+	var remaining_visible_count := 0
+	for node in flatten(root):
+		if visible_ids.has(node.get_instance_id()):
+			remaining_visible_count += 1
+	return {
+		"visible_count": visible_ids.size(),
+		"remaining_visible_count": remaining_visible_count,
+		"saw_audio": saw_audio,
+	}
+
+
 static func control_snapshot(root: Node) -> Dictionary:
 	var snapshot := {}
 	for node in flatten(root):

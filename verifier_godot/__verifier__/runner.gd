@@ -221,15 +221,20 @@ func _score_trajectory_preview() -> void:
 		"new visible 3D aim feedback appears in grenade mode",
 		"no new visible 3D trajectory or landing feedback detected"
 	))
-	var first_positions: Array[Vector3] = []
+	var first_transforms: Array[Transform3D] = []
 	for node in newly_visible:
-		first_positions.append(node.global_position)
-	player.rotate_y(0.45)
+		first_transforms.append(node.global_transform)
+	_set_explosion_trial_heading(0.45)
 	await input.wait_physics_frames(10)
 	var moved_feedback := false
 	for index in range(newly_visible.size()):
 		var node := newly_visible[index]
-		if is_instance_valid(node) and node.global_position.distance_to(first_positions[index]) > 0.2:
+		if not is_instance_valid(node):
+			continue
+		var first_transform := first_transforms[index]
+		var origin_moved := node.global_transform.origin.distance_to(first_transform.origin) > 0.2
+		var basis_moved := node.global_transform.basis.get_euler().distance_to(first_transform.basis.get_euler()) > 0.05
+		if origin_moved or basis_moved:
 			moved_feedback = true
 	details.append(_score_detail(
 		"Trajectory reacts to aim",
@@ -439,8 +444,8 @@ func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Di
 	await _tap_weapon_switch(3, 10)
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
-	await input.wait_physics_frames(180)
-	var new_nodes := SceneProbe.new_nodes_since(arena, before)
+	var effect_origin := _explosion_target_position(forward, right, target_forward_distance, 0.75)
+	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, effect_origin, 8.0, 180)
 	var damaged_safety_targets: Array[String] = []
 	for safety_target in safety_targets:
 		if safety_target.damage_calls > 0:
@@ -459,7 +464,7 @@ func _run_explosion_trial(trial_label: String, heading_y: float, calibration: Di
 		"near_b_damaged": near_b.damage_calls > 0,
 		"detonation_observed": damage_detonation_observed,
 		"player_safe": player_safe,
-		"effects_observed": damage_detonation_observed and new_nodes.size() > 0,
+		"effects_observed": damage_detonation_observed and int(activity.get("visible_count", 0)) > 0,
 		"damaged_safety_targets": damaged_safety_targets,
 		"calibration_status": String(calibration.get("status", "failed")),
 		"calibration_distance": float(calibration.get("distance", FALLBACK_THROW_DISTANCE)),
@@ -587,13 +592,9 @@ func _score_visual_audio_polish() -> void:
 	await input.tap("swap_weapons")
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
-	await input.wait_physics_frames(140)
-	var new_nodes := SceneProbe.new_nodes_since(arena, before)
+	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, player.global_position, 30.0, 220)
 	var details: Array[Dictionary] = []
-	var visible_effects := 0
-	for node in new_nodes:
-		if node is Node3D and (node as Node3D).visible:
-			visible_effects += 1
+	var visible_effects := int(activity.get("visible_count", 0))
 	details.append(_score_detail(
 		"Visible effect nodes",
 		4,
@@ -604,18 +605,14 @@ func _score_visual_audio_polish() -> void:
 	details.append(_score_detail(
 		"Detonation audio",
 		3,
-		SceneProbe.audio_players_playing(arena).size() > 0,
+		visible_effects > 0 and bool(activity.get("saw_audio", false)),
 		"audio player was active during detonation window",
 		"no active audio player detected during detonation window"
 	))
-	await input.wait_physics_frames(180)
-	var remaining_new := 0
-	for node in new_nodes:
-		if is_instance_valid(node):
-			remaining_new += 1
-	if new_nodes.size() > 0 and remaining_new < new_nodes.size():
+	var remaining_new := int(activity.get("remaining_visible_count", 0))
+	if visible_effects > 0 and remaining_new < visible_effects:
 		details.append(_detail("Temporary node cleanup", 3, 3, "earned", "some temporary nodes cleaned up"))
-	elif new_nodes.size() == 0:
+	elif visible_effects == 0:
 		details.append(_detail("Temporary node cleanup", 0, 3, "missed", "no temporary visual nodes were created"))
 	else:
 		details.append(_detail("Temporary node cleanup", 0, 3, "missed", "temporary nodes did not clean up during observation window"))
