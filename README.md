@@ -107,7 +107,8 @@ Latest local calibration (2026-07-03, `score >= 85` pass line):
 - Ablated task branch `codex/grenade-rollout-task` commit `fb0fd4f`: `13/100`, `passed: false`; no grenade projectile is available, so explosion calibration falls back, trajectory preview scores 0, and explosion gameplay scores 0.
 - Reference `main` commit `1cf08f7`: `91/100`, `passed: true`, with localized explosion gameplay at `17/20`.
 - Global targetable sweep probe branch `codex/grenade-global-enemy-damage` commit `14310ca`: `78/100`, `passed: false`, with `explosion_gameplay` capped to `4/20` after global damage sweep detection.
-- Three Claude Code Sonnet rollout candidates score `80/100`, `78/100`, and `13/100` under the same verifier; see `evaluation/writeup.html`.
+- Three Claude Code Sonnet 5 medium rollout candidates score `80/100`, `78/100`, and `13/100` under the refreshed calibration verifier; see `evaluation/writeup.html`.
+- Additional published rollout branches record three Claude Code Opus 4.8 max attempts (`74/100`, `88/100`, `80/100` in branch-captured score JSONs) and three Codex GPT-5.5 xhigh attempts (`6/100`, `28/100`, `28/100` in branch-captured score JSONs).
 - Committed score JSONs for these runs live under `evaluation/evidence/`.
 
 The ablated score is low because the grenade weapon behavior is absent. The

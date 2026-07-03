@@ -347,7 +347,7 @@
     <div class="hero-inner">
       <p class="eyebrow">Take-home evaluation writeup</p>
       <h1>RoboBlast Grenade Verifier</h1>
-      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from three Claude Code Sonnet attempts and a global-damage anti-cheat probe now capped below the pass line.</p>
+      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from Claude Code Sonnet 5 medium, Claude Code Opus 4.8 max, and Codex GPT-5.5 xhigh attempts, plus a global-damage anti-cheat probe now capped below the pass line.</p>
     </div>
   </header>
 
@@ -365,8 +365,8 @@
       </div>
       <div class="metric status-blue">
         <b>13-80</b>
-        <span>Sonnet run spread</span>
-        <small>Three attempts land in partial-credit territory rather than an easy 100.</small>
+        <span>Highlighted Sonnet spread</span>
+        <small>Three Sonnet 5 medium attempts land in partial-credit territory rather than an easy 100.</small>
       </div>
       <div class="metric status-good">
         <b>78</b>
@@ -468,19 +468,19 @@
             <td><code>evaluation/evidence/calibration-20260703-ablated-score.json</code></td>
           </tr>
           <tr>
-            <td>Claude Code Sonnet run 1</td>
+            <td>Claude Code Sonnet 5 medium run 1</td>
             <td><span class="score mid">80/100</span></td>
             <td><div class="bar"><span class="warn" style="width:80%"></span></div></td>
             <td><code>evaluation/evidence/calibration-20260703-sonnet-1-score.json</code></td>
           </tr>
           <tr>
-            <td>Claude Code Sonnet run 2</td>
+            <td>Claude Code Sonnet 5 medium run 2</td>
             <td><span class="score mid">78/100</span></td>
             <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
             <td><code>evaluation/evidence/calibration-20260703-sonnet-2-score.json</code></td>
           </tr>
           <tr>
-            <td>Claude Code Sonnet run 3</td>
+            <td>Claude Code Sonnet 5 medium run 3</td>
             <td><span class="score low">13/100</span></td>
             <td><div class="bar"><span class="bad" style="width:13%"></span></div></td>
             <td><code>evaluation/evidence/calibration-20260703-sonnet-3-score.json</code></td>
@@ -505,30 +505,58 @@
       </div>
       <table>
         <thead>
-          <tr><th>Run</th><th>Diff summary</th><th>Score</th><th>Failure analysis</th></tr>
+          <tr><th>Run</th><th>Agent / model</th><th>Diff summary</th><th>Score</th><th>Failure analysis</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Sonnet 1</td>
+            <td>Claude Code, Sonnet 5 medium</td>
             <td>6 modified, 6 added, 1 prompt-localized file removed. Added <code>thrown_grenade</code> and trajectory resources; modified player, weapon UI, project settings, and explosion scene.</td>
             <td><span class="score mid">80/100</span></td>
             <td>Earlier verifier builds scored this run 43: its weapon switch takes effect slightly later than the tight input taps the weapon/HUD/projectile/polish checks used, so those categories never saw the grenade — a verifier timing artifact, not an agent defect. After harmonizing every category on the same weapon-switch input timing, those categories score fully. Real remaining defects: the aiming aid does not update with aim/camera direction (15/30) and the damageable-only destructible probes were not damaged (15/20).</td>
           </tr>
           <tr>
             <td>Sonnet 2</td>
+            <td>Claude Code, Sonnet 5 medium</td>
             <td>5 modified, 5 added, 1 prompt-localized file removed. Added <code>grenade_projectile</code>, projectile scene, landing marker, and a grenade implementation plan.</td>
             <td><span class="score mid">78/100</span></td>
             <td>Strong partial run. It implemented switchable grenade attacks through a Tab-bound custom input action with a controller binding, projectile physics, localized damage, visual/audio feedback, and repeat use. Name-based scoring used to dock it 4 points for not naming the action <code>swap_weapons</code>; behavioral scoring now credits it. Real remaining defects: preview did not update with aim/camera direction, default throw landed at 13.20 units outside the preferred 6-12 band, and the damageable-only destructible probes were not damaged.</td>
           </tr>
           <tr>
             <td>Sonnet 3</td>
+            <td>Claude Code, Sonnet 5 medium</td>
             <td>0 code/resource changes relative to the ablated baseline; removed the localized task prompt file.</td>
             <td><span class="score low">13/100</span></td>
             <td>Real agent failure: no grenade trajectory, projectile, explosion gameplay, or polish behavior was implemented. The remaining points come from existing UI/default-player behavior that survived the ablation.</td>
           </tr>
         </tbody>
       </table>
-      <p class="muted">Before publishing the fork, attach exact model/version strings and full patch files for each run. The committed <code>evaluation/evidence/</code> score JSONs cover grading, but public branch diffs and exact model metadata for these three runs are still pending.</p>
+      <p class="muted">Full run evidence is published on per-run branches. Each branch includes <code>evaluation/agent-runs/&lt;run&gt;/diff.patch</code>, <code>score.json</code>, <code>score-report.pdf</code>, <code>run-manifest.json</code>, the prompt given to the agent, and the verifier command/log.</p>
+      <table>
+        <thead>
+          <tr><th>Run family</th><th>Agent / model</th><th>Published branches</th><th>Branch-recorded scores</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sonnet runs</td>
+            <td>Claude Code, Sonnet 5 medium</td>
+            <td><code>codex/agent-run-01-cc-sonnet</code><br><code>codex/agent-run-02-cc-sonnet</code><br><code>codex/agent-run-03-cc-sonnet</code></td>
+            <td>77/100, 82/100, 59/100 in branch-captured score JSONs; refreshed calibration scores shown above are 80/100, 78/100, and 13/100 under the current verifier.</td>
+          </tr>
+          <tr>
+            <td>Opus runs</td>
+            <td>Claude Code, Opus 4.8 max</td>
+            <td><code>codex/agent-run-01-cc-opus</code><br><code>codex/agent-run-02-cc-opus</code><br><code>codex/agent-run-03-cc-opus</code></td>
+            <td>74/100, 88/100, 80/100 in branch-captured score JSONs.</td>
+          </tr>
+          <tr>
+            <td>Codex runs</td>
+            <td>Codex, GPT-5.5 xhigh</td>
+            <td><code>codex/agent-run-01-codex</code><br><code>codex/agent-run-02-codex</code><br><code>codex/agent-run-03-codex</code></td>
+            <td>6/100, 28/100, 28/100 in branch-captured score JSONs.</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section>
@@ -607,7 +635,7 @@
         <tbody>
           <tr><td>Ablated task branch and behavioral spec</td><td><span class="tag good">Ready locally</span></td><td>Publish exact ablated branch and keep verifier/history out of agent reach.</td></tr>
           <tr><td>Headless verifier and scoring docs</td><td><span class="tag good">Ready locally</span></td><td>Include exact command and Godot 4.6 version.</td></tr>
-          <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Commit or publish each final diff/branch and exact model/tool metadata.</td></tr>
+          <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Published run branches record diff, score, verifier command/log, and tool evidence; this writeup records the model settings for Sonnet 5 medium, Opus 4.8 max, and Codex GPT-5.5 xhigh attempts.</td></tr>
           <tr><td>Godot MCP available to rollout agents</td><td><span class="tag good">Configured locally</span></td><td>Document the MCP config in the public run metadata.</td></tr>
           <tr><td>Anti-cheat fake solutions</td><td><span class="tag">Partially ready</span></td><td>Global-damage probe is capped and re-run; build and run the remaining 11 probes from <code>probe_matrix.md</code> and record their observed scores.</td></tr>
           <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>Keep the score table in sync with <code>evaluation/evidence/</code> whenever runs are refreshed.</td></tr>
