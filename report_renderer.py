@@ -74,7 +74,7 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
 
     score = int(result["score"])
     max_score = int(result["max_score"])
-    passed = bool(result.get("passed", score >= 80))
+    passed = bool(result.get("passed", score >= 85))
     breakdown = [_normalize_item(item) for item in result.get("breakdown", [])]
     findings = select_key_findings(breakdown, limit=5)
 

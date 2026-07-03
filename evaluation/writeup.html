@@ -364,14 +364,14 @@
         <small>Fresh local run: no projectile, trajectory, explosion, or polish behavior observed.</small>
       </div>
       <div class="metric status-blue">
-        <b>13-74</b>
+        <b>13-80</b>
         <span>Sonnet run spread</span>
         <small>Three attempts land in partial-credit territory rather than an easy 100.</small>
       </div>
       <div class="metric status-good">
         <b>78</b>
         <span>Capped global probe</span>
-        <small>The global-damage fake solution is now capped below the score >= 80 pass line.</small>
+        <small>The global-damage fake solution is now capped below the score >= 85 pass line.</small>
       </div>
     </div>
 
@@ -403,7 +403,7 @@
               <tr><th>Category</th><th>Max</th><th>Behavior checked</th></tr>
             </thead>
             <tbody>
-              <tr><td>Weapon controls</td><td>15</td><td>Switching, grenade attack path, rate limit, default attack preservation.</td></tr>
+              <tr><td>Weapon controls</td><td>15</td><td>Behavioral switching, controller binding, grenade attack path, rate limit, default attack preservation.</td></tr>
               <tr><td>HUD feedback</td><td>10</td><td>Visible weapon UI, selected state update, aim feedback.</td></tr>
               <tr><td>Trajectory preview</td><td>30</td><td>Visible aiming aid, arc/landing communication, camera reactivity, projectile consistency, lifecycle.</td></tr>
               <tr><td>Projectile physics</td><td>15</td><td>Runtime projectile spawn, arcing motion, player-safe path.</td></tr>
@@ -449,7 +449,7 @@
 
     <section>
       <h2>Calibration And Scores</h2>
-      <p>These numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier: the global-damage sweep cap is active and the <code>passed</code> flag means <code>score >= 80</code> (moved from 85 so the pass line sits between the strongest capped probe at 78 and the reference at 91). Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
+      <p>These numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier: the global-damage sweep cap is active, weapon-switch input is scored behaviorally instead of by action name, and the <code>passed</code> flag means <code>score >= 85</code> — above the strongest capped probe (78) and below the reference (91). Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
       <table>
         <thead>
           <tr><th>Candidate</th><th>Score</th><th>Observed</th><th>Evidence path</th></tr>
@@ -459,42 +459,42 @@
             <td>Reference complete implementation</td>
             <td><span class="score high">91/100</span></td>
             <td><div class="bar"><span class="good" style="width:91%"></span></div></td>
-            <td><code>evaluation/evidence/final80-20260703-reference-score.json</code></td>
+            <td><code>evaluation/evidence/calibration-20260703-reference-score.json</code></td>
           </tr>
           <tr>
             <td>Ablated task workspace</td>
             <td><span class="score low">13/100</span></td>
             <td><div class="bar"><span class="bad" style="width:13%"></span></div></td>
-            <td><code>evaluation/evidence/final80-20260703-ablated-score.json</code></td>
+            <td><code>evaluation/evidence/calibration-20260703-ablated-score.json</code></td>
           </tr>
           <tr>
             <td>Claude Code Sonnet run 1</td>
-            <td><span class="score mid">43/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:43%"></span></div></td>
-            <td><code>evaluation/evidence/final80-20260703-sonnet-1-score.json</code></td>
+            <td><span class="score mid">80/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:80%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-sonnet-1-score.json</code></td>
           </tr>
           <tr>
             <td>Claude Code Sonnet run 2</td>
-            <td><span class="score mid">74/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:74%"></span></div></td>
-            <td><code>evaluation/evidence/final80-20260703-sonnet-2-score.json</code></td>
+            <td><span class="score mid">78/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260703-sonnet-2-score.json</code></td>
           </tr>
           <tr>
             <td>Claude Code Sonnet run 3</td>
             <td><span class="score low">13/100</span></td>
             <td><div class="bar"><span class="bad" style="width:13%"></span></div></td>
-            <td><code>evaluation/evidence/final80-20260703-sonnet-3-score.json</code></td>
+            <td><code>evaluation/evidence/calibration-20260703-sonnet-3-score.json</code></td>
           </tr>
           <tr>
             <td>Fake broad/global damage probe (capped)</td>
             <td><span class="score mid">78/100</span></td>
             <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
-            <td><code>evaluation/evidence/final80-20260703-probe-global-damage-score.json</code></td>
+            <td><code>evaluation/evidence/calibration-20260703-probe-global-damage-score.json</code></td>
           </tr>
         </tbody>
       </table>
       <div class="callout">
-        <strong>Anti-cheat fix landed:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing the probe to 78/100 — inside the 35-79 band from <code>probe_matrix.md</code> and below the pass line. The margin is only 2 points, so this probe must be re-run after any scoring or calibration change.
+        <strong>Anti-cheat fix landed:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing the probe to 78/100 — inside the 35-79 band from <code>probe_matrix.md</code> and 7 points below the pass line. This probe must be re-run after any scoring or calibration change.
       </div>
     </section>
 
@@ -511,14 +511,14 @@
           <tr>
             <td>Sonnet 1</td>
             <td>6 modified, 6 added, 1 prompt-localized file removed. Added <code>thrown_grenade</code> and trajectory resources; modified player, weapon UI, project settings, and explosion scene.</td>
-            <td><span class="score mid">43/100</span></td>
-            <td>Real defects: weapon switch path did not create observable projectile behavior; HUD state did not change; preview did not react to aim; no visible effect/audio in the primary observation window. Explosion trials still credit localized damage (15/20), but the damageable-only destructible probes were not damaged, so the category breakdown is useful but should be manually inspected.</td>
+            <td><span class="score mid">80/100</span></td>
+            <td>Earlier verifier builds scored this run 43: its weapon switch takes effect slightly later than the tight input taps the weapon/HUD/projectile/polish checks used, so those categories never saw the grenade — a verifier timing artifact, not an agent defect. After harmonizing every category on the same weapon-switch input timing, those categories score fully. Real remaining defects: the aiming aid does not update with aim/camera direction (15/30) and the damageable-only destructible probes were not damaged (15/20).</td>
           </tr>
           <tr>
             <td>Sonnet 2</td>
             <td>5 modified, 5 added, 1 prompt-localized file removed. Added <code>grenade_projectile</code>, projectile scene, landing marker, and a grenade implementation plan.</td>
-            <td><span class="score mid">74/100</span></td>
-            <td>Best partial run. It implemented switchable grenade attacks, projectile physics, localized damage, visual/audio feedback, and repeat use. Misses were meaningful: no registered weapon-switch input action, preview did not update with aim/camera direction, default throw landed at 13.20 units outside the preferred 6-12 band, and the damageable-only destructible probes were not damaged.</td>
+            <td><span class="score mid">78/100</span></td>
+            <td>Strong partial run. It implemented switchable grenade attacks through a Tab-bound custom input action with a controller binding, projectile physics, localized damage, visual/audio feedback, and repeat use. Name-based scoring used to dock it 4 points for not naming the action <code>swap_weapons</code>; behavioral scoring now credits it. Real remaining defects: preview did not update with aim/camera direction, default throw landed at 13.20 units outside the preferred 6-12 band, and the damageable-only destructible probes were not damaged.</td>
           </tr>
           <tr>
             <td>Sonnet 3</td>
@@ -549,7 +549,7 @@
         <div class="panel">
           <h3>Probe Actually Run</h3>
           <p><span class="tag good">global damage capped at 78</span></p>
-          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The fake lands at 78/100, below the score >= 80 pass line.</p>
+          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The fake lands at 78/100, below the score >= 85 pass line.</p>
         </div>
         <div class="panel">
           <h3>Remaining Work</h3>
@@ -591,10 +591,10 @@
 
     <section>
       <h2>Reproduction Commands</h2>
-      <p>Verifier command used for the fresh ablated check (the reference, probe, and Sonnet runs use the same pattern with their own project paths and <code>final80-20260703-*</code> output names):</p>
-      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\final80-20260703-ablated-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\final80-20260703-ablated-score.log</div>
+      <p>Verifier command used for the fresh ablated check (the reference, probe, and Sonnet runs use the same pattern with their own project paths and <code>calibration-20260703-*</code> output names):</p>
+      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-ablated-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-ablated-score.log</div>
       <p>Fake broad-damage probe command:</p>
-      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller-grenade-global --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\final80-20260703-probe-global-damage-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\final80-20260703-probe-global-damage-score.log</div>
+      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller-grenade-global --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-probe-global-damage-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-probe-global-damage-score.log</div>
       <p>Godot version recorded in result JSON: <code>4.6-stable (official)</code>. The README also records the local executable build as <code>4.6.stable.official.89cea1439</code>.</p>
     </section>
 
@@ -616,7 +616,7 @@
     </section>
 
     <footer>
-      Updated from fresh local runs in <code>C:\recent_project\roboblast-grenade-verifier</code> on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and caps the broad-damage cheat below the score >= 80 pass line; the remaining validity debt is the eleven probe rows without observed runs.
+      Updated from fresh local runs in <code>C:\recent_project\roboblast-grenade-verifier</code> on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and caps the broad-damage cheat below the score >= 85 pass line; the remaining validity debt is the eleven probe rows without observed runs.
     </footer>
   </main>
 </body>

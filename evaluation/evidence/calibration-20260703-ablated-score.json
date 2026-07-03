@@ -1,15 +1,22 @@
 {
   "artifacts": {
-    "log": "C:\\recent_project\\roboblast-grenade-verifier\\artifacts\\final80-20260703-sonnet-3-score.log",
+    "log": "C:\\recent_project\\roboblast-grenade-verifier\\artifacts\\calibration-20260703-ablated-score.log",
     "screenshots": []
   },
   "breakdown": [
     {
       "details": [
         {
-          "label": "Weapon switch input action",
-          "max": 4,
-          "notes": "using Tab key fallback for weapon switching",
+          "label": "Controller weapon-switch binding",
+          "max": 2,
+          "notes": "no weapon-switch input route carries a controller binding",
+          "score": 0,
+          "status": "missed"
+        },
+        {
+          "label": "Weapon switch input responds",
+          "max": 2,
+          "notes": "weapon mode did not observably switch through Tab key fallback",
           "score": 0,
           "status": "missed"
         },
@@ -37,7 +44,7 @@
       ],
       "max": 15,
       "name": "weapon_controls",
-      "notes": "using Tab key fallback for weapon switching; attack after weapon switch did not create observable runtime nodes; rate limit not credited because no grenade attack was observed; default aimed attack still creates runtime nodes",
+      "notes": "no weapon-switch input route carries a controller binding; weapon mode did not observably switch through Tab key fallback; attack after weapon switch did not create observable runtime nodes; rate limit not credited because no grenade attack was observed; default aimed attack still creates runtime nodes",
       "score": 3
     },
     {

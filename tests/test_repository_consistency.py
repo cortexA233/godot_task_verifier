@@ -61,6 +61,21 @@ class RepositoryConsistencyTests(unittest.TestCase):
             f"These files must state the pass threshold as '{expected_phrase}'",
         )
 
+        stray_pattern = re.compile(r"score >= (\d+)")
+        contradictions = []
+        for path in documents:
+            text = path.read_text(encoding="utf-8")
+            for found in stray_pattern.findall(text):
+                if found != threshold:
+                    contradictions.append(
+                        f"{path.relative_to(ROOT)}: score >= {found}"
+                    )
+        self.assertEqual(
+            [],
+            contradictions,
+            "Documents must not state a conflicting pass threshold",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,7 +81,10 @@ The verifier is behavioral, but it still needs a stable project entry contract:
 - The main player attack and aim controls should remain compatible with the
   project's existing `attack` and `aim` actions.
 - Weapon switching should use `swap_weapons`, `weapon_switch`, or a real `Tab`
-  key path that the player scene receives through Godot input.
+  key path that the player scene receives through Godot input. Scoring is
+  behavioral: any of these routes earns switch credit when the mode change is
+  observable, and a controller (joypad) binding on a weapon-switch route earns
+  the controller-input detail. No points depend on the action name itself.
 - Damageable targets should react through existing gameplay conventions. The
   verifier's test targets expose `damage(impact_point, force)`. Most are placed
   in both `damageables` and `targeteables` groups to match enemies, and some
@@ -115,15 +118,15 @@ The scoring treats blast locality as a core requirement: broad damage sweeps
 that hit most nearby targets and multiple safety targets are capped inside
 `explosion_gameplay` even if they also hit the expected nearby targets.
 
-The `passed` flag currently uses `score >= 80` as a report convenience. The
+The `passed` flag currently uses `score >= 85` as a report convenience. The
 primary benchmark signal is the 0-100 score and category breakdown. The pass
-line was chosen to sit between the strongest observed near-miss probe (the
-capped global targetable sweep at `78/100`) and the reference implementation
-(`91/100`). That leaves only a 2-point margin over the strongest probe, so any
-scoring or calibration change must re-run the global-sweep probe and confirm it
-still lands below 80. A reference score below 100 should be inspected as either
-reference incompleteness or a possible verifier false negative; it is not proof
-that the verifier is perfect.
+line sits between the strongest observed near-miss probe (the capped global
+targetable sweep at `78/100`) and the reference implementation (`91/100`),
+leaving a 7-point margin over the strongest probe and a 6-point margin under
+the reference. Any scoring or calibration change must re-run the global-sweep
+probe and confirm it still lands below the pass line. A reference score below
+100 should be inspected as either reference incompleteness or a possible
+verifier false negative; it is not proof that the verifier is perfect.
 
 ## Reproducibility
 
@@ -151,7 +154,7 @@ exact Godot executable and version from the logs with every published result.
 ## Validity Probes
 
 `probe_matrix.md` lists anti-cheat probes, expected score bands, and observed
-results. Every probe must stay below the `score >= 80` pass line; record each
+results. Every probe must stay below the `score >= 85` pass line; record each
 probe run in the matrix's Observed column and keep the score JSON as curated
 evidence under `evaluation/evidence/`. At minimum, local validation should
 demonstrate:

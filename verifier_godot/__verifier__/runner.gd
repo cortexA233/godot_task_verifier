@@ -43,7 +43,7 @@ func _run() -> void:
 	seed(12345)
 	board = ScoreBoard.new()
 	input = InputDriver.new(self)
-	print("Verifier swap input route: ", input.describe_route("swap_weapons"))
+	print("Verifier swap input route: ", input.describe_route(_weapon_switch_action()))
 	await _build_arena()
 	await _score_weapon_controls()
 	await _build_arena()
@@ -103,6 +103,28 @@ func _tap_weapon_switch(frames_pressed: int = 3, frames_after: int = 8) -> void:
 	await input.tap(_weapon_switch_action(), frames_pressed, frames_after)
 
 
+func _switch_route_has_joypad_binding() -> bool:
+	for action in InputMap.get_actions():
+		if not _action_is_weapon_switch_route(action):
+			continue
+		for event in InputMap.action_get_events(action):
+			if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+				return true
+	return false
+
+
+func _action_is_weapon_switch_route(action: StringName) -> bool:
+	if action == &"swap_weapons" or action == &"weapon_switch":
+		return true
+	if String(action).begins_with("ui_"):
+		return false
+	for event in InputMap.action_get_events(action):
+		var key_event := event as InputEventKey
+		if key_event != null and (key_event.keycode == KEY_TAB or key_event.physical_keycode == KEY_TAB):
+			return true
+	return false
+
+
 func _detail(label: String, score: int, max_score: int, status: String, notes: String) -> Dictionary:
 	return {
 		"label": label,
@@ -135,25 +157,33 @@ func _detail_notes(details: Array[Dictionary]) -> String:
 
 func _score_weapon_controls() -> void:
 	var details: Array[Dictionary] = []
-	var can_switch_weapons: bool = input.can_drive("swap_weapons")
-	if InputMap.has_action("swap_weapons"):
-		details.append(_detail("Weapon switch input action", 4, 4, "earned", "swap_weapons input exists"))
-	elif can_switch_weapons:
-		details.append(_detail("Weapon switch input action", 0, 4, "missed", "using Tab key fallback for weapon switching"))
-	else:
-		details.append(_detail("Weapon switch input action", 0, 4, "missed", "weapon-switch input is missing"))
+	var switch_route: String = input.describe_route(_weapon_switch_action())
+	details.append(_score_detail(
+		"Controller weapon-switch binding",
+		2,
+		_switch_route_has_joypad_binding(),
+		"a weapon-switch input route also carries a controller binding",
+		"no weapon-switch input route carries a controller binding"
+	))
 	if player == null:
 		board.add("weapon_controls", _detail_score(details), 15, _detail_notes(details), details)
 		return
 	var before_switch_attack := SceneProbe.collect_instance_ids(arena)
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch()
 	await input.tap("attack")
 	var switch_attack_nodes := SceneProbe.new_nodes_since(arena, before_switch_attack)
 	var grenade_attack_observed := switch_attack_nodes.size() > 0
 	details.append(_score_detail(
+		"Weapon switch input responds",
+		2,
+		grenade_attack_observed,
+		"weapon mode observably switches through %s" % switch_route,
+		"weapon mode did not observably switch through %s" % switch_route
+	))
+	details.append(_score_detail(
 		"Grenade attack after switching",
 		5,
-		switch_attack_nodes.size() > 0 and can_switch_weapons,
+		grenade_attack_observed,
 		"attack after weapon switch created runtime nodes",
 		"attack after weapon switch did not create observable runtime nodes"
 	))
@@ -167,7 +197,7 @@ func _score_weapon_controls() -> void:
 		details.append(_detail("Rapid attack rate limit", 0, 3, "missed", "rate limit not credited because no grenade attack was observed"))
 	else:
 		details.append(_detail("Rapid attack rate limit", 0, 3, "missed", "rapid grenade attacks were not observably rate-limited"))
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch()
 	var before_default := SceneProbe.collect_instance_ids(arena)
 	await input.hold("aim", 4)
 	await input.tap("attack")
@@ -190,11 +220,11 @@ func _score_hud_feedback() -> void:
 		return
 	await input.wait_physics_frames(8)
 	var before := SceneProbe.control_snapshot(arena)
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch()
 	var after := SceneProbe.control_snapshot(arena)
 	var changed := SceneProbe.count_changed_controls(before, after)
 	var details: Array[Dictionary] = []
-	var can_switch_weapons: bool = input.can_drive("swap_weapons")
+	var can_switch_weapons: bool = input.can_drive(_weapon_switch_action())
 	details.append(_score_detail(
 		"Visible UI controls",
 		3,
@@ -346,7 +376,7 @@ func _score_projectile_physics() -> void:
 		board.add("projectile_physics", 0, 15, _detail_notes(details), details)
 		return
 	var details: Array[Dictionary] = []
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch()
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
 	var spawned := SceneProbe.node3d_candidates(SceneProbe.new_nodes_since(arena, before), player.global_position, 6.0)
@@ -879,7 +909,7 @@ func _score_visual_audio_polish() -> void:
 		var details: Array[Dictionary] = [_detail("Player availability", 0, 5, "missed", "No player available.")]
 		board.add("visual_audio_polish", 0, 5, _detail_notes(details), details)
 		return
-	await input.tap("swap_weapons")
+	await _tap_weapon_switch()
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
 	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, player.global_position, 30.0, 220)
@@ -1081,7 +1111,7 @@ func _score_stability_repeatability() -> void:
 		details.append(_detail("Repeated grenade attacks", 0, 1, "missed", "No player available."))
 		details.append(_detail("Default attack after grenade use", 0, 1, "missed", "No player available."))
 	else:
-		await input.tap("swap_weapons")
+		await _tap_weapon_switch()
 		var first_before := SceneProbe.collect_instance_ids(arena)
 		await input.tap("attack")
 		await input.wait_physics_frames(90)
@@ -1098,7 +1128,7 @@ func _score_stability_repeatability() -> void:
 			"two separated grenade attacks produced runtime behavior",
 			"repeated grenade attacks did not both produce runtime behavior"
 		))
-		await input.tap("swap_weapons")
+		await _tap_weapon_switch()
 		var default_before := SceneProbe.collect_instance_ids(arena)
 		await input.hold("aim", 4)
 		await input.tap("attack")

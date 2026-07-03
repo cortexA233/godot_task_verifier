@@ -1,10 +1,11 @@
 # Anti-Cheat Probe Matrix
 
-The `passed` report flag is a convenience meaning `score >= 80`. Anti-cheat
-probes must stay below that line: every expected band tops out at 79 or lower,
-and a probe that reaches 80 is a verifier validity failure that must be fixed
-before scores are trusted. Record every probe run in the Observed column and
-keep its score JSON as curated evidence under `evaluation/evidence/`.
+The `passed` report flag is a convenience meaning `score >= 85`. Anti-cheat
+probes must stay clearly below that line: every expected band deliberately
+tops out at 79 or lower, and a probe that reaches the pass line is a verifier
+validity failure that must be fixed before scores are trusted. Record every
+probe run in the Observed column and keep its score JSON as curated evidence
+under `evaluation/evidence/`.
 
 Run each probe as a separate candidate project with:
 
@@ -25,12 +26,12 @@ python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
 | Grenade damages player | 30-70 | not yet run | `explosion_gameplay` notes player impact or unsafe path. |
 | Fixed or wrong trajectory that ignores aim | 30-70 | not yet run | `trajectory_preview` loses aim-change and preview/projectile consistency points; `explosion_gameplay` may still credit localized damage when the blast is otherwise real, nearby, and safe. |
 | Hard-coded one-angle or one-distance blast | 25-65 | not yet run | Fixed-seed explosion variants include multiple deterministic headings, nearby radii, and safety placements; expected-direction hits receive full nearby credit, while off-seed localized hits are capped at partial credit. |
-| Global targetable damage sweep | 35-79 | `78/100` on 2026-07-03, `passed: false`, `explosion_gameplay` capped to `4/20` (`evaluation/evidence/final80-20260703-probe-global-damage-score.json`) | `explosion_gameplay` notes global damage sweep detection and applies the category cap even though nearby target damage is observed. |
+| Global targetable damage sweep | 35-79 | `78/100` on 2026-07-03, `passed: false`, `explosion_gameplay` capped to `4/20` (`evaluation/evidence/calibration-20260703-probe-global-damage-score.json`) | `explosion_gameplay` notes global damage sweep detection and applies the category cap even though nearby target damage is observed. |
 | Explosion affects distant targets | 35-75 | not yet run | `explosion_gameplay` notes far, side, rear, or player safety target damage; repeated broad sweeps are capped as global damage. |
 | Very short or very long default throw | 25-68 | not yet run | Calibration notes failed or borderline distance; throw-distance quality records `0/2` and fixed fallback or safety targets prevent full explosion credit. |
 | Grenade mode breaks default shooting | 35-75 | not yet run | `stability_repeatability` loses default-weapon regression points. |
 
 Probes marked "not yet run" still need a fake candidate project built and
 graded; treat them as open validity work, not as passing evidence. The
-observed global-sweep score sits 2 points below the pass line, so re-run that
-probe first whenever scoring or calibration changes.
+observed global-sweep score sits 7 points below the 85 pass line, so re-run
+that probe first whenever scoring or calibration changes.

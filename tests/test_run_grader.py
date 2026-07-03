@@ -94,6 +94,26 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_weapon_switch_action", runner_source)
         self.assertIn('"weapon_switch"', runner_source)
 
+    def test_weapon_controls_scores_behavior_not_action_names(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"Weapon switch input responds"', runner_source)
+        self.assertIn('"Controller weapon-switch binding"', runner_source)
+        self.assertIn("_switch_route_has_joypad_binding", runner_source)
+        self.assertIn("_action_is_weapon_switch_route", runner_source)
+        self.assertIn("InputEventJoypadButton", runner_source)
+        self.assertIn("KEY_TAB", runner_source)
+        # The old name-based detail must not award points for the
+        # swap_weapons action name existing.
+        self.assertNotIn('"Weapon switch input action"', runner_source)
+
+    def test_runner_routes_all_weapon_switch_taps_through_helper(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertNotIn('input.tap("swap_weapons")', runner_source)
+        self.assertNotIn('input.can_drive("swap_weapons")', runner_source)
+        self.assertIn("await _tap_weapon_switch()", runner_source)
+
     def test_scene_probe_has_calibration_tracking_helpers(self):
         probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
 

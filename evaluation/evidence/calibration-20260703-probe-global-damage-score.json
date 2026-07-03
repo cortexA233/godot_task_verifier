@@ -1,16 +1,23 @@
 {
   "artifacts": {
-    "log": "C:\\recent_project\\roboblast-grenade-verifier\\artifacts\\final80-20260703-reference-score.log",
+    "log": "C:\\recent_project\\roboblast-grenade-verifier\\artifacts\\calibration-20260703-probe-global-damage-score.log",
     "screenshots": []
   },
   "breakdown": [
     {
       "details": [
         {
-          "label": "Weapon switch input action",
-          "max": 4,
-          "notes": "swap_weapons input exists",
-          "score": 4,
+          "label": "Controller weapon-switch binding",
+          "max": 2,
+          "notes": "a weapon-switch input route also carries a controller binding",
+          "score": 2,
+          "status": "earned"
+        },
+        {
+          "label": "Weapon switch input responds",
+          "max": 2,
+          "notes": "weapon mode observably switches through swap_weapons action",
+          "score": 2,
           "status": "earned"
         },
         {
@@ -37,7 +44,7 @@
       ],
       "max": 15,
       "name": "weapon_controls",
-      "notes": "swap_weapons input exists; attack after weapon switch created runtime nodes; rapid grenade attacks appear rate-limited; default aimed attack still creates runtime nodes",
+      "notes": "a weapon-switch input route also carries a controller binding; weapon mode observably switches through swap_weapons action; attack after weapon switch created runtime nodes; rapid grenade attacks appear rate-limited; default aimed attack still creates runtime nodes",
       "score": 15
     },
     {
@@ -146,23 +153,23 @@
         {
           "label": "Nearby target damage across angles",
           "max": 5,
-          "notes": "default throw calibration full at 11.20 units: default throw calibration measured 11.20 units from Grenade after 10.16 units of horizontal travel; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 5/10; Seed 27059 throw raw nearby hit score 10/10; Seed 37087 throw raw nearby hit score 10/10",
-          "score": 4,
+          "notes": "default throw calibration full at 11.09 units: default throw calibration measured 11.09 units from Grenade after 10.06 units of horizontal travel; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 3/10; Seed 27059 throw raw nearby hit score 3/10; Seed 37087 throw raw nearby hit score 3/10",
+          "score": 2,
           "status": "partial"
         },
         {
           "label": "Nearby destructible damage across angles",
           "max": 3,
-          "notes": "nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was damaged",
-          "score": 1,
-          "status": "partial"
+          "notes": "nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was not damaged",
+          "score": 0,
+          "status": "missed"
         },
         {
           "label": "Blast locality across angles",
           "max": 5,
-          "notes": "blast locality averaged across explosion trials: Seed 17031 throw explosion damage stayed localized; Seed 27059 throw explosion damage stayed localized; Seed 37087 throw explosion damage stayed localized; all explosion safety trials protected out-of-range targets",
-          "score": 5,
-          "status": "earned"
+          "notes": "blast locality averaged across explosion trials: Seed 17031 throw global damage sweep detected; Seed 27059 throw global damage sweep detected; Seed 37087 throw global damage sweep detected; out-of-range safety targets were damaged: Seed 17031 throw damaged FarTarget, LeftSideTarget, RightSideTarget, RearTarget; Seed 27059 throw damaged FarTarget, LeftSideTarget, RightSideTarget, RearTarget; Seed 37087 throw damaged FarTarget, LeftSideTarget, RightSideTarget, RearTarget",
+          "score": 0,
+          "status": "missed"
         },
         {
           "label": "Player safety across angles",
@@ -188,8 +195,8 @@
       ],
       "max": 20,
       "name": "explosion_gameplay",
-      "notes": "default throw calibration full at 11.20 units: default throw calibration measured 11.20 units from Grenade after 10.16 units of horizontal travel; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 5/10; Seed 27059 throw raw nearby hit score 10/10; Seed 37087 throw raw nearby hit score 10/10; nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was damaged; blast locality averaged across explosion trials: Seed 17031 throw explosion damage stayed localized; Seed 27059 throw explosion damage stayed localized; Seed 37087 throw explosion damage stayed localized; all explosion safety trials protected out-of-range targets; player safety averaged across explosion trials: Seed 17031 throw player safe; Seed 27059 throw player safe; Seed 37087 throw player safe; detonation effects averaged across explosion trials: Seed 17031 throw detonation produced runtime nodes or effects; Seed 27059 throw detonation produced runtime nodes or effects; Seed 37087 throw detonation produced runtime nodes or effects; default throw calibration is full quality inside the 6-12 unit envelope",
-      "score": 17
+      "notes": "default throw calibration full at 11.09 units: default throw calibration measured 11.09 units from Grenade after 10.06 units of horizontal travel; nearby target damage averaged across explosion trials: Seed 17031 throw raw nearby hit score 3/10; Seed 27059 throw raw nearby hit score 3/10; Seed 37087 throw raw nearby hit score 3/10; nearby damageable-only destructible damage averaged across explosion trials: Seed 17031 throw nearby damageable-only destructible was not damaged; Seed 27059 throw nearby damageable-only destructible was not damaged; Seed 37087 throw nearby damageable-only destructible was not damaged; blast locality averaged across explosion trials: Seed 17031 throw global damage sweep detected; Seed 27059 throw global damage sweep detected; Seed 37087 throw global damage sweep detected; out-of-range safety targets were damaged: Seed 17031 throw damaged FarTarget, LeftSideTarget, RightSideTarget, RearTarget; Seed 27059 throw damaged FarTarget, LeftSideTarget, RightSideTarget, RearTarget; Seed 37087 throw damaged FarTarget, LeftSideTarget, RightSideTarget, RearTarget; player safety averaged across explosion trials: Seed 17031 throw player safe; Seed 27059 throw player safe; Seed 37087 throw player safe; detonation effects averaged across explosion trials: Seed 17031 throw detonation produced runtime nodes or effects; Seed 27059 throw detonation produced runtime nodes or effects; Seed 37087 throw detonation produced runtime nodes or effects; default throw calibration is full quality inside the 6-12 unit envelope; global damage sweep cap applied: explosion_gameplay limited to 4/20",
+      "score": 4
     },
     {
       "details": [
@@ -266,6 +273,6 @@
   ],
   "godot_version": "4.6-stable (official)",
   "max_score": 100,
-  "passed": true,
-  "score": 91
+  "passed": false,
+  "score": 78
 }
