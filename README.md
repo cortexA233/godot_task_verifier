@@ -116,6 +116,45 @@ agent-facing prompt. Do not give the agent this verifier repo, hidden tests,
 scoring details, original solution history, calibration artifacts, or other
 task branches.
 
+### Skills
+
+The two repo-local skills are intentionally split by trust boundary and timing.
+The evaluated agent should not run either script.
+
+#### `prepare-agent-run-workspace`
+
+Use this before the agent starts. It is an operator-side setup step that creates
+an isolated `workspace/` from the ablated task project and an adjacent
+evaluator-owned `evidence/` directory.
+
+It strips hidden/verifier/solution files, initializes a fresh local git repo in
+`workspace/`, creates the baseline commit, copies the task prompt into
+`evidence/prompt.md`, and writes `evidence/run-manifest.json`,
+`evidence/baseline-sha.txt`, and `evidence/prompt-for-agent.md`.
+
+Give the agent only the prepared `workspace/` path and the text from
+`evidence/prompt-for-agent.md`. Do not give the agent `evidence/`, this
+verifier repo, original solution history, hidden probes, or scoring details.
+
+#### `collect-agent-run-evidence`
+
+Use this after the agent has stopped. It is an operator-side finalization step
+that records what the agent actually changed in the prepared workspace.
+
+It reads the local git repo in `workspace/`, records `git-status.txt`, writes a
+binary-capable `diff.patch` from baseline to final state, creates or records
+the final commit SHA in `final-sha.txt`, copies `AGENT_RUN_RECORD.md` when the
+agent created one, and updates `run-manifest.json` with finalized evidence
+paths.
+
+After the external verifier runs, call it again with `--score-json` and
+`--grader-command` so `evidence/` contains the score artifact and the exact
+command that produced it. Treat `AGENT_RUN_RECORD.md` as useful context, not as
+objective evidence; the formal evidence is the diff, manifest, score JSON, log,
+grader command, and any transcript/tool artifacts.
+
+### Commands
+
 For evaluated rollout runs, prefer the repo-local preparation skill:
 
 ```powershell
