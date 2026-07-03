@@ -21,6 +21,10 @@ solution hints into the ablated game repository.
   anti-cheat probes, report evidence, or rollout-run documentation. If local
   docs disagree with the assignment, follow `game_take_home.html` and update the
   docs as part of the same scoped change.
+- `BENCHMARK.md` defines the benchmark construct, agent evaluation protocol,
+  candidate interface contract, score interpretation, reproducibility
+  expectations, and validity-probe requirements. Keep it aligned with verifier
+  behavior and calibration evidence.
 - `README.md` documents the public command interface, score categories, report
   rendering, debug arena export, and latest calibration notes.
 - `probe_matrix.md` documents anti-cheat probe expectations.
