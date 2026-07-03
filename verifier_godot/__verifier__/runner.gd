@@ -626,6 +626,12 @@ func _polar_target_position(heading_y: float, radius: float) -> Vector3:
 	return forward * minf(radius, TARGET_FIELD_RADIUS) + Vector3.UP * 0.5
 
 
+func _calibration_quality_score(calibration_status: String) -> int:
+	if calibration_status == "full":
+		return 2
+	return 0
+
+
 func _explosion_details_from_trials(trial_results: Array[Dictionary], calibration: Dictionary) -> Array[Dictionary]:
 	var details: Array[Dictionary] = []
 	if trial_results.is_empty():
@@ -647,7 +653,7 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 		var label := String(trial_result["label"])
 		var near_score := int(trial_result["near_score"])
 		total_near_score += near_score
-		near_notes.append("%s %d/10" % [label, near_score])
+		near_notes.append("%s raw nearby hit score %d/10" % [label, near_score])
 		var detonation_observed := bool(trial_result["detonation_observed"])
 		if not detonation_observed:
 			all_trials_detonated = false
@@ -666,12 +672,12 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 			effect_notes.append("%s detonation produced runtime nodes or effects" % label)
 		else:
 			effect_notes.append("%s no runtime detonation effects observed" % label)
-	var nearby_score := _scaled_average_score(total_near_score, trial_results.size(), 10, 10)
+	var nearby_score := _scaled_average_score(total_near_score, trial_results.size(), 10, 8)
 	details.append(_detail(
 		"Nearby target damage across angles",
 		nearby_score,
-		10,
-		_score_status(nearby_score, 10),
+		8,
+		_score_status(nearby_score, 8),
 		calibration_prefix + "; nearby target damage averaged across explosion trials: " + "; ".join(near_notes)
 	))
 	if all_trials_detonated and safety_misses.is_empty():
@@ -698,6 +704,20 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 		3,
 		_score_status(effects_score, 3),
 		"detonation effects averaged across explosion trials: " + "; ".join(effect_notes)
+	))
+	var calibration_quality_score := _calibration_quality_score(calibration_status)
+	var calibration_quality_status := _score_status(calibration_quality_score, 2)
+	var calibration_quality_notes := "default throw calibration is full quality inside the 6-12 unit envelope"
+	if calibration_status == "borderline":
+		calibration_quality_notes = "borderline default throw distance receives 0/2 calibration-quality credit"
+	elif calibration_status != "full":
+		calibration_quality_notes = "default throw calibration failed or landed outside the accepted envelope"
+	details.append(_detail(
+		"Throw distance calibration quality",
+		calibration_quality_score,
+		2,
+		calibration_quality_status,
+		calibration_quality_notes
 	))
 	return details
 
