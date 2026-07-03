@@ -15,7 +15,7 @@ The verifier copies the candidate project to a temporary directory, imports reso
 
 For weapon switching, the verifier first drives the `swap_weapons` input action when it exists. If a candidate implements the player-facing `Tab` key directly instead of registering that action, the verifier falls back to injecting a real `Tab` key event through Godot's input event path.
 
-To write a one-page PDF summary during grading, add `--pdf-report`:
+To write a detailed PDF score report during grading, add `--pdf-report`:
 
 ```powershell
 python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
@@ -33,7 +33,7 @@ python C:\recent_project\roboblast-grenade-verifier\render_report.py `
   C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf
 ```
 
-PDF rendering uses ReportLab. If your default `python` does not have it, use the bundled Codex Python runtime or install `reportlab` in the Python environment you use to run the report command.
+PDF rendering uses ReportLab. Install the Python dependencies with `python -m pip install -r requirements.txt` (or use the bundled Codex Python runtime) in the environment you use to run the report command. The PDF preserves full category notes and includes per-check earned or missed point details when the score JSON contains `details`.
 
 ## Debug Arena Export
 

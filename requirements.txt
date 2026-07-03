@@ -1,0 +1,17 @@
+# Python dependencies for the RoboBlast grenade verifier.
+# Install with:  python -m pip install -r requirements.txt
+#
+# The core grader (run_grader.py) uses only the standard library. The packages
+# below are needed for the PDF report and the full test suite:
+#
+#   reportlab - PDF score report: run_grader.py --pdf-report, render_report.py
+#               (imported by report_renderer.py).
+#   pypdf     - test suite only: verifies generated PDF text
+#               (tests/test_report_renderer.py).
+#
+# Versions are pinned to what was verified with
+# `python -m unittest discover -s tests` (all 15 tests, including the
+# report-rendering tests, passing) in this environment.
+
+reportlab==5.0.0
+pypdf==6.10.0
