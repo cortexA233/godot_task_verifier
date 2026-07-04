@@ -233,6 +233,31 @@ generation as the grader. It measures default throw distance, places nearby
 damage targets and far/side/rear safety targets, and adds camera, light, floor,
 and labels for inspection.
 
+## Experimental Screenshot Probe
+
+The screenshot probe is an auxiliary visual-evidence runner. It is not part of
+the formal 0-100 score and every result marks `used_for_score: false`.
+
+```powershell
+python "$Verifier\run_screenshot_probe.py" `
+  --project "$Project" `
+  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
+  --out-dir "$Verifier\artifacts\screenshot-probe" `
+  --mode both
+```
+
+Modes:
+
+| Mode | Evidence |
+| --- | --- |
+| `debug-arena` | Controlled verifier arena screenshots every 10 physics frames after grenade throw until explosion or timeout. |
+| `main-scene` | Real `res://main.tscn` ready, aim, grenade-ready, and post-throw screenshots when the playable scene exposes a player and camera. |
+| `both` | Runs both visual modes and writes separate `debug_arena/` and `main_scene/` artifact folders. |
+
+The top-level `result.json` contains one `modes` entry per attempted visual run.
+Windowed rendering can be unavailable on headless machines; that is reported as
+probe infrastructure state rather than as a candidate scoring failure.
+
 ## Calibration And Evidence
 
 Run local calibration:

@@ -69,6 +69,57 @@ static func viewport_screenshot_signature(viewport: Viewport, sample_step: int =
 	}
 
 
+static func viewport_image(viewport: Viewport) -> Dictionary:
+	var capture := _capture_viewport_screenshot(viewport)
+	if not bool(capture.get("available", false)):
+		return capture
+	return capture
+
+
+static func viewport_region_signature(viewport: Viewport, rect: Rect2, sample_step: int = 8) -> Dictionary:
+	var capture := viewport_image(viewport)
+	if not bool(capture.get("available", false)):
+		return capture
+	var image: Image = capture["image"]
+	var signature := image_region_signature(image, rect, sample_step)
+	if bool(signature.get("available", false)):
+		signature["display_driver"] = DisplayServer.get_name()
+	return signature
+
+
+static func image_region_signature(image: Image, rect: Rect2, sample_step: int = 8) -> Dictionary:
+	if image == null:
+		return {"available": false, "reason": "image is null"}
+	var width := image.get_width()
+	var height := image.get_height()
+	if width <= 0 or height <= 0:
+		return {
+			"available": false,
+			"reason": "image has no pixels",
+			"width": width,
+			"height": height,
+		}
+	var x0 := clampi(int(floorf(rect.position.x)), 0, maxi(width - 1, 0))
+	var y0 := clampi(int(floorf(rect.position.y)), 0, maxi(height - 1, 0))
+	var x1 := clampi(int(ceilf(rect.position.x + rect.size.x)), x0 + 1, width)
+	var y1 := clampi(int(ceilf(rect.position.y + rect.size.y)), y0 + 1, height)
+	var safe_sample_step := maxi(sample_step, 1)
+	var samples: Array = []
+	for y in range(y0, y1, safe_sample_step):
+		for x in range(x0, x1, safe_sample_step):
+			var color := image.get_pixel(x, y)
+			samples.append([color.r, color.g, color.b, color.a])
+	return {
+		"available": true,
+		"width": width,
+		"height": height,
+		"region": [x0, y0, x1 - x0, y1 - y0],
+		"sample_step": safe_sample_step,
+		"sample_count": samples.size(),
+		"samples": samples,
+	}
+
+
 static func frame_signature_delta(before: Dictionary, after: Dictionary) -> float:
 	if not bool(before.get("available", false)) or not bool(after.get("available", false)):
 		return -1.0
@@ -229,6 +280,51 @@ static func visible_mesh_instances_under(root_node: Node) -> Array[MeshInstance3
 			if mesh_instance.mesh != null and _mesh_instance_is_visible(mesh_instance):
 				result.append(mesh_instance)
 	return result
+
+
+static func projectile_screen_rect(camera: Camera3D, projectile: Node3D, viewport_size: Vector2i) -> Dictionary:
+	if camera == null:
+		return {"available": false, "visible": false, "reason": "camera unavailable"}
+	if projectile == null or not is_instance_valid(projectile):
+		return {"available": false, "visible": false, "reason": "projectile unavailable"}
+	var points: Array[Vector2] = []
+	for mesh_instance in visible_mesh_instances_under(projectile):
+		var aabb := mesh_instance.get_aabb()
+		for x in [aabb.position.x, aabb.position.x + aabb.size.x]:
+			for y in [aabb.position.y, aabb.position.y + aabb.size.y]:
+				for z in [aabb.position.z, aabb.position.z + aabb.size.z]:
+					var world_point := mesh_instance.global_transform * Vector3(x, y, z)
+					if not camera.is_position_behind(world_point):
+						points.append(camera.unproject_position(world_point))
+	if points.is_empty():
+		if camera.is_position_behind(projectile.global_position):
+			return {"available": true, "visible": false, "reason": "projectile is behind camera"}
+		var center := camera.unproject_position(projectile.global_position)
+		points = [center - Vector2(6, 6), center + Vector2(6, 6)]
+	var min_x := INF
+	var min_y := INF
+	var max_x := -INF
+	var max_y := -INF
+	for point in points:
+		min_x = minf(min_x, point.x)
+		min_y = minf(min_y, point.y)
+		max_x = maxf(max_x, point.x)
+		max_y = maxf(max_y, point.y)
+	min_x = clampf(floorf(min_x) - 2.0, 0.0, float(viewport_size.x))
+	min_y = clampf(floorf(min_y) - 2.0, 0.0, float(viewport_size.y))
+	max_x = clampf(ceilf(max_x) + 2.0, 0.0, float(viewport_size.x))
+	max_y = clampf(ceilf(max_y) + 2.0, 0.0, float(viewport_size.y))
+	var rect_width := maxf(0.0, max_x - min_x)
+	var rect_height := maxf(0.0, max_y - min_y)
+	return {
+		"available": true,
+		"visible": rect_width > 0.0 and rect_height > 0.0,
+		"x": int(min_x),
+		"y": int(min_y),
+		"width": int(rect_width),
+		"height": int(rect_height),
+		"area_px": int(rect_width * rect_height),
+	}
 
 
 static func grenade_projectile_visual_report(
