@@ -51,6 +51,14 @@ class MouseSafetyTests(unittest.TestCase):
         self.assertIn("_install_mouse_safety()", source)
         self.assertIn("VerifierMouseSafety", source)
 
+    def test_readme_documents_debug_arena_mouse_safety_controls(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("Mouse safety is enabled", readme)
+        self.assertIn("F8", readme)
+        self.assertIn("Esc", readme)
+        self.assertIn("cursor visible", readme)
+
     def test_mouse_safety_restores_visible_and_handles_f8_and_escape(self):
         godot = find_godot()
         if godot is None:

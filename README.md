@@ -233,6 +233,11 @@ generation as the grader. It measures default throw distance, places nearby
 damage targets and far/side/rear safety targets, and adds camera, light, floor,
 and labels for inspection.
 
+Mouse safety is enabled in verifier-owned scenes. The debug arena starts with
+the cursor visible, `F8` toggles temporary mouse capture for manual aiming, and
+`Esc` releases the cursor. Automated grenade throws continue to use Godot input
+actions and do not require cursor capture.
+
 ## Calibration And Evidence
 
 Run local calibration:
