@@ -1,0 +1,50 @@
+﻿{
+    "generated_at":  "2026-07-03T22:33:25.5739097-04:00",
+    "verifier_sha":  "ca585a3cbcaaafd77dfe1391dec00d4ca910880f",
+    "godot_executable":  "C:\\Godot_v4.6\\Godot_v4.6-stable_win64_console.exe",
+    "godot_version":  "4.6.stable.official.89cea1439",
+    "root":  "C:\\recent_project\\godot-4-3d-third-person-controller-agent-runs-20260703-151656",
+    "scores":  [
+                   {
+                       "name":  "run-01-codex",
+                       "score":  73,
+                       "max_score":  100,
+                       "passed":  false,
+                       "final_sha":  null,
+                       "source_branch":  null,
+                       "source_sha":  null,
+                       "score_path":  "evaluation/evidence/agent-runs-20260703-151656/run-01-codex/score.json",
+                       "score_report_path":  "evaluation/evidence/agent-runs-20260703-151656/run-01-codex/score-report.pdf",
+                       "log_path":  "evaluation/evidence/agent-runs-20260703-151656/run-01-codex/godot-verifier.log",
+                       "discarded_prior_score_record":  true
+                   },
+                   {
+                       "name":  "run-02-codex",
+                       "score":  75,
+                       "max_score":  100,
+                       "passed":  false,
+                       "final_sha":  null,
+                       "source_branch":  null,
+                       "source_sha":  null,
+                       "score_path":  "evaluation/evidence/agent-runs-20260703-151656/run-02-codex/score.json",
+                       "score_report_path":  "evaluation/evidence/agent-runs-20260703-151656/run-02-codex/score-report.pdf",
+                       "log_path":  "evaluation/evidence/agent-runs-20260703-151656/run-02-codex/godot-verifier.log",
+                       "discarded_prior_score_record":  true
+                   },
+                   {
+                       "name":  "run-03-codex",
+                       "score":  100,
+                       "max_score":  100,
+                       "passed":  true,
+                       "final_sha":  null,
+                       "source_branch":  null,
+                       "source_sha":  null,
+                       "score_path":  "evaluation/evidence/agent-runs-20260703-151656/run-03-codex/score.json",
+                       "score_report_path":  "evaluation/evidence/agent-runs-20260703-151656/run-03-codex/score-report.pdf",
+                       "log_path":  "evaluation/evidence/agent-runs-20260703-151656/run-03-codex/godot-verifier.log",
+                       "discarded_prior_score_record":  true
+                   }
+               ],
+    "discarded_prior_codex_score_records":  true,
+    "codex_replacement_verifier_sha":  "ca585a3cbcaaafd77dfe1391dec00d4ca910880f"
+}

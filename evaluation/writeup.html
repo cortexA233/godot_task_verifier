@@ -486,6 +486,24 @@
             <td><code>evaluation/evidence/calibration-20260703-sonnet-3-score.json</code></td>
           </tr>
           <tr>
+            <td>Codex GPT-5.5 xhigh run 1</td>
+            <td><span class="score mid">73/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:73%"></span></div></td>
+            <td><code>evaluation/evidence/agent-runs-20260703-151656/run-01-codex/score.json</code></td>
+          </tr>
+          <tr>
+            <td>Codex GPT-5.5 xhigh run 2</td>
+            <td><span class="score mid">75/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:75%"></span></div></td>
+            <td><code>evaluation/evidence/agent-runs-20260703-151656/run-02-codex/score.json</code></td>
+          </tr>
+          <tr>
+            <td>Codex GPT-5.5 xhigh run 3</td>
+            <td><span class="score high">100/100</span></td>
+            <td><div class="bar"><span class="good" style="width:100%"></span></div></td>
+            <td><code>evaluation/evidence/agent-runs-20260703-151656/run-03-codex/score.json</code></td>
+          </tr>
+          <tr>
             <td>Fake broad/global damage probe (capped)</td>
             <td><span class="score mid">78/100</span></td>
             <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
@@ -576,20 +594,20 @@
           <tr>
             <td>Sonnet runs</td>
             <td>Claude Code, Sonnet 5 medium</td>
-            <td><code>codex/agent-run-01-cc-sonnet</code><br><code>codex/agent-run-02-cc-sonnet</code><br><code>codex/agent-run-03-cc-sonnet</code></td>
-            <td>77/100, 82/100, 59/100 in branch-captured score JSONs; refreshed calibration scores shown above are 80/100, 78/100, and 13/100 under the current verifier.</td>
+            <td><code>agent-run/01-cc-sonnet</code><br><code>agent-run/02-cc-sonnet</code><br><code>agent-run/03-cc-sonnet</code></td>
+            <td>77/100, 82/100, 59/100 in branch-captured score JSONs; current calibration scores shown above are 80/100, 78/100, and 13/100.</td>
           </tr>
           <tr>
             <td>Opus runs</td>
             <td>Claude Code, Opus 4.8 max</td>
-            <td><code>codex/agent-run-01-cc-opus</code><br><code>codex/agent-run-02-cc-opus</code><br><code>codex/agent-run-03-cc-opus</code></td>
+            <td><code>agent-run/01-cc-opus</code><br><code>agent-run/02-cc-opus</code><br><code>agent-run/03-cc-opus</code></td>
             <td>74/100, 88/100, 80/100 in branch-captured score JSONs.</td>
           </tr>
           <tr>
             <td>Codex runs</td>
             <td>Codex, GPT-5.5 xhigh</td>
-            <td><code>codex/agent-run-01-codex</code><br><code>codex/agent-run-02-codex</code><br><code>codex/agent-run-03-codex</code></td>
-            <td>6/100, 28/100, 28/100 in branch-captured score JSONs.</td>
+            <td><code>agent-run/01-codex</code><br><code>agent-run/02-codex</code><br><code>agent-run/03-codex</code></td>
+            <td>73/100, 75/100, 100/100 in branch-captured score JSONs and PDF reports from the current verifier. Earlier Codex score records were erroneous and are not retained as evidence.</td>
           </tr>
         </tbody>
       </table>
@@ -681,7 +699,7 @@ python "$Verifier\run_grader.py" --project "$Project" --godot "$Godot" --out "$O
           <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Published run branches record diff, score, verifier command/log, and tool evidence; this writeup records the model settings for Sonnet 5 medium, Opus 4.8 max, and Codex GPT-5.5 xhigh attempts.</td></tr>
           <tr><td>Godot MCP available to rollout agents</td><td><span class="tag good">Configured locally</span></td><td>Document the MCP config in the public run metadata.</td></tr>
           <tr><td>Anti-cheat fake solutions</td><td><span class="tag good">Representative set ready</span></td><td>Seven fake candidates have committed score JSONs; optional follow-up is to run the five deferred overlapping rows if exhaustive per-row evidence is requested.</td></tr>
-          <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>Keep the score table in sync with <code>evaluation/evidence/</code> whenever runs are refreshed.</td></tr>
+          <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>Keep the score table in sync with <code>evaluation/evidence/</code> whenever runs are replaced or rerun.</td></tr>
         </tbody>
       </table>
     </section>

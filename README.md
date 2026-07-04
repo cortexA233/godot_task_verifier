@@ -254,8 +254,9 @@ Latest local calibration was recorded on 2026-07-03 with Godot
 | Bad-distance probe | 50/100 | Caught. |
 | Single-use probe | 75/100 | Caught. |
 
-Curated calibration and probe score JSONs live under `evaluation/evidence/`.
-Anti-cheat expectations are documented in `probe_matrix.md`.
+Curated calibration, probe, and replacement Codex rollout score evidence lives
+under `evaluation/evidence/`. Anti-cheat expectations are documented in
+`probe_matrix.md`.
 
 Published rollout branches in the game repository record three attempts per
 agent family, each with branch-captured `score.json`, `score-report.pdf`,
@@ -264,9 +265,13 @@ agent family, each with branch-captured `score.json`, `score-report.pdf`,
 
 | Agent run family | Scores |
 | --- | --- |
-| `codex/agent-run-01-codex` through `codex/agent-run-03-codex` | 6/100, 28/100, 28/100 |
-| `codex/agent-run-01-cc-opus` through `codex/agent-run-03-cc-opus` | 74/100, 88/100, 80/100 |
-| `codex/agent-run-01-cc-sonnet` through `codex/agent-run-03-cc-sonnet` | 77/100, 82/100, 59/100 |
+| `agent-run/01-codex` through `agent-run/03-codex` | 73/100, 75/100, 100/100 from the current verifier and PDF reports |
+| `agent-run/01-cc-opus` through `agent-run/03-cc-opus` | 74/100, 88/100, 80/100 |
+| `agent-run/01-cc-sonnet` through `agent-run/03-cc-sonnet` | 77/100, 82/100, 59/100 |
+
+The replacement Codex score JSONs, PDF reports, logs, commands, and manifests
+are retained under
+`evaluation/evidence/agent-runs-20260703-151656/run-0{1,2,3}-codex/`.
 
 The repository writeup for the assignment is `evaluation/writeup.html`.
 
