@@ -962,6 +962,119 @@ class RunGraderTests(unittest.TestCase):
             self.assertTrue((out_dir / "main_scene").exists(), result)
             self.assertTrue((out_dir / "main_scene" / "main_ready.png").exists(), result)
 
+    def test_screenshot_probe_main_scene_mode_resumes_demo_overlay_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not available to inspect screenshot pixels")
+
+        with tempfile.TemporaryDirectory() as candidate_tmp, tempfile.TemporaryDirectory() as out_tmp:
+            candidate = Path(candidate_tmp)
+            out_dir = Path(out_tmp)
+            (candidate / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (candidate / "player.gd").write_text(
+                "extends CharacterBody3D\n\nfunc collect_coin():\n\tpass\n",
+                encoding="utf-8",
+            )
+            (candidate / "demo_overlay.gd").write_text(textwrap.dedent(
+                """
+                extends Node
+
+                @onready var overlay: ColorRect = $CanvasLayer/Overlay
+
+                var resumed := false
+                var frames_after_resume := -1
+
+                func _ready() -> void:
+                    get_tree().paused = true
+                    overlay.show()
+
+                func _process(_delta: float) -> void:
+                    if frames_after_resume < 0:
+                        return
+                    frames_after_resume += 1
+                    if frames_after_resume >= 8:
+                        overlay.hide()
+                        frames_after_resume = -1
+
+                func resume_demo() -> void:
+                    resumed = true
+                    get_tree().paused = false
+                    frames_after_resume = 0
+                """
+            ).strip() + "\n", encoding="utf-8")
+            (candidate / "main.tscn").write_text(textwrap.dedent(
+                """
+                [gd_scene load_steps=3 format=3]
+
+                [ext_resource type="Script" path="res://player.gd" id="1"]
+                [ext_resource type="Script" path="res://demo_overlay.gd" id="2"]
+
+                [node name="Main" type="Node3D"]
+
+                [node name="Player" type="CharacterBody3D" parent="."]
+                script = ExtResource("1")
+
+                [node name="Camera3D" type="Camera3D" parent="Player"]
+                transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 2, 6)
+                current = true
+
+                [node name="DemoOverlay" type="Node" parent="."]
+                script = ExtResource("2")
+
+                [node name="CanvasLayer" type="CanvasLayer" parent="DemoOverlay"]
+
+                [node name="Background" type="ColorRect" parent="DemoOverlay/CanvasLayer"]
+                offset_right = 1280.0
+                offset_bottom = 720.0
+                color = Color(0, 1, 0, 1)
+
+                [node name="Overlay" type="ColorRect" parent="DemoOverlay/CanvasLayer"]
+                offset_right = 1280.0
+                offset_bottom = 720.0
+                color = Color(1, 0, 0, 1)
+                """
+            ).strip() + "\n", encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_screenshot_probe.py"),
+                    "--project",
+                    str(candidate),
+                    "--godot",
+                    str(godot),
+                    "--out-dir",
+                    str(out_dir),
+                    "--mode",
+                    "main-scene",
+                    "--timeout",
+                    "60",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=90,
+            )
+            output = completed.stdout + completed.stderr
+            if not (out_dir / "result.json").exists():
+                self.skipTest(f"Windowed main scene screenshot probe unavailable: {output}")
+            result = json.loads((out_dir / "result.json").read_text(encoding="utf-8"))
+            main_scene = result.get("modes", {}).get("main_scene", {})
+            resume = main_scene.get("resume_demo", {})
+            self.assertEqual(completed.returncode, 0, output)
+            self.assertTrue(resume.get("attempted"), result)
+            self.assertEqual(resume.get("method"), "resume_demo", result)
+            self.assertFalse(resume.get("paused_after"), result)
+            ready_capture = out_dir / "main_scene" / "main_ready.png"
+            self.assertTrue(ready_capture.exists(), result)
+            with Image.open(ready_capture) as image:
+                red, green, _blue, _alpha = image.convert("RGBA").getpixel((image.width // 2, image.height // 2))
+            self.assertLess(red, 96, result)
+            self.assertGreater(green, 128, result)
+
     def test_scene_probe_rejects_placeholder_projectile_meshes(self):
         godot = find_godot()
         if godot is None:

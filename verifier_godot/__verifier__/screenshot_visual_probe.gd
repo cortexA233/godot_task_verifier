@@ -7,6 +7,7 @@ const OUTPUT_DIR := "res://__screenshot_probe__"
 const SCREENSHOT_INTERVAL_FRAMES := 10
 const MAX_POST_THROW_FRAMES := 240
 const RENDER_SETTLE_FRAMES := 2
+const MAIN_SCENE_RESUME_SETTLE_FRAMES := 24
 const SAMPLE_STEP := 32
 const REGION_SAMPLE_STEP := 4
 const EXPLOSION_TOKENS := ["explosion", "smoke", "blast", "spark"]
@@ -49,17 +50,23 @@ func run_main_scene() -> Dictionary:
 	main_scene.name = "ScreenshotProbeMainScene"
 	root.add_child(main_scene)
 	await _wait_process_frames(RENDER_SETTLE_FRAMES)
+	var resume_result := await _resume_main_scene_demo(main_scene)
 	var player := await _wait_for_main_scene_player(main_scene)
 	if player == null:
 		main_scene.queue_free()
-		return _mode_failure("main_scene", "main scene loaded but no playable player was found")
+		tree.paused = false
+		var failure := _mode_failure("main_scene", "main scene loaded but no playable player was found")
+		failure["resume_demo"] = resume_result
+		return failure
 	var setup_captures: Array[Dictionary] = []
 	var camera := await _wait_for_current_camera(main_scene)
 	setup_captures.append(await _capture_named("main_scene", "main_ready", root, {}))
 	if camera == null:
 		main_scene.queue_free()
+		tree.paused = false
 		var failure := _mode_failure("main_scene", "main scene loaded but no current camera was found")
 		failure["captures"] = setup_captures
+		failure["resume_demo"] = resume_result
 		return failure
 	await input.hold("aim", 4)
 	setup_captures.append(await _capture_named("main_scene", "main_aim", root, {}))
@@ -68,7 +75,9 @@ func run_main_scene() -> Dictionary:
 	await input.wait_physics_frames(4)
 	setup_captures.append(await _capture_named("main_scene", "grenade_ready", root, {}))
 	var result := await _run_throw_capture_window("main_scene", root, main_scene, camera, setup_captures)
+	result["resume_demo"] = resume_result
 	main_scene.queue_free()
+	tree.paused = false
 	await tree.process_frame
 	return result
 
@@ -242,6 +251,53 @@ func _projectile_footprint_summary(captures: Array[Dictionary]) -> Dictionary:
 func _wait_process_frames(count: int) -> void:
 	for _i in range(count):
 		await tree.process_frame
+
+
+func _resume_main_scene_demo(main_scene: Node) -> Dictionary:
+	var paused_before := tree.paused
+	for node in SceneProbe.flatten(main_scene):
+		if node.has_method("resume_demo"):
+			var node_path := str(node.get_path())
+			node.call("resume_demo")
+			await _wait_process_frames(MAIN_SCENE_RESUME_SETTLE_FRAMES)
+			return {
+				"attempted": true,
+				"method": "resume_demo",
+				"node": node_path,
+				"settle_frames": MAIN_SCENE_RESUME_SETTLE_FRAMES,
+				"paused_before": paused_before,
+				"paused_after": tree.paused,
+			}
+	for node in SceneProbe.flatten(main_scene):
+		if node is BaseButton and _button_suggests_resume(node as BaseButton):
+			var button_path := str(node.get_path())
+			(node as BaseButton).emit_signal("pressed")
+			await _wait_process_frames(MAIN_SCENE_RESUME_SETTLE_FRAMES)
+			return {
+				"attempted": true,
+				"method": "button_pressed",
+				"node": button_path,
+				"settle_frames": MAIN_SCENE_RESUME_SETTLE_FRAMES,
+				"paused_before": paused_before,
+				"paused_after": tree.paused,
+			}
+	return {
+		"attempted": false,
+		"method": "",
+		"node": "",
+		"settle_frames": 0,
+		"paused_before": paused_before,
+		"paused_after": tree.paused,
+		"reason": "no resume_demo method or resume button found",
+	}
+
+
+func _button_suggests_resume(button: BaseButton) -> bool:
+	var button_name := String(button.name).to_lower()
+	var button_text := ""
+	if button is Button:
+		button_text = String((button as Button).text).to_lower()
+	return button_name.find("resume") >= 0 or button_text.find("resume") >= 0
 
 
 func _wait_for_debug_arena_ready() -> bool:
