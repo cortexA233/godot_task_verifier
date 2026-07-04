@@ -13,6 +13,9 @@ still keeping the probe definitions versioned with the verifier.
 - `single-use`: one grenade can be thrown, repeat use fails.
 - `fixed-trajectory`: grenade behavior ignores aim direction.
 - `bad-distance`: default throw distance is far outside the accepted envelope.
+- `wrong-projectile-model`: replaces an otherwise complete grenade visual scene
+  with a placeholder `SphereMesh` to prove model-only defects lose visual model
+  credit and fail the visual floor.
 
 The observed score JSONs for these cases are committed under
 `evaluation/evidence/`.

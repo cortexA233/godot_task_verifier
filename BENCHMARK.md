@@ -105,6 +105,12 @@ The verifier grades out of 100:
 - `visual_audio_polish`: 5
 - `stability_repeatability`: 5
 
+`visual_audio_polish` includes runtime presentation checks for the thrown
+projectile model, visible detonation/effect nodes, detonation audio, and
+temporary visual cleanup. The projectile-model detail follows the moving
+runtime grenade object and rejects built-in primitive placeholders and obvious
+reused non-grenade assets, rather than checking for a fixed node path.
+
 `stability_repeatability` includes both deterministic verifier-arena repeat use
 checks and a real `res://main.tscn` smoke check for default shooting, melee,
 targetable/damageable actors, and coin/pickup behavior.
@@ -121,19 +127,20 @@ that hit most nearby targets and multiple safety targets are capped inside
 The `passed` flag currently uses `score >= 85` as a report convenience, and it
 additionally requires at least half credit in each core gameplay category:
 `trajectory_preview >= 15/30`, `projectile_physics >= 8/15`, and
-`explosion_gameplay >= 10/20`. The score JSON records the threshold in
+`explosion_gameplay >= 10/20`, plus a visual presentation floor of
+`visual_audio_polish >= 4/5`. The score JSON records the threshold in
 `pass_threshold` and lists any floor misses in `category_floor_failures`, so a
 candidate cannot pass by stacking supporting-category points while a core
-category stays broken. The primary benchmark signal is the 0-100 score and
-category breakdown. The pass line sits between the strongest observed
-near-miss probe (the capped global targetable sweep at `78/100`) and the
-reference implementation (`91/100`), leaving a 7-point margin over the
-strongest probe and a 6-point margin under the reference; the same probe also
-fails the `explosion_gameplay` floor outright. Any scoring or calibration
-change must re-run the global-sweep probe and confirm it still lands below the
-pass line. A reference score below 100 should be inspected as either reference
-incompleteness or a possible verifier false negative; it is not proof that the
-verifier is perfect.
+category or required visual presentation stays broken. The primary benchmark
+signal is the 0-100 score and category breakdown. The numeric pass line still
+sits between the strongest observed low-score near-miss probe (the capped
+global targetable sweep at `78/100`) and the reference implementation
+(`91/100`), while category floors block high-scoring near misses such as an
+otherwise complete grenade implementation with a placeholder projectile model.
+Any scoring or calibration change must re-run the global-sweep probe and any
+affected visual-model probe before publishing updated evidence. A reference
+score below 100 should be inspected as either reference incompleteness or a
+possible verifier false negative; it is not proof that the verifier is perfect.
 
 The score JSON also carries a soft `suspect` flag with `suspect_reasons`.
 Global damage sweeps, damaged far/side/rear safety targets, and player
@@ -178,8 +185,8 @@ Observed column and keep the score JSON as curated evidence under
 - the ablated task scores low
 - the reference behavior scores high
 - representative HUD-only, visual-only, no-preview damage, fixed or wrong
-  trajectory, global targetable sweep, borderline throw-distance, and single-use
-  implementations do not receive high scores
+  trajectory, wrong projectile model, global targetable sweep, borderline
+  throw-distance, and single-use implementations do not pass
 - deferred direct all-target damage, player-self-damage, one-angle/one-distance
   blast, distant-target damage, and default-weapon regression rows are
   explicitly documented in `probe_matrix.md` rather than treated as silent

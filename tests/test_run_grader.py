@@ -121,6 +121,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('"trajectory_preview": 15', board_source)
         self.assertIn('"projectile_physics": 8', board_source)
         self.assertIn('"explosion_gameplay": 10', board_source)
+        self.assertIn('"visual_audio_polish": 4', board_source)
         self.assertIn("failed_category_floors", board_source)
         self.assertIn("floor_failures.is_empty()", board_source)
         self.assertIn('"category_floor_failures": floor_failures', board_source)
@@ -225,6 +226,17 @@ class RunGraderTests(unittest.TestCase):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
         self.assertIn('visible_effects > 0 and bool(activity.get("saw_audio", false))', runner_source)
+
+    def test_runner_scores_runtime_grenade_projectile_model_visual(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"Thrown grenade model"', runner_source)
+        self.assertIn("grenade_projectile_visual_report", runner_source)
+        self.assertIn("PROJECTILE_VISUAL_MIN_EXTENT", runner_source)
+        self.assertIn("grenade_projectile_visual_report", probe_source)
+        self.assertIn("_mesh_is_placeholder_primitive", probe_source)
+        self.assertIn("_mesh_uses_reused_projectile_asset", probe_source)
 
     def test_runner_declares_main_scene_integration_smoke_check(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -614,6 +626,104 @@ class RunGraderTests(unittest.TestCase):
             result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
             self.assertGreater(result["visible_count"], 0, completed.stdout + completed.stderr)
             self.assertTrue(result["saw_audio"], completed.stdout + completed.stderr)
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
+    def test_scene_probe_rejects_placeholder_projectile_meshes(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            verifier_dir = tmp_path / "__verifier__"
+            verifier_dir.mkdir()
+            shutil.copy(ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd", verifier_dir / "scene_probe.gd")
+            (tmp_path / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (tmp_path / "test_runner.gd").write_text(textwrap.dedent(
+                """
+                extends SceneTree
+
+                const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+
+                func _init() -> void:
+                    call_deferred("_run")
+
+                func _make_array_mesh() -> ArrayMesh:
+                    var mesh := ArrayMesh.new()
+                    var vertices := PackedVector3Array([
+                        Vector3(-0.25, -0.15, -0.35),
+                        Vector3(0.25, -0.15, -0.35),
+                        Vector3(0.0, 0.2, -0.1),
+                        Vector3(0.0, -0.05, 0.35),
+                    ])
+                    var indices := PackedInt32Array([
+                        0, 1, 2,
+                        0, 2, 3,
+                        1, 3, 2,
+                        0, 3, 1,
+                    ])
+                    var arrays := []
+                    arrays.resize(Mesh.ARRAY_MAX)
+                    arrays[Mesh.ARRAY_VERTEX] = vertices
+                    arrays[Mesh.ARRAY_INDEX] = indices
+                    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+                    return mesh
+
+                func _add_visual(parent: Node3D, mesh: Mesh) -> MeshInstance3D:
+                    var visual := MeshInstance3D.new()
+                    visual.mesh = mesh
+                    parent.add_child(visual)
+                    return visual
+
+                func _run() -> void:
+                    var bad := Node3D.new()
+                    bad.name = "BadProjectile"
+                    root.add_child(bad)
+                    _add_visual(bad, SphereMesh.new())
+
+                    var good := Node3D.new()
+                    good.name = "GoodProjectile"
+                    root.add_child(good)
+                    _add_visual(good, _make_array_mesh())
+
+                    var tracks := {}
+                    tracks[bad.get_instance_id()] = [Vector3.ZERO, Vector3(0.0, 0.2, -1.0)]
+                    tracks[good.get_instance_id()] = [Vector3.ZERO, Vector3(0.0, 0.2, -1.0)]
+
+                    var bad_report: Dictionary = SceneProbe.grenade_projectile_visual_report([bad], tracks, 0.5, 0.1, 2.0)
+                    var good_report: Dictionary = SceneProbe.grenade_projectile_visual_report([good], tracks, 0.5, 0.1, 2.0)
+                    var result := {
+                        "bad_has_model": bool(bad_report.get("has_model_visual", false)),
+                        "bad_notes": String(bad_report.get("notes", "")),
+                        "good_has_model": bool(good_report.get("has_model_visual", false)),
+                        "good_notes": String(good_report.get("notes", "")),
+                    }
+                    var file := FileAccess.open("res://result.json", FileAccess.WRITE)
+                    file.store_string(JSON.stringify(result))
+                    quit(0 if not result["bad_has_model"] and result["good_has_model"] else 1)
+                """
+            ), encoding="utf-8")
+
+            completed = subprocess.run(
+                [
+                    str(godot),
+                    "--headless",
+                    "--path",
+                    str(tmp_path),
+                    "--script",
+                    "res://test_runner.gd",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=30,
+            )
+
+            self.assertTrue((tmp_path / "result.json").exists(), completed.stdout + completed.stderr)
+            result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+            self.assertFalse(result["bad_has_model"], completed.stdout + completed.stderr)
+            self.assertIn("placeholder primitive", result["bad_notes"], completed.stdout + completed.stderr)
+            self.assertTrue(result["good_has_model"], completed.stdout + completed.stderr)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
     def test_copy_candidate_project_excludes_git_and_godot_cache(self):

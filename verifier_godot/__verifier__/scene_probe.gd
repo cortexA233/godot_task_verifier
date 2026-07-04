@@ -120,6 +120,151 @@ static func node3d_candidates(nodes: Array[Node], origin: Vector3, max_distance:
 	return result
 
 
+static func visible_mesh_instances_under(root_node: Node) -> Array[MeshInstance3D]:
+	var result: Array[MeshInstance3D] = []
+	for node in flatten(root_node):
+		if node is MeshInstance3D:
+			var mesh_instance := node as MeshInstance3D
+			if mesh_instance.mesh != null and _mesh_instance_is_visible(mesh_instance):
+				result.append(mesh_instance)
+	return result
+
+
+static func grenade_projectile_visual_report(
+	candidates: Array[Node3D],
+	tracks: Dictionary,
+	minimum_travel_distance: float = 0.5,
+	min_visual_extent: float = 0.1,
+	max_visual_extent: float = 2.0
+) -> Dictionary:
+	var moving_projectile_count := 0
+	var mesh_count := 0
+	var accepted_count := 0
+	var placeholder_count := 0
+	var reused_asset_count := 0
+	var bad_size_count := 0
+	var inspected_notes: Array[String] = []
+	for candidate in candidates:
+		if not is_instance_valid(candidate):
+			continue
+		var points: Array = tracks.get(candidate.get_instance_id(), [])
+		if horizontal_travel_distance(points) < minimum_travel_distance:
+			continue
+		moving_projectile_count += 1
+		for mesh_instance in visible_mesh_instances_under(candidate):
+			mesh_count += 1
+			var mesh := mesh_instance.mesh
+			var mesh_class := mesh.get_class()
+			var max_extent := _mesh_max_world_extent(mesh_instance)
+			if _mesh_is_placeholder_primitive(mesh):
+				placeholder_count += 1
+				inspected_notes.append("%s uses placeholder primitive %s" % [str(mesh_instance.get_path()), mesh_class])
+				continue
+			if _mesh_uses_reused_projectile_asset(mesh_instance):
+				reused_asset_count += 1
+				inspected_notes.append("%s appears to reuse non-grenade asset %s" % [str(mesh_instance.get_path()), _mesh_resource_path(mesh_instance)])
+				continue
+			if max_extent < min_visual_extent or max_extent > max_visual_extent:
+				bad_size_count += 1
+				inspected_notes.append("%s has model extent %.2f outside %.2f-%.2f" % [str(mesh_instance.get_path()), max_extent, min_visual_extent, max_visual_extent])
+				continue
+			accepted_count += 1
+			inspected_notes.append("%s has non-placeholder projectile mesh %s, extent %.2f" % [str(mesh_instance.get_path()), mesh_class, max_extent])
+	var notes := ""
+	if accepted_count > 0:
+		notes = "moving grenade projectile carries a visible non-placeholder model"
+	elif moving_projectile_count <= 0:
+		notes = "no moving projectile candidates were available for model inspection"
+	elif mesh_count <= 0:
+		notes = "moving projectile had no visible MeshInstance3D child"
+	elif placeholder_count > 0:
+		notes = "moving projectile visual used placeholder primitive mesh"
+	elif reused_asset_count > 0:
+		notes = "moving projectile visual appeared to reuse a non-grenade asset"
+	else:
+		notes = "moving projectile visual was not grenade-sized or model-like"
+	if not inspected_notes.is_empty():
+		notes += ": " + "; ".join(inspected_notes.slice(0, 3))
+	return {
+		"has_model_visual": accepted_count > 0,
+		"moving_projectile_count": moving_projectile_count,
+		"visible_mesh_count": mesh_count,
+		"accepted_mesh_count": accepted_count,
+		"placeholder_mesh_count": placeholder_count,
+		"reused_asset_count": reused_asset_count,
+		"bad_size_count": bad_size_count,
+		"notes": notes,
+	}
+
+
+static func _mesh_instance_is_visible(mesh_instance: MeshInstance3D) -> bool:
+	if not mesh_instance.visible:
+		return false
+	if mesh_instance.is_inside_tree():
+		return mesh_instance.is_visible_in_tree()
+	return true
+
+
+static func _mesh_max_world_extent(mesh_instance: MeshInstance3D) -> float:
+	var aabb := mesh_instance.get_aabb()
+	var scale := mesh_instance.global_transform.basis.get_scale()
+	var size := Vector3(
+		absf(aabb.size.x * scale.x),
+		absf(aabb.size.y * scale.y),
+		absf(aabb.size.z * scale.z)
+	)
+	return maxf(size.x, maxf(size.y, size.z))
+
+
+static func _mesh_resource_path(mesh_instance: MeshInstance3D) -> String:
+	if mesh_instance.mesh == null:
+		return ""
+	return String(mesh_instance.mesh.resource_path)
+
+
+static func _mesh_context_text(mesh_instance: MeshInstance3D) -> String:
+	var parts: Array[String] = [String(mesh_instance.name), _mesh_resource_path(mesh_instance)]
+	var current: Node = mesh_instance.get_parent()
+	while current != null:
+		parts.append(String(current.name))
+		current = current.get_parent()
+	return " ".join(parts).to_lower()
+
+
+static func _mesh_is_placeholder_primitive(mesh: Mesh) -> bool:
+	return (
+		mesh is BoxMesh
+		or mesh is SphereMesh
+		or mesh is CapsuleMesh
+		or mesh is CylinderMesh
+		or mesh is PlaneMesh
+		or mesh is PrismMesh
+		or mesh is QuadMesh
+		or mesh is TorusMesh
+	)
+
+
+static func _mesh_uses_reused_projectile_asset(mesh_instance: MeshInstance3D) -> bool:
+	var text := _mesh_context_text(mesh_instance)
+	var rejected_tokens := [
+		"bullet",
+		"coin",
+		"box",
+		"crate",
+		"gdbot",
+		"player/model",
+		"trajectory",
+		"target",
+		"reticle",
+		"explosion",
+		"smoke",
+	]
+	for token in rejected_tokens:
+		if text.find(token) >= 0:
+			return true
+	return false
+
+
 static func track_node_positions(tree: SceneTree, node: Node3D, frame_count: int) -> Array[Vector3]:
 	var points: Array[Vector3] = []
 	for _i in range(frame_count):

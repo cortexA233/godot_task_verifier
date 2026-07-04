@@ -5,6 +5,7 @@ const CATEGORY_PASS_FLOORS := {
 	"trajectory_preview": 15,
 	"projectile_physics": 8,
 	"explosion_gameplay": 10,
+	"visual_audio_polish": 4,
 }
 
 var _items: Array[Dictionary] = []

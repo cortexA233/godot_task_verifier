@@ -94,6 +94,11 @@ Score categories:
 | `visual_audio_polish` | 5 |
 | `stability_repeatability` | 5 |
 
+`visual_audio_polish` includes a runtime check that the thrown, moving grenade
+projectile carries a visible non-placeholder model. Built-in primitive
+placeholder meshes and obvious reused bullet, coin, trajectory, or explosion
+assets do not receive this model credit.
+
 Weapon switching is behavioral. The verifier drives `swap_weapons` or
 `weapon_switch` when those actions exist, and falls back to a real `Tab` input
 event when a candidate implements the key path directly. Controller binding
@@ -102,7 +107,8 @@ credit is recorded separately and does not depend on a specific action name.
 The `passed` flag is a reporting convenience. It currently requires
 `score >= 85` plus half-credit floors in the core gameplay categories:
 `trajectory_preview >= 15`, `projectile_physics >= 8`, and
-`explosion_gameplay >= 10`. The primary benchmark signal is the 0-100 score and
+`explosion_gameplay >= 10`, plus a visual presentation floor of
+`visual_audio_polish >= 4`. The primary benchmark signal is the 0-100 score and
 category breakdown.
 
 The score JSON can also include a soft `suspect` flag with `suspect_reasons`
@@ -253,6 +259,7 @@ Latest local calibration was recorded on 2026-07-03 with Godot
 | Fixed-trajectory probe | 65/100 | Caught. |
 | Bad-distance probe | 50/100 | Caught. |
 | Single-use probe | 75/100 | Caught. |
+| Wrong projectile model overlay on the 100-point Codex candidate | 98/100 | `passed: false`; `visual_audio_polish` floor catches the placeholder model. |
 
 Curated calibration, probe, and replacement Codex rollout score evidence lives
 under `evaluation/evidence/`. Anti-cheat expectations are documented in
