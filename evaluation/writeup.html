@@ -347,7 +347,7 @@
     <div class="hero-inner">
       <p class="eyebrow">Take-home evaluation writeup</p>
       <h1>RoboBlast Grenade Verifier</h1>
-      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from Claude Code Sonnet 5 medium, Claude Code Opus 4.8 max, and Codex GPT-5.5 xhigh attempts, plus seven representative anti-cheat fake solutions below the pass line.</p>
+      <p class="lead">A behavioral Godot 4.6 grader for a missing grenade weapon, with rollout evidence from Claude Code Sonnet 5 medium, Claude Code Opus 4.8 max, and Codex GPT-5.5 xhigh attempts, plus eight representative anti-cheat fake solutions, including a high-scoring visual-floor failure.</p>
     </div>
   </header>
 
@@ -369,9 +369,9 @@
         <small>Three Sonnet 5 medium attempts land in partial-credit territory rather than an easy 100.</small>
       </div>
       <div class="metric status-good">
-        <b>7</b>
+        <b>8</b>
         <span>Anti-cheat probes</span>
-        <small>Representative fake solutions all score below the score >= 85 pass line.</small>
+        <small>Seven stay below score >= 85; one scores 98/100 but fails the visual presentation floor.</small>
       </div>
     </div>
 
@@ -449,7 +449,7 @@
 
     <section>
       <h2>Calibration And Scores</h2>
-      <p>These numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier: the global-damage sweep cap is active, weapon-switch input is scored behaviorally instead of by action name, and the <code>passed</code> flag means <code>score >= 85</code> plus half-credit pass floors in the core gameplay categories (<code>trajectory_preview >= 15</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>) — above the strongest capped probe (78) and below the reference (91). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
+      <p>Most numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier; the wrong-projectile-model visual-floor probe was added on 2026-07-04. The global-damage sweep cap is active, weapon-switch input is scored behaviorally instead of by action name, and the <code>passed</code> flag means <code>score >= 85</code> plus half-credit pass floors in the core gameplay categories (<code>trajectory_preview >= 15</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>) and the visual presentation floor (<code>visual_audio_polish >= 4</code>). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
       <table>
         <thead>
           <tr><th>Candidate</th><th>Score</th><th>Observed</th><th>Evidence path</th></tr>
@@ -510,6 +510,12 @@
             <td><code>evaluation/evidence/calibration-20260703-probe-global-damage-score.json</code></td>
           </tr>
           <tr>
+            <td>Fake wrong-projectile-model overlay probe</td>
+            <td><span class="score high">98/100</span></td>
+            <td><div class="bar"><span class="good" style="width:98%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260704-probe-wrong-projectile-model-score.json</code></td>
+          </tr>
+          <tr>
             <td>Fake HUD-only probe</td>
             <td><span class="score low">19/100</span></td>
             <td><div class="bar"><span class="bad" style="width:19%"></span></div></td>
@@ -548,7 +554,7 @@
         </tbody>
       </table>
       <div class="callout">
-        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional fake candidates now cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven observed probes remain below the score >= 85 pass line.
+        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional low-score fake candidates cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven stay below the score >= 85 pass line. The wrong-projectile-model overlay probe intentionally remains high-scoring at 98/100 but records <code>passed: false</code> because <code>visual_audio_polish</code> is 3/5 and fails the visual floor.
       </div>
     </section>
 
@@ -631,9 +637,9 @@
         </div>
         <div class="panel">
           <h3>Probes Actually Run</h3>
-          <p><span class="tag good">global damage capped at 78</span></p>
+          <p><span class="tag good">global damage capped at 78</span> <span class="tag good">wrong projectile 98/floor fail</span></p>
           <p><span class="tag good">HUD-only 19</span> <span class="tag good">visual-only 34</span> <span class="tag good">no-preview damage 54</span> <span class="tag good">single-use 75</span> <span class="tag good">fixed trajectory 65</span> <span class="tag good">bad distance 50</span></p>
-          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The strongest fake lands at 78/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage.</p>
+          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The strongest low-score fake lands at 78/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage. The wrong-projectile-model probe proves that a model-only defect cannot receive 100/100 or <code>passed: true</code> because <code>visual_audio_polish >= 4</code> is also required.</p>
         </div>
         <div class="panel">
           <h3>Deferred Work</h3>
@@ -666,7 +672,7 @@
           </tr>
           <tr>
             <td>Verifier accepts reward hacking</td>
-            <td>Seven representative fake candidates are observed below the pass line. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
+            <td>Eight representative fake candidates are observed: seven below the numeric pass line, and one high-scoring wrong-projectile-model probe blocked by the visual presentation floor. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
             <td><span class="tag good">Representative validation</span></td>
           </tr>
         </tbody>
@@ -698,14 +704,14 @@ python "$Verifier\run_grader.py" --project "$Project" --godot "$Godot" --out "$O
           <tr><td>Headless verifier and scoring docs</td><td><span class="tag good">Ready locally</span></td><td>Include exact command and Godot 4.6 version.</td></tr>
           <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Published run branches record diff, score, verifier command/log, and tool evidence; this writeup records the model settings for Sonnet 5 medium, Opus 4.8 max, and Codex GPT-5.5 xhigh attempts.</td></tr>
           <tr><td>Godot MCP available to rollout agents</td><td><span class="tag good">Configured locally</span></td><td>Document the MCP config in the public run metadata.</td></tr>
-          <tr><td>Anti-cheat fake solutions</td><td><span class="tag good">Representative set ready</span></td><td>Seven fake candidates have committed score JSONs; optional follow-up is to run the five deferred overlapping rows if exhaustive per-row evidence is requested.</td></tr>
+          <tr><td>Anti-cheat fake solutions</td><td><span class="tag good">Representative set ready</span></td><td>Eight fake candidates have committed score JSONs; optional follow-up is to run the five deferred overlapping rows if exhaustive per-row evidence is requested.</td></tr>
           <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>Keep the score table in sync with <code>evaluation/evidence/</code> whenever runs are replaced or rerun.</td></tr>
         </tbody>
       </table>
     </section>
 
     <footer>
-      Updated from fresh local runs on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and keeps seven representative anti-cheat fake candidates below the score >= 85 pass line; the remaining validity debt is five documented overlapping probe rows without separate fake-candidate runs.
+      Updated from fresh local runs on 2026-07-03, with the wrong-projectile-model visual-floor probe added on 2026-07-04. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, keeps seven representative anti-cheat fake candidates below the score >= 85 pass line, and blocks one high-scoring visual defect with the visual_audio_polish floor; the remaining validity debt is five documented overlapping probe rows without separate fake-candidate runs.
     </footer>
   </main>
 </body>
