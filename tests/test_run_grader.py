@@ -224,6 +224,23 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('DisplayServer.get_name() == "headless"', probe_source)
         self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
 
+    def test_screenshot_probe_captures_every_ten_frames_until_explosion(self):
+        probe_runner = ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd"
+        cli_runner = ROOT / "run_screenshot_probe.py"
+
+        self.assertTrue(probe_runner.exists())
+        self.assertTrue(cli_runner.exists())
+
+        probe_source = probe_runner.read_text(encoding="utf-8")
+        cli_source = cli_runner.read_text(encoding="utf-8")
+
+        self.assertIn("SCREENSHOT_INTERVAL_FRAMES := 10", probe_source)
+        self.assertIn("MAX_POST_THROW_FRAMES", probe_source)
+        self.assertIn("_explosion_nodes_since", probe_source)
+        self.assertIn('"attack_%03d"', probe_source)
+        self.assertIn('"explosion_observed"', probe_source)
+        self.assertIn("res://__verifier__/screenshot_probe_runner.gd", cli_source)
+
     def test_explosion_gameplay_records_throw_distance_quality(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
