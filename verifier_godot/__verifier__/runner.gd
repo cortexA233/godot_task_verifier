@@ -5,6 +5,7 @@ const JsonWriter = preload("res://__verifier__/json_writer.gd")
 const ArenaBuilder = preload("res://__verifier__/arena_builder.gd")
 const InputDriver = preload("res://__verifier__/input_driver.gd")
 const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+const MouseSafety = preload("res://__verifier__/mouse_safety.gd")
 
 const FALLBACK_THROW_DISTANCE := 8.0
 const TARGET_FIELD_RADIUS := 30.0
@@ -35,6 +36,7 @@ var input
 var arena: Node3D
 var player: Node3D
 var weapon_ui: Node
+var mouse_safety: Node
 
 
 func _init() -> void:
@@ -45,6 +47,7 @@ func _run() -> void:
 	seed(12345)
 	board = ScoreBoard.new()
 	input = InputDriver.new(self)
+	_install_mouse_safety()
 	print("Verifier swap input route: ", input.describe_route(_weapon_switch_action()))
 	await _build_arena()
 	await _score_weapon_controls()
@@ -77,6 +80,16 @@ func _cleanup_before_quit() -> void:
 	await process_frame
 
 
+func _install_mouse_safety() -> void:
+	if mouse_safety != null and is_instance_valid(mouse_safety):
+		if mouse_safety.has_method("force_visible_for_startup"):
+			mouse_safety.call("force_visible_for_startup")
+		return
+	mouse_safety = MouseSafety.new()
+	mouse_safety.name = "VerifierMouseSafety"
+	root.add_child(mouse_safety)
+
+
 func _build_arena() -> void:
 	if arena != null and is_instance_valid(arena):
 		_stop_audio_players_under(arena)
@@ -86,6 +99,7 @@ func _build_arena() -> void:
 	root.add_child(arena)
 	player = ArenaBuilder.add_player(arena)
 	weapon_ui = ArenaBuilder.add_optional_weapon_ui(arena, player)
+	_install_mouse_safety()
 	await input.wait_physics_frames(8)
 	if player == null:
 		push_warning("Player scene did not instantiate.")

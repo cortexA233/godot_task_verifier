@@ -4,6 +4,7 @@ const ArenaBuilder = preload("res://__verifier__/arena_builder.gd")
 const DamageTarget = preload("res://__verifier__/verifier_damage_target.gd")
 const InputDriver = preload("res://__verifier__/input_driver.gd")
 const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+const MouseSafety = preload("res://__verifier__/mouse_safety.gd")
 
 const FALLBACK_THROW_DISTANCE := 8.0
 const TARGET_FIELD_RADIUS := 30.0
@@ -23,11 +24,23 @@ const NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]
 var input
 var arena: Node3D
 var player: Node3D
+var mouse_safety: Node
 
 
 func _ready() -> void:
 	name = "VerifierDebugArena"
+	_install_mouse_safety()
 	call_deferred("_setup_debug_arena")
+
+
+func _install_mouse_safety() -> void:
+	if mouse_safety != null and is_instance_valid(mouse_safety):
+		if mouse_safety.has_method("force_visible_for_startup"):
+			mouse_safety.call("force_visible_for_startup")
+		return
+	mouse_safety = MouseSafety.new()
+	mouse_safety.name = "VerifierMouseSafety"
+	add_child(mouse_safety)
 
 
 func _setup_debug_arena() -> void:
@@ -48,6 +61,8 @@ func _setup_debug_arena() -> void:
 
 func _clear_debug_children() -> void:
 	for child in get_children():
+		if child == mouse_safety or child.name == "VerifierMouseSafety":
+			continue
 		child.queue_free()
 	await get_tree().process_frame
 
@@ -58,6 +73,7 @@ func _build_base_arena() -> void:
 	add_child(arena)
 	player = ArenaBuilder.add_player(arena)
 	ArenaBuilder.add_optional_weapon_ui(arena, player)
+	_install_mouse_safety()
 
 
 func _calibrate_default_throw_distance() -> Dictionary:
