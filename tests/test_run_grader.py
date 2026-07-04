@@ -129,6 +129,16 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('"suspect": not _suspect_reasons.is_empty()', board_source)
         self.assertIn('"suspect_reasons": _suspect_reasons', board_source)
 
+    def test_score_board_reports_logic_and_visual_score_sections(self):
+        board_source = (ROOT / "verifier_godot" / "__verifier__" / "score_board.gd").read_text(encoding="utf-8")
+
+        self.assertIn("VISUAL_SCORE_CATEGORIES", board_source)
+        self.assertIn('"visual_audio_polish"', board_source)
+        self.assertIn('"score_sections": sections', board_source)
+        self.assertIn('_score_section("logic", "Logic Score"', board_source)
+        self.assertIn('_score_section("visual", "Visual Score"', board_source)
+        self.assertIn("func score_sections() -> Array[Dictionary]", board_source)
+
     def test_runner_flags_explosion_suspects_for_manual_review(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
@@ -213,6 +223,81 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("average_horizontal_direction", probe_source)
         self.assertIn("directions_match", probe_source)
         self.assertIn("visible_nodes_suggest_arc_or_landing", probe_source)
+
+    def test_scene_probe_declares_auxiliary_screenshot_pixel_helpers(self):
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("viewport_screenshot_signature", probe_source)
+        self.assertIn("frame_signature_delta", probe_source)
+        self.assertIn("save_viewport_screenshot", probe_source)
+        self.assertIn('DisplayServer.get_name() == "headless"', probe_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
+
+    def test_screenshot_probe_captures_every_ten_frames_until_explosion(self):
+        probe_runner = ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd"
+        visual_probe = ROOT / "verifier_godot" / "__verifier__" / "screenshot_visual_probe.gd"
+        cli_runner = ROOT / "run_screenshot_probe.py"
+
+        self.assertTrue(probe_runner.exists())
+        self.assertTrue(visual_probe.exists())
+        self.assertTrue(cli_runner.exists())
+
+        probe_source = probe_runner.read_text(encoding="utf-8")
+        visual_source = visual_probe.read_text(encoding="utf-8")
+        cli_source = cli_runner.read_text(encoding="utf-8")
+        combined_source = probe_source + "\n" + visual_source
+
+        self.assertIn("SCREENSHOT_INTERVAL_FRAMES := 10", combined_source)
+        self.assertIn("MAX_POST_THROW_FRAMES", combined_source)
+        self.assertIn("_explosion_nodes_since", combined_source)
+        self.assertIn('"attack_%03d"', combined_source)
+        self.assertIn('"explosion_observed"', combined_source)
+        self.assertIn("res://__verifier__/screenshot_probe_runner.gd", cli_source)
+
+    def test_screenshot_probe_cli_declares_visual_modes(self):
+        cli_source = (ROOT / "run_screenshot_probe.py").read_text(encoding="utf-8")
+
+        self.assertIn('"--mode"', cli_source)
+        self.assertIn('choices=["debug-arena", "main-scene", "both"]', cli_source)
+        self.assertIn('default="both"', cli_source)
+        self.assertIn('"--probe-mode"', cli_source)
+        self.assertIn("copytree", cli_source)
+
+    def test_screenshot_probe_runner_declares_debug_and_main_scene_modes(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd").read_text(encoding="utf-8")
+        visual_source_path = ROOT / "verifier_godot" / "__verifier__" / "screenshot_visual_probe.gd"
+
+        self.assertTrue(visual_source_path.exists())
+        visual_source = visual_source_path.read_text(encoding="utf-8")
+
+        self.assertIn("ScreenshotVisualProbe", runner_source)
+        self.assertIn("OS.get_cmdline_user_args", runner_source)
+        self.assertIn('"debug-arena"', runner_source)
+        self.assertIn('"main-scene"', runner_source)
+        self.assertIn('"both"', runner_source)
+        self.assertIn('"used_for_score": false', runner_source)
+        self.assertIn("run_debug_arena", visual_source)
+        self.assertIn("run_main_scene", visual_source)
+        self.assertIn("res://main.tscn", visual_source)
+        self.assertIn('"debug_arena"', visual_source)
+        self.assertIn('"main_scene"', visual_source)
+        self.assertGreaterEqual(visual_source.count("await input.tap(_weapon_switch_action(), 3, 12)"), 2)
+
+    def test_scene_probe_declares_projectile_footprint_helpers(self):
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+        visual_source_path = ROOT / "verifier_godot" / "__verifier__" / "screenshot_visual_probe.gd"
+
+        self.assertTrue(visual_source_path.exists())
+        visual_source = visual_source_path.read_text(encoding="utf-8")
+
+        self.assertIn("projectile_screen_rect", probe_source)
+        self.assertIn("viewport_region_signature", probe_source)
+        self.assertIn("viewport_image", probe_source)
+        self.assertIn("image_region_signature", probe_source)
+        self.assertIn("projectile_footprint", visual_source)
+        self.assertIn("used_for_score", visual_source)
+        self.assertIn("delta_in_rect", visual_source)
 
     def test_explosion_gameplay_records_throw_distance_quality(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -628,6 +713,378 @@ class RunGraderTests(unittest.TestCase):
             self.assertTrue(result["saw_audio"], completed.stdout + completed.stderr)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
+    def test_scene_probe_detects_windowed_screenshot_pixel_delta_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            verifier_dir = tmp_path / "__verifier__"
+            verifier_dir.mkdir()
+            shutil.copy(ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd", verifier_dir / "scene_probe.gd")
+            (tmp_path / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (tmp_path / "test_runner.gd").write_text(textwrap.dedent(
+                """
+                extends SceneTree
+
+                const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+
+                func _init() -> void:
+                    call_deferred("_run")
+
+                func _run() -> void:
+                    root.size = Vector2i(640, 360)
+                    for _i in range(6):
+                        await process_frame
+                    var before := SceneProbe.viewport_screenshot_signature(root, 32)
+
+                    var rect := ColorRect.new()
+                    rect.color = Color(1.0, 0.0, 0.0, 1.0)
+                    rect.position = Vector2.ZERO
+                    rect.size = Vector2(640.0, 360.0)
+                    root.add_child(rect)
+
+                    for _i in range(6):
+                        await process_frame
+                    var after := SceneProbe.viewport_screenshot_signature(root, 32)
+                    var saved := SceneProbe.save_viewport_screenshot(root, "res://after.png")
+                    var delta := SceneProbe.frame_signature_delta(before, after)
+                    before.erase("samples")
+                    after.erase("samples")
+                    var result := {
+                        "before": before,
+                        "after": after,
+                        "saved": saved,
+                        "delta": delta,
+                        "display_driver": DisplayServer.get_name(),
+                    }
+                    var file := FileAccess.open("res://result.json", FileAccess.WRITE)
+                    file.store_string(JSON.stringify(result))
+                    quit(0)
+                """
+            ), encoding="utf-8")
+
+            try:
+                completed = subprocess.run(
+                    [
+                        str(godot),
+                        "--path",
+                        str(tmp_path),
+                        "--script",
+                        "res://test_runner.gd",
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                    timeout=20,
+                )
+            except subprocess.TimeoutExpired as exc:
+                self.skipTest(f"Windowed Godot screenshot probe timed out: {exc}")
+
+            output = completed.stdout + completed.stderr
+            if "Nonexistent function" in output or "Invalid call" in output:
+                self.fail(output)
+            if not (tmp_path / "result.json").exists():
+                self.skipTest("Windowed Godot screenshot probe could not produce a result in this environment")
+
+            result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+            if not result["before"].get("available") or not result["after"].get("available"):
+                self.skipTest(f"Windowed viewport capture unavailable: {result}")
+            self.assertEqual(completed.returncode, 0, output)
+            self.assertTrue(result["saved"].get("saved"), result)
+            self.assertTrue((tmp_path / "after.png").exists(), result)
+            self.assertGreater(result["delta"], 0.001, result)
+
+    def test_scene_probe_reports_projectile_screen_rect_and_region_delta_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            verifier_dir = tmp_path / "__verifier__"
+            verifier_dir.mkdir()
+            shutil.copy(ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd", verifier_dir / "scene_probe.gd")
+            (tmp_path / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (tmp_path / "test_runner.gd").write_text(textwrap.dedent(
+                """
+                extends SceneTree
+
+                const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+
+                func _init() -> void:
+                    call_deferred("_run")
+
+                func _run() -> void:
+                    root.size = Vector2i(640, 360)
+                    var world := Node3D.new()
+                    root.add_child(world)
+                    var camera := Camera3D.new()
+                    camera.current = true
+                    camera.position = Vector3(0, 1.5, 6)
+                    camera.look_at(Vector3(0, 1.0, 0), Vector3.UP)
+                    world.add_child(camera)
+                    var projectile := Node3D.new()
+                    projectile.name = "Projectile"
+                    world.add_child(projectile)
+                    var mesh := MeshInstance3D.new()
+                    mesh.mesh = SphereMesh.new()
+                    mesh.position = Vector3(0, 1.0, 0)
+                    projectile.add_child(mesh)
+                    for _i in range(8):
+                        await process_frame
+                    var rect := SceneProbe.projectile_screen_rect(camera, projectile, root.size)
+                    var before := SceneProbe.viewport_region_signature(root, Rect2(rect.get("x", 0), rect.get("y", 0), rect.get("width", 1), rect.get("height", 1)), 4)
+                    var material := StandardMaterial3D.new()
+                    material.albedo_color = Color(1, 0, 0, 1)
+                    mesh.set_surface_override_material(0, material)
+                    for _i in range(8):
+                        await process_frame
+                    var after := SceneProbe.viewport_region_signature(root, Rect2(rect.get("x", 0), rect.get("y", 0), rect.get("width", 1), rect.get("height", 1)), 4)
+                    var delta := SceneProbe.frame_signature_delta(before, after)
+                    var result := {"rect": rect, "after": after, "delta": delta}
+                    result["after"].erase("samples")
+                    var file := FileAccess.open("res://result.json", FileAccess.WRITE)
+                    file.store_string(JSON.stringify(result))
+                    quit(0)
+                """
+            ), encoding="utf-8")
+
+            completed = subprocess.run(
+                [str(godot), "--path", str(tmp_path), "--script", "res://test_runner.gd"],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=20,
+            )
+            output = completed.stdout + completed.stderr
+            if "Nonexistent function" in output or "Invalid call" in output:
+                self.fail(output)
+            if not (tmp_path / "result.json").exists():
+                self.skipTest("Windowed projectile footprint probe could not produce a result in this environment")
+            result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+            if not result["after"].get("available"):
+                self.skipTest(f"Windowed viewport capture unavailable: {result}")
+            self.assertEqual(completed.returncode, 0, output)
+            self.assertTrue(result["rect"].get("visible"), result)
+            self.assertGreater(result["rect"].get("area_px", 0), 0, result)
+            self.assertGreater(result["delta"], -1.0, result)
+
+    def test_screenshot_probe_debug_arena_mode_writes_nested_artifacts_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        candidate = ROOT / "tmp" / "screenshot-probe-debug-arena-candidate"
+        if candidate.exists():
+            shutil.rmtree(candidate)
+        candidate.mkdir(parents=True)
+        (candidate / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+        out_dir = Path(tempfile.mkdtemp(prefix="screenshot-probe-debug-arena-out-"))
+        try:
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_screenshot_probe.py"),
+                    "--project",
+                    str(candidate),
+                    "--godot",
+                    str(godot),
+                    "--out-dir",
+                    str(out_dir),
+                    "--mode",
+                    "debug-arena",
+                    "--timeout",
+                    "60",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=90,
+            )
+            output = completed.stdout + completed.stderr
+            if not (out_dir / "result.json").exists():
+                self.skipTest(f"Windowed debug arena screenshot probe unavailable: {output}")
+            result = json.loads((out_dir / "result.json").read_text(encoding="utf-8"))
+            self.assertFalse(result.get("used_for_score", True), result)
+            self.assertIn("debug_arena", result.get("modes", {}), result)
+            self.assertTrue((out_dir / "debug_arena").exists(), result)
+        finally:
+            shutil.rmtree(candidate, ignore_errors=True)
+            shutil.rmtree(out_dir, ignore_errors=True)
+
+    def test_screenshot_probe_main_scene_mode_writes_ready_capture_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as candidate_tmp, tempfile.TemporaryDirectory() as out_tmp:
+            candidate = Path(candidate_tmp)
+            out_dir = Path(out_tmp)
+            (candidate / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (candidate / "player.gd").write_text(
+                "extends CharacterBody3D\n\nfunc collect_coin():\n\tpass\n",
+                encoding="utf-8",
+            )
+            (candidate / "main.tscn").write_text(textwrap.dedent(
+                """
+                [gd_scene load_steps=2 format=3]
+
+                [ext_resource type="Script" path="res://player.gd" id="1"]
+
+                [node name="Main" type="Node3D"]
+
+                [node name="Player" type="CharacterBody3D" parent="."]
+                script = ExtResource("1")
+
+                [node name="Camera3D" type="Camera3D" parent="Player"]
+                transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 2, 6)
+                current = true
+                """
+            ).strip() + "\n", encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_screenshot_probe.py"),
+                    "--project",
+                    str(candidate),
+                    "--godot",
+                    str(godot),
+                    "--out-dir",
+                    str(out_dir),
+                    "--mode",
+                    "main-scene",
+                    "--timeout",
+                    "60",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=90,
+            )
+            output = completed.stdout + completed.stderr
+            if not (out_dir / "result.json").exists():
+                self.skipTest(f"Windowed main scene screenshot probe unavailable: {output}")
+            result = json.loads((out_dir / "result.json").read_text(encoding="utf-8"))
+            self.assertFalse(result.get("used_for_score", True), result)
+            self.assertIn("main_scene", result.get("modes", {}), result)
+            self.assertTrue((out_dir / "main_scene").exists(), result)
+            self.assertTrue((out_dir / "main_scene" / "main_ready.png").exists(), result)
+
+    def test_screenshot_probe_main_scene_mode_resumes_demo_overlay_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not available to inspect screenshot pixels")
+
+        with tempfile.TemporaryDirectory() as candidate_tmp, tempfile.TemporaryDirectory() as out_tmp:
+            candidate = Path(candidate_tmp)
+            out_dir = Path(out_tmp)
+            (candidate / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (candidate / "player.gd").write_text(
+                "extends CharacterBody3D\n\nfunc collect_coin():\n\tpass\n",
+                encoding="utf-8",
+            )
+            (candidate / "demo_overlay.gd").write_text(textwrap.dedent(
+                """
+                extends Node
+
+                @onready var overlay: ColorRect = $CanvasLayer/Overlay
+
+                var resumed := false
+                var frames_after_resume := -1
+
+                func _ready() -> void:
+                    get_tree().paused = true
+                    overlay.show()
+
+                func _process(_delta: float) -> void:
+                    if frames_after_resume < 0:
+                        return
+                    frames_after_resume += 1
+                    if frames_after_resume >= 8:
+                        overlay.hide()
+                        frames_after_resume = -1
+
+                func resume_demo() -> void:
+                    resumed = true
+                    get_tree().paused = false
+                    frames_after_resume = 0
+                """
+            ).strip() + "\n", encoding="utf-8")
+            (candidate / "main.tscn").write_text(textwrap.dedent(
+                """
+                [gd_scene load_steps=3 format=3]
+
+                [ext_resource type="Script" path="res://player.gd" id="1"]
+                [ext_resource type="Script" path="res://demo_overlay.gd" id="2"]
+
+                [node name="Main" type="Node3D"]
+
+                [node name="Player" type="CharacterBody3D" parent="."]
+                script = ExtResource("1")
+
+                [node name="Camera3D" type="Camera3D" parent="Player"]
+                transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 2, 6)
+                current = true
+
+                [node name="DemoOverlay" type="Node" parent="."]
+                script = ExtResource("2")
+
+                [node name="CanvasLayer" type="CanvasLayer" parent="DemoOverlay"]
+
+                [node name="Background" type="ColorRect" parent="DemoOverlay/CanvasLayer"]
+                offset_right = 1280.0
+                offset_bottom = 720.0
+                color = Color(0, 1, 0, 1)
+
+                [node name="Overlay" type="ColorRect" parent="DemoOverlay/CanvasLayer"]
+                offset_right = 1280.0
+                offset_bottom = 720.0
+                color = Color(1, 0, 0, 1)
+                """
+            ).strip() + "\n", encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_screenshot_probe.py"),
+                    "--project",
+                    str(candidate),
+                    "--godot",
+                    str(godot),
+                    "--out-dir",
+                    str(out_dir),
+                    "--mode",
+                    "main-scene",
+                    "--timeout",
+                    "60",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=90,
+            )
+            output = completed.stdout + completed.stderr
+            if not (out_dir / "result.json").exists():
+                self.skipTest(f"Windowed main scene screenshot probe unavailable: {output}")
+            result = json.loads((out_dir / "result.json").read_text(encoding="utf-8"))
+            main_scene = result.get("modes", {}).get("main_scene", {})
+            resume = main_scene.get("resume_demo", {})
+            self.assertEqual(completed.returncode, 0, output)
+            self.assertTrue(resume.get("attempted"), result)
+            self.assertEqual(resume.get("method"), "resume_demo", result)
+            self.assertFalse(resume.get("paused_after"), result)
+            ready_capture = out_dir / "main_scene" / "main_ready.png"
+            self.assertTrue(ready_capture.exists(), result)
+            with Image.open(ready_capture) as image:
+                red, green, _blue, _alpha = image.convert("RGBA").getpixel((image.width // 2, image.height // 2))
+            self.assertLess(red, 96, result)
+            self.assertGreater(green, 128, result)
+
     def test_scene_probe_rejects_placeholder_projectile_meshes(self):
         godot = find_godot()
         if godot is None:
@@ -786,8 +1243,16 @@ class RunGraderTests(unittest.TestCase):
                 result = {
                     "score": 11,
                     "max_score": 100,
+                    "logic_score": 9,
+                    "logic_max_score": 95,
+                    "visual_score": 2,
+                    "visual_max_score": 5,
                     "passed": False,
                     "godot_version": "fake-godot",
+                    "score_sections": [
+                        {"name": "logic", "label": "Logic Score", "score": 9, "max": 95, "categories": ["weapon_controls"]},
+                        {"name": "visual", "label": "Visual Score", "score": 2, "max": 5, "categories": ["visual_audio_polish"]}
+                    ],
                     "breakdown": [{"name": "weapon_controls", "score": 11, "max": 15, "notes": "fake"}],
                     "artifacts": {"log": "run.log", "screenshots": []}
                 }
@@ -823,6 +1288,8 @@ class RunGraderTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             data = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(data["score"], 11)
+            self.assertIn("Logic score: 9/95", completed.stdout)
+            self.assertIn("Visual score: 2/5", completed.stdout)
             self.assertIn("fake godot executed", log.read_text(encoding="utf-8"))
 
     def test_cli_writes_pdf_report_when_requested(self):

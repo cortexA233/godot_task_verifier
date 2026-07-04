@@ -23,6 +23,28 @@ def sample_result() -> dict:
         "max_score": 100,
         "passed": False,
         "godot_version": "4.6-stable (official)",
+        "score_sections": [
+            {
+                "name": "logic",
+                "label": "Logic Score",
+                "score": 30,
+                "max": 95,
+                "categories": [
+                    "weapon_controls",
+                    "hud_feedback",
+                    "trajectory_preview",
+                    "projectile_physics",
+                    "explosion_gameplay",
+                ],
+            },
+            {
+                "name": "visual",
+                "label": "Visual Score",
+                "score": 5,
+                "max": 5,
+                "categories": ["visual_audio_polish"],
+            },
+        ],
         "breakdown": [
             {
                 "name": "weapon_controls",
@@ -144,6 +166,19 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("category pass floors failed", pdf_text)
             self.assertIn("Flagged for manual review", pdf_text)
             self.assertIn("global damage sweep", pdf_text)
+
+    def test_pdf_report_shows_logic_and_visual_score_sections(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "report.pdf"
+
+            report_renderer.render_pdf_report(sample_result(), output, Path("score.json"))
+
+            pdf_text = extract_pdf_text(output)
+            self.assertIn("Score Sections", pdf_text)
+            self.assertIn("Logic Score", pdf_text)
+            self.assertIn("30/95", pdf_text)
+            self.assertIn("Visual Score", pdf_text)
+            self.assertIn("5/5", pdf_text)
 
     def test_render_report_cli_writes_pdf(self):
         import render_report

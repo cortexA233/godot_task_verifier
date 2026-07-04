@@ -7,6 +7,7 @@ const CATEGORY_PASS_FLOORS := {
 	"explosion_gameplay": 10,
 	"visual_audio_polish": 4,
 }
+const VISUAL_SCORE_CATEGORIES := ["visual_audio_polish"]
 
 var _items: Array[Dictionary] = []
 var _suspect_reasons: Array[String] = []
@@ -51,6 +52,44 @@ func category_score(category_name: String) -> int:
 	return 0
 
 
+func score_sections() -> Array[Dictionary]:
+	var logic_categories: Array[String] = []
+	for item in _items:
+		var category_name := String(item["name"])
+		if not VISUAL_SCORE_CATEGORIES.has(category_name):
+			logic_categories.append(category_name)
+	return [
+		_score_section("logic", "Logic Score", logic_categories),
+		_score_section("visual", "Visual Score", VISUAL_SCORE_CATEGORIES),
+	]
+
+
+func _score_section(name: String, label: String, category_names: Array) -> Dictionary:
+	var section_score := 0
+	var section_max := 0
+	var present_categories: Array[String] = []
+	for item in _items:
+		var category_name := String(item["name"])
+		if category_names.has(category_name):
+			section_score += int(item["score"])
+			section_max += int(item["max"])
+			present_categories.append(category_name)
+	return {
+		"name": name,
+		"label": label,
+		"score": section_score,
+		"max": section_max,
+		"categories": present_categories,
+	}
+
+
+func _section_by_name(sections: Array[Dictionary], section_name: String) -> Dictionary:
+	for section in sections:
+		if String(section.get("name", "")) == section_name:
+			return section
+	return {"score": 0, "max": 0}
+
+
 func failed_category_floors() -> Array[String]:
 	var failures: Array[String] = []
 	for category_name in CATEGORY_PASS_FLOORS:
@@ -64,15 +103,23 @@ func to_dictionary(godot_version: String) -> Dictionary:
 	var max_total := max_score()
 	var score_total := total_score()
 	var floor_failures := failed_category_floors()
+	var sections := score_sections()
+	var logic_section := _section_by_name(sections, "logic")
+	var visual_section := _section_by_name(sections, "visual")
 	return {
 		"score": score_total,
 		"max_score": max_total,
+		"logic_score": int(logic_section.get("score", 0)),
+		"logic_max_score": int(logic_section.get("max", 0)),
+		"visual_score": int(visual_section.get("score", 0)),
+		"visual_max_score": int(visual_section.get("max", 0)),
 		"passed": score_total >= PASS_THRESHOLD and floor_failures.is_empty(),
 		"pass_threshold": PASS_THRESHOLD,
 		"category_floor_failures": floor_failures,
 		"suspect": not _suspect_reasons.is_empty(),
 		"suspect_reasons": _suspect_reasons,
 		"godot_version": godot_version,
+		"score_sections": sections,
 		"breakdown": _items,
 		"artifacts": {
 			"log": "",

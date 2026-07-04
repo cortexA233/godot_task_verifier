@@ -90,6 +90,7 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
         reasons_text = "; ".join(suspect_reasons) if suspect_reasons else "anti-cheat signals observed"
         review_line = "Flagged for manual review: " + reasons_text + "."
     breakdown = [_normalize_item(item) for item in result.get("breakdown", [])]
+    score_sections = _normalize_score_sections(result.get("score_sections", []))
     findings = select_key_findings(breakdown, limit=5)
 
     styles = _styles()
@@ -108,6 +109,18 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
         Spacer(1, 0.18 * inch),
         _score_summary_table(score, max_score, passed, styles, status_line, review_line),
         Spacer(1, 0.18 * inch),
+    ]
+    if score_sections:
+        story.extend(
+            [
+                Paragraph("Score Sections", styles["section"]),
+                Spacer(1, 0.06 * inch),
+                _score_sections_table(score_sections, styles),
+                Spacer(1, 0.18 * inch),
+            ]
+        )
+    story.extend(
+        [
         Paragraph("Category Scores", styles["section"]),
         Spacer(1, 0.06 * inch),
         _category_table(breakdown, styles),
@@ -117,7 +130,8 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
         _findings_table(findings, styles),
         Spacer(1, 0.18 * inch),
         *_detail_analysis_flowables(breakdown, styles),
-    ]
+        ]
+    )
 
     doc.build(story)
 
@@ -388,6 +402,42 @@ def _category_table(breakdown: list[dict], styles: dict) -> Table:
     return table
 
 
+def _score_sections_table(score_sections: list[dict], styles: dict) -> Table:
+    rows = [
+        [
+            Paragraph("Section", styles["cell_bold"]),
+            Paragraph("Score", styles["cell_bold"]),
+            Paragraph("Observed", styles["cell_bold"]),
+            Paragraph("Categories", styles["cell_bold"]),
+        ]
+    ]
+    for section in score_sections:
+        rows.append(
+            [
+                Paragraph(_escape(section["label"]), styles["cell_bold"]),
+                Paragraph(f'{section["score"]}/{section["max"]}', styles["cell"]),
+                BarFlowable(section["score"], section["max"], width=185),
+                Paragraph(_escape(", ".join(_label(category) for category in section["categories"])), styles["cell"]),
+            ]
+        )
+    table = Table(rows, colWidths=[1.25 * inch, 0.7 * inch, 2.75 * inch, 2.0 * inch], repeatRows=1)
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), PANEL),
+                ("BOX", (0, 0), (-1, -1), 0.5, LINE),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, LINE),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]
+        )
+    )
+    return table
+
+
 def _findings_table(findings: list[dict], styles: dict) -> Table:
     rows = []
     for index, item in enumerate(findings, start=1):
@@ -477,6 +527,30 @@ def _normalize_item(item: dict) -> dict:
     raw_details = item.get("details", [])
     details = _normalize_details(raw_details, notes)
     return {"name": name, "score": score, "max": max_score, "notes": notes, "details": details}
+
+
+def _normalize_score_sections(raw_sections) -> list[dict]:
+    if not isinstance(raw_sections, list):
+        return []
+    sections: list[dict] = []
+    for raw_section in raw_sections:
+        if not isinstance(raw_section, dict):
+            continue
+        name = str(raw_section.get("name", "section"))
+        label = str(raw_section.get("label", _label(name)))
+        categories = raw_section.get("categories", [])
+        if not isinstance(categories, list):
+            categories = []
+        sections.append(
+            {
+                "name": name,
+                "label": label,
+                "score": _safe_int(raw_section.get("score", 0)),
+                "max": _safe_int(raw_section.get("max", raw_section.get("max_score", 0))),
+                "categories": [str(category) for category in categories],
+            }
+        )
+    return sections
 
 
 def _normalize_details(raw_details, notes: str) -> list[dict]:

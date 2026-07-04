@@ -94,6 +94,13 @@ Score categories:
 | `visual_audio_polish` | 5 |
 | `stability_repeatability` | 5 |
 
+The score JSON also exposes the same categories as separate score sections:
+`logic_score`/`logic_max_score` for non-visual behavior and
+`visual_score`/`visual_max_score` for presentation checks. The total
+`score/max_score` remains the formal 100-point benchmark score, while PDF
+reports show the logic and visual sections separately so visual defects are not
+buried inside the behavioral category table.
+
 `visual_audio_polish` includes a runtime check that the thrown, moving grenade
 projectile carries a visible non-placeholder model. Built-in primitive
 placeholder meshes and obvious reused bullet, coin, trajectory, or explosion
@@ -237,6 +244,31 @@ Mouse safety is enabled in verifier-owned scenes. The debug arena starts with
 the cursor visible, `F8` toggles temporary mouse capture for manual aiming, and
 `Esc` releases the cursor. Automated grenade throws continue to use Godot input
 actions and do not require cursor capture.
+
+## Experimental Screenshot Probe
+
+The screenshot probe is an auxiliary visual-evidence runner. It is not part of
+the formal 0-100 score and every result marks `used_for_score: false`.
+
+```powershell
+python "$Verifier\run_screenshot_probe.py" `
+  --project "$Project" `
+  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
+  --out-dir "$Verifier\artifacts\screenshot-probe" `
+  --mode both
+```
+
+Modes:
+
+| Mode | Evidence |
+| --- | --- |
+| `debug-arena` | Controlled verifier arena screenshots every 10 physics frames after grenade throw until explosion or timeout. |
+| `main-scene` | Real `res://main.tscn` ready, aim, grenade-ready, and post-throw screenshots when the playable scene exposes a player and camera. |
+| `both` | Runs both visual modes and writes separate `debug_arena/` and `main_scene/` artifact folders. |
+
+The top-level `result.json` contains one `modes` entry per attempted visual run.
+Windowed rendering can be unavailable on headless machines; that is reported as
+probe infrastructure state rather than as a candidate scoring failure.
 
 ## Calibration And Evidence
 

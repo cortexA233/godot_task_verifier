@@ -105,6 +105,13 @@ The verifier grades out of 100:
 - `visual_audio_polish`: 5
 - `stability_repeatability`: 5
 
+The emitted score JSON keeps the formal `score/max_score` as the 100-point
+benchmark result and also derives isolated score sections. `logic_score` covers
+the non-visual behavior categories, while `visual_score` covers
+`visual_audio_polish`. PDF reports render those sections separately before the
+full category table, so reviewers can compare behavior completion and visual
+presentation without changing the pass threshold semantics.
+
 `visual_audio_polish` includes runtime presentation checks for the thrown
 projectile model, visible detonation/effect nodes, detonation audio, and
 temporary visual cleanup. The projectile-model detail follows the moving
