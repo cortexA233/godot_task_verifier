@@ -214,6 +214,16 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("directions_match", probe_source)
         self.assertIn("visible_nodes_suggest_arc_or_landing", probe_source)
 
+    def test_scene_probe_declares_auxiliary_screenshot_pixel_helpers(self):
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("viewport_screenshot_signature", probe_source)
+        self.assertIn("frame_signature_delta", probe_source)
+        self.assertIn("save_viewport_screenshot", probe_source)
+        self.assertIn('DisplayServer.get_name() == "headless"', probe_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
+
     def test_explosion_gameplay_records_throw_distance_quality(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
@@ -627,6 +637,89 @@ class RunGraderTests(unittest.TestCase):
             self.assertGreater(result["visible_count"], 0, completed.stdout + completed.stderr)
             self.assertTrue(result["saw_audio"], completed.stdout + completed.stderr)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+
+    def test_scene_probe_detects_windowed_screenshot_pixel_delta_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            verifier_dir = tmp_path / "__verifier__"
+            verifier_dir.mkdir()
+            shutil.copy(ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd", verifier_dir / "scene_probe.gd")
+            (tmp_path / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (tmp_path / "test_runner.gd").write_text(textwrap.dedent(
+                """
+                extends SceneTree
+
+                const SceneProbe = preload("res://__verifier__/scene_probe.gd")
+
+                func _init() -> void:
+                    call_deferred("_run")
+
+                func _run() -> void:
+                    root.size = Vector2i(640, 360)
+                    for _i in range(6):
+                        await process_frame
+                    var before := SceneProbe.viewport_screenshot_signature(root, 32)
+
+                    var rect := ColorRect.new()
+                    rect.color = Color(1.0, 0.0, 0.0, 1.0)
+                    rect.position = Vector2.ZERO
+                    rect.size = Vector2(640.0, 360.0)
+                    root.add_child(rect)
+
+                    for _i in range(6):
+                        await process_frame
+                    var after := SceneProbe.viewport_screenshot_signature(root, 32)
+                    var saved := SceneProbe.save_viewport_screenshot(root, "res://after.png")
+                    var delta := SceneProbe.frame_signature_delta(before, after)
+                    before.erase("samples")
+                    after.erase("samples")
+                    var result := {
+                        "before": before,
+                        "after": after,
+                        "saved": saved,
+                        "delta": delta,
+                        "display_driver": DisplayServer.get_name(),
+                    }
+                    var file := FileAccess.open("res://result.json", FileAccess.WRITE)
+                    file.store_string(JSON.stringify(result))
+                    quit(0)
+                """
+            ), encoding="utf-8")
+
+            try:
+                completed = subprocess.run(
+                    [
+                        str(godot),
+                        "--path",
+                        str(tmp_path),
+                        "--script",
+                        "res://test_runner.gd",
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                    timeout=20,
+                )
+            except subprocess.TimeoutExpired as exc:
+                self.skipTest(f"Windowed Godot screenshot probe timed out: {exc}")
+
+            output = completed.stdout + completed.stderr
+            if "Nonexistent function" in output or "Invalid call" in output:
+                self.fail(output)
+            if not (tmp_path / "result.json").exists():
+                self.skipTest("Windowed Godot screenshot probe could not produce a result in this environment")
+
+            result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+            if not result["before"].get("available") or not result["after"].get("available"):
+                self.skipTest(f"Windowed viewport capture unavailable: {result}")
+            self.assertEqual(completed.returncode, 0, output)
+            self.assertTrue(result["saved"].get("saved"), result)
+            self.assertTrue((tmp_path / "after.png").exists(), result)
+            self.assertGreater(result["delta"], 0.001, result)
 
     def test_scene_probe_rejects_placeholder_projectile_meshes(self):
         godot = find_godot()

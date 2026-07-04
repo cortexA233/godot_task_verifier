@@ -45,6 +45,107 @@ static func audio_players_playing(root: Node) -> Array[Node]:
 	return found
 
 
+static func viewport_screenshot_signature(viewport: Viewport, sample_step: int = 32) -> Dictionary:
+	var capture := _capture_viewport_screenshot(viewport)
+	if not bool(capture.get("available", false)):
+		return capture
+	var image: Image = capture["image"]
+	var width := image.get_width()
+	var height := image.get_height()
+	var safe_sample_step := maxi(sample_step, 1)
+	var samples: Array = []
+	for y in range(0, height, safe_sample_step):
+		for x in range(0, width, safe_sample_step):
+			var color := image.get_pixel(x, y)
+			samples.append([color.r, color.g, color.b, color.a])
+	return {
+		"available": true,
+		"display_driver": DisplayServer.get_name(),
+		"width": width,
+		"height": height,
+		"sample_step": safe_sample_step,
+		"sample_count": samples.size(),
+		"samples": samples,
+	}
+
+
+static func frame_signature_delta(before: Dictionary, after: Dictionary) -> float:
+	if not bool(before.get("available", false)) or not bool(after.get("available", false)):
+		return -1.0
+	var before_samples: Array = before.get("samples", [])
+	var after_samples: Array = after.get("samples", [])
+	var count := mini(before_samples.size(), after_samples.size())
+	if count <= 0:
+		return 0.0
+	var total := 0.0
+	for index in range(count):
+		var before_color: Array = before_samples[index]
+		var after_color: Array = after_samples[index]
+		for channel in range(4):
+			total += absf(float(after_color[channel]) - float(before_color[channel]))
+	return total / float(count * 4)
+
+
+static func save_viewport_screenshot(viewport: Viewport, output_path: String) -> Dictionary:
+	var capture := _capture_viewport_screenshot(viewport)
+	if not bool(capture.get("available", false)):
+		capture.erase("image")
+		capture["saved"] = false
+		capture["path"] = output_path
+		return capture
+	var image: Image = capture["image"]
+	var error := image.save_png(output_path)
+	return {
+		"available": true,
+		"saved": error == OK,
+		"path": output_path,
+		"error": error,
+		"display_driver": DisplayServer.get_name(),
+		"width": image.get_width(),
+		"height": image.get_height(),
+	}
+
+
+static func _capture_viewport_screenshot(viewport: Viewport) -> Dictionary:
+	if viewport == null:
+		return {"available": false, "reason": "viewport is null"}
+	if DisplayServer.get_name() == "headless":
+		return {
+			"available": false,
+			"reason": "headless display driver does not expose viewport screenshots",
+			"display_driver": DisplayServer.get_name(),
+		}
+	var texture := viewport.get_texture()
+	if texture == null:
+		return {
+			"available": false,
+			"reason": "viewport texture is null",
+			"display_driver": DisplayServer.get_name(),
+		}
+	var image := texture.get_image()
+	if image == null:
+		return {
+			"available": false,
+			"reason": "viewport image is null",
+			"display_driver": DisplayServer.get_name(),
+		}
+	if image.get_width() <= 0 or image.get_height() <= 0:
+		return {
+			"available": false,
+			"reason": "viewport image has no pixels",
+			"display_driver": DisplayServer.get_name(),
+			"width": image.get_width(),
+			"height": image.get_height(),
+		}
+	return {
+		"available": true,
+		"display_driver": DisplayServer.get_name(),
+		"width": image.get_width(),
+		"height": image.get_height(),
+		"image": image,
+	}
+
+
 static func observe_runtime_activity(tree: SceneTree, root: Node, before: Dictionary, point: Vector3, radius: float, frame_count: int) -> Dictionary:
 	var visible_ids := {}
 	var saw_audio := false
