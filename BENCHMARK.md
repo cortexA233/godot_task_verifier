@@ -109,7 +109,9 @@ The emitted score JSON keeps the formal `score/max_score` as the 100-point
 benchmark result and also exposes that same formal score as
 `logic_score/logic_max_score`. The existing `visual_audio_polish` category
 remains part of the 100-point score and pass-floor logic. Screenshot-based
-visual analysis is auxiliary evidence with `used_for_score: false`; it may be
+visual analysis is auxiliary evidence with `used_for_score: false`; it is
+reported as a separate 10-point section that includes projectile visibility,
+explosion visibility, and screenshot projectile-footprint quality. It may be
 displayed separately in reports but does not change `score`, `passed`, or the
 category floors.
 

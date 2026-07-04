@@ -1,7 +1,9 @@
 import json
+import struct
 import sys
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,10 +45,10 @@ def sample_result() -> dict:
             {
                 "name": "screenshot_visual",
                 "label": "Screenshot Visual Analysis",
-                "score": 3,
-                "max": 5,
+                "score": 6,
+                "max": 10,
                 "used_for_score": False,
-                "notes": "projectile visible in rendered screenshot frames",
+                "notes": "projectile visible in rendered screenshot frames; projectile footprint too small in debug_arena",
                 "categories": ["debug_arena", "main_scene"],
             },
         ],
@@ -115,6 +117,20 @@ def sample_result() -> dict:
     }
 
 
+def tiny_png(red: int, green: int, blue: int) -> bytes:
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + kind
+            + data
+            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+        )
+
+    header = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    pixels = zlib.compress(b"\x00" + bytes([red, green, blue]))
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", pixels) + chunk(b"IEND", b"")
+
+
 def extract_pdf_text(path: Path) -> str:
     from pypdf import PdfReader
 
@@ -126,6 +142,20 @@ def extract_first_page_text(path: Path) -> str:
     from pypdf import PdfReader
 
     return PdfReader(path).pages[0].extract_text() or ""
+
+
+def count_pdf_images(path: Path) -> int:
+    from pypdf import PdfReader
+
+    total = 0
+    for page in PdfReader(path).pages:
+        resources = page.get("/Resources", {})
+        xobjects = resources.get("/XObject", {})
+        for xobject in xobjects.values():
+            resolved = xobject.get_object()
+            if resolved.get("/Subtype") == "/Image":
+                total += 1
+    return total
 
 
 class ReportRendererTests(unittest.TestCase):
@@ -200,7 +230,7 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("Auxiliary Visual Scores", pdf_text)
             self.assertIn("Screenshot Visual", pdf_text)
             self.assertIn("Analysis", pdf_text)
-            self.assertIn("3/5", pdf_text)
+            self.assertIn("6/10", pdf_text)
             self.assertIn("not counted in 100-point score", pdf_text)
 
     def test_pdf_report_promotes_screenshot_visual_score_on_first_page(self):
@@ -211,8 +241,29 @@ class ReportRendererTests(unittest.TestCase):
 
             first_page_text = extract_first_page_text(output)
             self.assertIn("Screenshot visual score", first_page_text)
-            self.assertIn("3/5", first_page_text)
+            self.assertIn("6/10", first_page_text)
             self.assertIn("Auxiliary only", first_page_text)
+
+    def test_pdf_report_embeds_representative_screenshot_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            debug_image = tmp_path / "screenshot-probe" / "debug_arena" / "attack_010.png"
+            main_image = tmp_path / "screenshot-probe" / "main_scene" / "attack_020.png"
+            debug_image.parent.mkdir(parents=True)
+            main_image.parent.mkdir(parents=True)
+            debug_image.write_bytes(tiny_png(255, 0, 0))
+            main_image.write_bytes(tiny_png(0, 64, 255))
+            output = tmp_path / "report.pdf"
+            result = sample_result()
+            result["artifacts"]["screenshots"] = [str(debug_image), str(main_image)]
+
+            report_renderer.render_pdf_report(result, output, tmp_path / "score.json")
+
+            pdf_text = extract_pdf_text(output)
+            self.assertIn("Screenshot Evidence", pdf_text)
+            self.assertIn("debug_arena / attack_010", pdf_text)
+            self.assertIn("main_scene / attack_020", pdf_text)
+            self.assertGreaterEqual(count_pdf_images(output), 2)
 
     def test_render_report_cli_writes_pdf(self):
         import render_report

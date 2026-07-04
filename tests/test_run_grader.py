@@ -150,6 +150,19 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('"used_for_score": false', runner_source)
         self.assertIn("_screenshot_visual_score", runner_source)
 
+    def test_screenshot_probe_scores_footprint_quality_as_ten_point_auxiliary_score(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"max": 10', runner_source)
+        self.assertIn("DEBUG_FOOTPRINT_PARTIAL_AREA", runner_source)
+        self.assertIn("DEBUG_FOOTPRINT_FULL_AREA", runner_source)
+        self.assertIn("MAIN_FOOTPRINT_PARTIAL_AREA", runner_source)
+        self.assertIn("MAIN_FOOTPRINT_STRONG_AREA", runner_source)
+        self.assertIn("MAIN_FOOTPRINT_FULL_AREA", runner_source)
+        self.assertIn("_footprint_quality_score", runner_source)
+        self.assertIn("projectile footprint too small", runner_source)
+        self.assertIn("not counted in 100-point score", runner_source)
+
     def test_runner_flags_explosion_suspects_for_manual_review(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
@@ -1262,7 +1275,7 @@ class RunGraderTests(unittest.TestCase):
                         {"name": "logic", "label": "Logic Score", "score": 11, "max": 100, "categories": ["weapon_controls", "visual_audio_polish"]}
                     ],
                     "auxiliary_score_sections": [
-                        {"name": "screenshot_visual", "label": "Screenshot Visual Analysis", "score": 2, "max": 5, "used_for_score": False}
+                        {"name": "screenshot_visual", "label": "Screenshot Visual Analysis", "score": 4, "max": 10, "used_for_score": False}
                     ],
                     "breakdown": [{"name": "weapon_controls", "score": 11, "max": 15, "notes": "fake"}],
                     "artifacts": {"log": "run.log", "screenshots": []}

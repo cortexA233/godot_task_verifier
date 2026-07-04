@@ -267,8 +267,12 @@ Modes:
 
 The top-level `result.json` contains one `modes` entry per attempted visual run.
 It also includes an `auxiliary_score_sections` entry for the screenshot visual
-analysis. That score is marked `used_for_score: false` and is not counted in
-the formal 100-point verifier score.
+analysis. That auxiliary section is scored out of 10: 1 point for runnable
+rendered capture, 2 points for visible projectile evidence, 2 points for
+observed explosion evidence, and 5 points for projectile footprint quality
+across the debug arena and main scene screenshots. It is marked
+`used_for_score: false` and is not counted in the formal 100-point verifier
+score.
 Windowed rendering can be unavailable on headless machines; that is reported as
 probe infrastructure state rather than as a candidate scoring failure.
 

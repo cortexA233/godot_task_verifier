@@ -9,7 +9,7 @@ try:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import Flowable, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import Flowable, Image as ReportImage, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 except ImportError as exc:  # pragma: no cover - exercised only when dependency is missing.
     raise RuntimeError(
         "ReportLab is required to render PDF reports. Use the bundled Codex Python runtime or install reportlab."
@@ -138,6 +138,9 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
                 Spacer(1, 0.18 * inch),
             ]
         )
+    screenshot_evidence = _screenshot_evidence_flowables(result, source_json_path, styles)
+    if screenshot_evidence:
+        story.extend([*screenshot_evidence, Spacer(1, 0.18 * inch)])
     story.extend(
         [
         Paragraph("Category Scores", styles["section"]),
@@ -330,6 +333,15 @@ def _styles() -> dict[str, ParagraphStyle]:
             fontSize=7.8,
             leading=9.4,
             textColor=MUTED,
+        ),
+        "caption": ParagraphStyle(
+            "caption",
+            parent=base["Normal"],
+            fontName="Helvetica",
+            fontSize=7,
+            leading=8.4,
+            textColor=MUTED,
+            alignment=TA_CENTER,
         ),
     }
 
@@ -593,6 +605,148 @@ def _detail_analysis_flowables(breakdown: list[dict], styles: dict) -> list:
             block = [Paragraph("Detailed Item Analysis", styles["section"]), Spacer(1, 0.06 * inch), *block]
         flowables.append(KeepTogether(block))
     return flowables
+
+
+def _screenshot_evidence_flowables(result: dict, source_json_path: Path | None, styles: dict) -> list:
+    screenshots = _select_representative_screenshots(result, source_json_path, limit=4)
+    if not screenshots:
+        return []
+
+    cells = []
+    for screenshot in screenshots:
+        image = _screenshot_image(screenshot)
+        if image is None:
+            continue
+        cells.append(
+            [
+                image,
+                Spacer(1, 0.04 * inch),
+                Paragraph(_escape(_screenshot_caption(screenshot)), styles["caption"]),
+            ]
+        )
+    if not cells:
+        return []
+
+    rows = []
+    for index in range(0, len(cells), 2):
+        row = [cells[index]]
+        if index + 1 < len(cells):
+            row.append(cells[index + 1])
+        else:
+            row.append("")
+        rows.append(row)
+
+    table = Table(rows, colWidths=[3.28 * inch, 3.28 * inch], hAlign="LEFT")
+    table.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.5, LINE),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, LINE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    return [
+        Paragraph("Screenshot Evidence", styles["section"]),
+        Spacer(1, 0.04 * inch),
+        Paragraph("Representative frames used by the auxiliary screenshot visual analysis.", styles["muted"]),
+        Spacer(1, 0.06 * inch),
+        table,
+    ]
+
+
+def _select_representative_screenshots(result: dict, source_json_path: Path | None, limit: int = 4) -> list[Path]:
+    artifacts = result.get("artifacts", {})
+    if not isinstance(artifacts, dict):
+        return []
+
+    candidates: list[Path] = []
+    raw_screenshots = artifacts.get("screenshots", [])
+    if isinstance(raw_screenshots, list):
+        candidates.extend(_resolve_screenshot_path(str(path), source_json_path) for path in raw_screenshots)
+
+    probe_dir = artifacts.get("screenshot_probe_dir")
+    if probe_dir:
+        probe_root = _resolve_screenshot_path(str(probe_dir), source_json_path)
+        if probe_root.exists():
+            candidates.extend(sorted(probe_root.rglob("*.png")))
+
+    existing = []
+    seen = set()
+    for candidate in candidates:
+        if candidate.suffix.lower() != ".png" or not candidate.exists():
+            continue
+        key = str(candidate.resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        existing.append(candidate)
+
+    if not existing:
+        return []
+
+    grouped: dict[str, list[Path]] = {}
+    for screenshot in sorted(existing, key=_screenshot_sort_key):
+        grouped.setdefault(screenshot.parent.name, []).append(screenshot)
+
+    selected: list[Path] = []
+    for mode in ("debug_arena", "main_scene"):
+        if mode in grouped:
+            selected.extend(_pick_mode_screenshots(grouped[mode], slots=2))
+    if len(selected) < limit:
+        for screenshot in sorted(existing, key=_screenshot_sort_key):
+            if screenshot not in selected:
+                selected.append(screenshot)
+            if len(selected) >= limit:
+                break
+    return selected[:limit]
+
+
+def _pick_mode_screenshots(screenshots: list[Path], slots: int) -> list[Path]:
+    attack_frames = [path for path in screenshots if path.stem.startswith("attack_")]
+    if attack_frames:
+        picks = [attack_frames[0]]
+        if len(attack_frames) > 1:
+            picks.append(attack_frames[-1])
+    else:
+        picks = screenshots[:slots]
+    return picks[:slots]
+
+
+def _resolve_screenshot_path(raw_path: str, source_json_path: Path | None) -> Path:
+    path = Path(raw_path)
+    if path.is_absolute():
+        return path
+    if source_json_path is not None:
+        return Path(source_json_path).parent / path
+    return path
+
+
+def _screenshot_sort_key(path: Path) -> tuple:
+    mode_rank = {"debug_arena": 0, "main_scene": 1}.get(path.parent.name, 2)
+    return (mode_rank, path.parent.name, path.name)
+
+
+def _screenshot_image(path: Path):
+    try:
+        image = ReportImage(str(path))
+    except Exception:
+        return None
+    max_width = 3.0 * inch
+    max_height = 1.7 * inch
+    ratio = min(max_width / image.imageWidth, max_height / image.imageHeight)
+    image.drawWidth = image.imageWidth * ratio
+    image.drawHeight = image.imageHeight * ratio
+    return image
+
+
+def _screenshot_caption(path: Path) -> str:
+    return f"{path.parent.name} / {path.stem}"
 
 
 def _normalize_item(item: dict) -> dict:
