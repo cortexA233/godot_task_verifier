@@ -129,15 +129,26 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('"suspect": not _suspect_reasons.is_empty()', board_source)
         self.assertIn('"suspect_reasons": _suspect_reasons', board_source)
 
-    def test_score_board_reports_logic_and_visual_score_sections(self):
+    def test_score_board_keeps_visual_polish_inside_formal_logic_score(self):
         board_source = (ROOT / "verifier_godot" / "__verifier__" / "score_board.gd").read_text(encoding="utf-8")
 
-        self.assertIn("VISUAL_SCORE_CATEGORIES", board_source)
         self.assertIn('"visual_audio_polish"', board_source)
         self.assertIn('"score_sections": sections', board_source)
+        self.assertIn('"logic_score": score_total', board_source)
+        self.assertIn('"logic_max_score": max_total', board_source)
         self.assertIn('_score_section("logic", "Logic Score"', board_source)
-        self.assertIn('_score_section("visual", "Visual Score"', board_source)
+        self.assertNotIn("VISUAL_SCORE_CATEGORIES", board_source)
+        self.assertNotIn('_score_section("visual", "Visual Score"', board_source)
+        self.assertNotIn('"visual_score":', board_source)
         self.assertIn("func score_sections() -> Array[Dictionary]", board_source)
+
+    def test_screenshot_probe_declares_auxiliary_visual_score_not_used_for_score(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"auxiliary_score_sections"', runner_source)
+        self.assertIn('"name": "screenshot_visual"', runner_source)
+        self.assertIn('"used_for_score": false', runner_source)
+        self.assertIn("_screenshot_visual_score", runner_source)
 
     def test_runner_flags_explosion_suspects_for_manual_review(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -1243,15 +1254,15 @@ class RunGraderTests(unittest.TestCase):
                 result = {
                     "score": 11,
                     "max_score": 100,
-                    "logic_score": 9,
-                    "logic_max_score": 95,
-                    "visual_score": 2,
-                    "visual_max_score": 5,
+                    "logic_score": 11,
+                    "logic_max_score": 100,
                     "passed": False,
                     "godot_version": "fake-godot",
                     "score_sections": [
-                        {"name": "logic", "label": "Logic Score", "score": 9, "max": 95, "categories": ["weapon_controls"]},
-                        {"name": "visual", "label": "Visual Score", "score": 2, "max": 5, "categories": ["visual_audio_polish"]}
+                        {"name": "logic", "label": "Logic Score", "score": 11, "max": 100, "categories": ["weapon_controls", "visual_audio_polish"]}
+                    ],
+                    "auxiliary_score_sections": [
+                        {"name": "screenshot_visual", "label": "Screenshot Visual Analysis", "score": 2, "max": 5, "used_for_score": False}
                     ],
                     "breakdown": [{"name": "weapon_controls", "score": 11, "max": 15, "notes": "fake"}],
                     "artifacts": {"log": "run.log", "screenshots": []}
@@ -1288,8 +1299,8 @@ class RunGraderTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             data = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(data["score"], 11)
-            self.assertIn("Logic score: 9/95", completed.stdout)
-            self.assertIn("Visual score: 2/5", completed.stdout)
+            self.assertIn("Logic score: 11/100", completed.stdout)
+            self.assertNotIn("Visual score:", completed.stdout)
             self.assertIn("fake godot executed", log.read_text(encoding="utf-8"))
 
     def test_cli_writes_pdf_report_when_requested(self):

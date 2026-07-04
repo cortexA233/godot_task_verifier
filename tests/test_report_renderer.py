@@ -27,22 +27,27 @@ def sample_result() -> dict:
             {
                 "name": "logic",
                 "label": "Logic Score",
-                "score": 30,
-                "max": 95,
+                "score": 35,
+                "max": 100,
                 "categories": [
                     "weapon_controls",
                     "hud_feedback",
                     "trajectory_preview",
                     "projectile_physics",
                     "explosion_gameplay",
+                    "visual_audio_polish",
                 ],
             },
+        ],
+        "auxiliary_score_sections": [
             {
-                "name": "visual",
-                "label": "Visual Score",
-                "score": 5,
+                "name": "screenshot_visual",
+                "label": "Screenshot Visual Analysis",
+                "score": 3,
                 "max": 5,
-                "categories": ["visual_audio_polish"],
+                "used_for_score": False,
+                "notes": "projectile visible in rendered screenshot frames",
+                "categories": ["debug_arena", "main_scene"],
             },
         ],
         "breakdown": [
@@ -167,7 +172,7 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("Flagged for manual review", pdf_text)
             self.assertIn("global damage sweep", pdf_text)
 
-    def test_pdf_report_shows_logic_and_visual_score_sections(self):
+    def test_pdf_report_keeps_formal_logic_score_at_one_hundred_points(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "report.pdf"
 
@@ -176,9 +181,21 @@ class ReportRendererTests(unittest.TestCase):
             pdf_text = extract_pdf_text(output)
             self.assertIn("Score Sections", pdf_text)
             self.assertIn("Logic Score", pdf_text)
-            self.assertIn("30/95", pdf_text)
-            self.assertIn("Visual Score", pdf_text)
-            self.assertIn("5/5", pdf_text)
+            self.assertIn("35/100", pdf_text)
+            self.assertNotIn("Visual Score\n5/5", pdf_text)
+
+    def test_pdf_report_shows_auxiliary_screenshot_visual_score_separately(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "report.pdf"
+
+            report_renderer.render_pdf_report(sample_result(), output, Path("score.json"))
+
+            pdf_text = extract_pdf_text(output)
+            self.assertIn("Auxiliary Visual Scores", pdf_text)
+            self.assertIn("Screenshot Visual", pdf_text)
+            self.assertIn("Analysis", pdf_text)
+            self.assertIn("3/5", pdf_text)
+            self.assertIn("not counted in 100-point score", pdf_text)
 
     def test_render_report_cli_writes_pdf(self):
         import render_report

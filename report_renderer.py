@@ -91,6 +91,7 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
         review_line = "Flagged for manual review: " + reasons_text + "."
     breakdown = [_normalize_item(item) for item in result.get("breakdown", [])]
     score_sections = _normalize_score_sections(result.get("score_sections", []))
+    auxiliary_score_sections = _normalize_score_sections(result.get("auxiliary_score_sections", []))
     findings = select_key_findings(breakdown, limit=5)
 
     styles = _styles()
@@ -116,6 +117,17 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
                 Paragraph("Score Sections", styles["section"]),
                 Spacer(1, 0.06 * inch),
                 _score_sections_table(score_sections, styles),
+                Spacer(1, 0.18 * inch),
+            ]
+        )
+    if auxiliary_score_sections:
+        story.extend(
+            [
+                Paragraph("Auxiliary Visual Scores", styles["section"]),
+                Spacer(1, 0.04 * inch),
+                Paragraph("These visual analysis scores are not counted in 100-point score.", styles["muted"]),
+                Spacer(1, 0.06 * inch),
+                _score_sections_table(auxiliary_score_sections, styles),
                 Spacer(1, 0.18 * inch),
             ]
         )
@@ -547,6 +559,8 @@ def _normalize_score_sections(raw_sections) -> list[dict]:
                 "label": label,
                 "score": _safe_int(raw_section.get("score", 0)),
                 "max": _safe_int(raw_section.get("max", raw_section.get("max_score", 0))),
+                "used_for_score": bool(raw_section.get("used_for_score", True)),
+                "notes": str(raw_section.get("notes", "")),
                 "categories": [str(category) for category in categories],
             }
         )

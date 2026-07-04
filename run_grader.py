@@ -99,8 +99,6 @@ def infrastructure_failure(message: str, out_path: Path, log_path: Path) -> int:
         "max_score": 100,
         "logic_score": 0,
         "logic_max_score": 100,
-        "visual_score": 0,
-        "visual_max_score": 0,
         "passed": False,
         "suspect": False,
         "suspect_reasons": [],
@@ -113,7 +111,6 @@ def infrastructure_failure(message: str, out_path: Path, log_path: Path) -> int:
                 "max": 100,
                 "categories": ["grader_infrastructure"],
             },
-            {"name": "visual", "label": "Visual Score", "score": 0, "max": 0, "categories": []},
         ],
         "breakdown": [{"name": "grader_infrastructure", "score": 0, "max": 100, "notes": message}],
         "artifacts": {"log": str(log_path), "screenshots": []},
@@ -135,8 +132,6 @@ def print_score_summary(result: dict) -> None:
     print(f"Score: {result.get('score', 0)}/{result.get('max_score', 100)}")
     if "logic_score" in result and "logic_max_score" in result:
         print(f"Logic score: {result.get('logic_score', 0)}/{result.get('logic_max_score', 0)}")
-    if "visual_score" in result and "visual_max_score" in result:
-        print(f"Visual score: {result.get('visual_score', 0)}/{result.get('visual_max_score', 0)}")
 
 
 def main(argv: list[str] | None = None) -> int:

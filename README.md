@@ -94,12 +94,11 @@ Score categories:
 | `visual_audio_polish` | 5 |
 | `stability_repeatability` | 5 |
 
-The score JSON also exposes the same categories as separate score sections:
-`logic_score`/`logic_max_score` for non-visual behavior and
-`visual_score`/`visual_max_score` for presentation checks. The total
-`score/max_score` remains the formal 100-point benchmark score, while PDF
-reports show the logic and visual sections separately so visual defects are not
-buried inside the behavioral category table.
+The score JSON also exposes the formal benchmark as `logic_score` and
+`logic_max_score`. This is the same 100-point score as `score/max_score`,
+including the existing `visual_audio_polish` category. Screenshot-based visual
+analysis is reported separately as auxiliary evidence by the screenshot probe
+and is not counted in the 100-point benchmark score or pass threshold.
 
 `visual_audio_polish` includes a runtime check that the thrown, moving grenade
 projectile carries a visible non-placeholder model. Built-in primitive
@@ -267,6 +266,9 @@ Modes:
 | `both` | Runs both visual modes and writes separate `debug_arena/` and `main_scene/` artifact folders. |
 
 The top-level `result.json` contains one `modes` entry per attempted visual run.
+It also includes an `auxiliary_score_sections` entry for the screenshot visual
+analysis. That score is marked `used_for_score: false` and is not counted in
+the formal 100-point verifier score.
 Windowed rendering can be unavailable on headless machines; that is reported as
 probe infrastructure state rather than as a candidate scoring failure.
 
