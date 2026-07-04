@@ -30,7 +30,7 @@ Use these resources for the current local benchmark run:
 - Reference implementation: local `main` branch of the task repository
 - Local reference commit: `1cf08f7c9ff11cf3d9617b611c2447a04dc79fe4`
 - Local git-stripped reference copy used for grading:
-  `C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\reference-main-complete`
+  `<path-to-reference-main-complete>`
 
 The rollout agent should receive only the ablated task project and
 `TASK_PROMPT.md`. It must not receive this verifier repository, original
@@ -157,25 +157,33 @@ python -m unittest discover -s tests -v
 Run local calibration:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-grenade-verifier\run_calibration.ps1
+$Verifier = "<path-to-this-repo>"
+powershell -NoProfile -ExecutionPolicy Bypass -File "$Verifier\run_calibration.ps1"
 ```
 
-The calibration script writes score JSON and logs under `artifacts/`. Record the
-exact Godot executable and version from the logs with every published result.
+The calibration script reruns the ablated and reference checks and writes score
+JSON plus logs under `artifacts/`. Probe and rollout rows in the published
+calibration tables are curated evidence produced by separate probe
+materialization and agent-run workflows. Record the exact Godot executable and
+version from the logs with every published result.
 
 ## Validity Probes
 
-`probe_matrix.md` lists anti-cheat probes, expected score bands, and observed
-results. Every probe must stay below the `score >= 85` pass line; record each
-probe run in the matrix's Observed column and keep the score JSON as curated
-evidence under `evaluation/evidence/`. At minimum, local validation should
-demonstrate:
+`probe_matrix.md` lists anti-cheat probes, expected score bands, observed
+results, and explicitly deferred overlapping rows. Every observed probe must
+stay below the `score >= 85` pass line; record each probe run in the matrix's
+Observed column and keep the score JSON as curated evidence under
+`evaluation/evidence/`. The current local validation set should demonstrate:
 
 - the ablated task scores low
 - the reference behavior scores high
-- HUD-only, direct-damage, visual-only, fixed or wrong trajectory, global
-  targetable sweeps, broad-damage, borderline throw-distance, and single-use
+- representative HUD-only, visual-only, no-preview damage, fixed or wrong
+  trajectory, global targetable sweep, borderline throw-distance, and single-use
   implementations do not receive high scores
+- deferred direct all-target damage, player-self-damage, one-angle/one-distance
+  blast, distant-target damage, and default-weapon regression rows are
+  explicitly documented in `probe_matrix.md` rather than treated as silent
+  passes
 - repeated runs of the same candidate produce stable scores
 
 Probe candidates should be kept outside rollout-agent workspaces.

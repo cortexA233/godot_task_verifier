@@ -537,7 +537,7 @@
     <section>
       <h2>Rollout Runs</h2>
       <div class="callout">
-        Rollout workspaces were prepared as isolated copies with verifier files, local git history, generated artifacts, and assignment-only materials stripped from the agent-facing workspace. The local Godot MCP configuration for the task project enables <code>@coding-solo/godot-mcp</code> through Node and points <code>GODOT_PATH</code> at <code>C:\Godot_v4.6</code>.
+        Rollout workspaces were prepared as isolated copies with verifier files, local git history, generated artifacts, and assignment-only materials stripped from the agent-facing workspace. The local Godot MCP configuration for the task project enables <code>@coding-solo/godot-mcp</code> through Node and points <code>GODOT_PATH</code> at the Godot 4.6 installation used for the run.
       </div>
       <table>
         <thead>
@@ -657,10 +657,15 @@
 
     <section>
       <h2>Reproduction Commands</h2>
-      <p>Verifier command used for the fresh ablated check (the reference, probe, and Sonnet runs use the same pattern with their own project paths and <code>calibration-20260703-*</code> output names):</p>
-      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-ablated-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-ablated-score.log</div>
-      <p>Fake broad-damage probe command:</p>
-      <div class="command">python C:\recent_project\roboblast-grenade-verifier\run_grader.py --project C:\recent_project\godot-4-3d-third-person-controller-grenade-global --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe --out C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-probe-global-damage-score.json --log C:\recent_project\roboblast-grenade-verifier\artifacts\calibration-20260703-probe-global-damage-score.log</div>
+      <p>Verifier command pattern used for the fresh checks. The reference, probe, and Sonnet runs use the same pattern with their own project paths and <code>calibration-20260703-*</code> output names:</p>
+      <div class="command">$Verifier = "&lt;path-to-this-repo&gt;"
+$Godot = "&lt;path-to-godot-4.6-console-executable&gt;"
+$Project = "&lt;path-to-candidate-or-probe-project&gt;"
+$OutJson = "$Verifier\artifacts\calibration-20260703-name-score.json"
+$OutLog = "$Verifier\artifacts\calibration-20260703-name-score.log"
+
+python "$Verifier\run_grader.py" --project "$Project" --godot "$Godot" --out "$OutJson" --log "$OutLog"</div>
+      <p>The broad-damage probe used this pattern with the global targetable sweep fake candidate as <code>$Project</code>.</p>
       <p>Godot version recorded in result JSON: <code>4.6-stable (official)</code>. The README also records the local executable build as <code>4.6.stable.official.89cea1439</code>.</p>
     </section>
 
@@ -682,7 +687,7 @@
     </section>
 
     <footer>
-      Updated from fresh local runs in <code>C:\recent_project\roboblast-grenade-verifier</code> on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and keeps seven representative anti-cheat fake candidates below the score >= 85 pass line; the remaining validity debt is five documented overlapping probe rows without separate fake-candidate runs.
+      Updated from fresh local runs on 2026-07-03. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, and keeps seven representative anti-cheat fake candidates below the score >= 85 pass line; the remaining validity debt is five documented overlapping probe rows without separate fake-candidate runs.
     </footer>
   </main>
 </body>

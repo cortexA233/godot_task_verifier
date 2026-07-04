@@ -22,17 +22,22 @@ The observed score JSONs for these cases are committed under
 Use a full candidate project as the base and generate runnable probe projects:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\evaluation\probes\materialize_probe_cases.py `
-  --base-project C:\recent_project\godot-4-3d-third-person-controller-grenade-global `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\probe-candidates `
+$Verifier = "<path-to-this-repo>"
+$BaseProject = "<path-to-full-candidate-project>"
+
+python "$Verifier\evaluation\probes\materialize_probe_cases.py" `
+  --base-project "$BaseProject" `
+  --out "$Verifier\artifacts\probe-candidates" `
   --force
 ```
 
 Then grade a generated case with the normal verifier command:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
-  --project C:\recent_project\roboblast-grenade-verifier\artifacts\probe-candidates\hud-only `
-  --godot C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\probe-hud-only-score.json
+$Godot = "<path-to-godot-4.6-console-executable>"
+
+python "$Verifier\run_grader.py" `
+  --project "$Verifier\artifacts\probe-candidates\hud-only" `
+  --godot "$Godot" `
+  --out "$Verifier\artifacts\probe-hud-only-score.json"
 ```

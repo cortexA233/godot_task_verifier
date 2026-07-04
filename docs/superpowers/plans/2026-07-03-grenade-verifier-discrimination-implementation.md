@@ -1,5 +1,10 @@
 # Grenade Verifier Discrimination Implementation Plan
 
+> Historical planning note: this plan preserves the implementation intent from
+> the discrimination pass. Do not use the calibration targets below as current
+> benchmark facts; current scores and probe status live in `README.md`,
+> `probe_matrix.md`, `BENCHMARK.md`, and `evaluation/writeup.html`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the RoboBlast grenade verifier more discriminating by raising trajectory-preview weight, adding preview/projectile direction consistency, and recording borderline throw distance as a small explosion-gameplay miss.

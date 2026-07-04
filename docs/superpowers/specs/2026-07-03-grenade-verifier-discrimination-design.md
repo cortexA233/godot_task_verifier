@@ -1,5 +1,11 @@
 # Grenade Verifier Discrimination Design
 
+> Historical planning note: this document records the design target at the time
+> of the discrimination pass. Treat the calibration targets below as historical
+> expectations, not current benchmark facts. Current scores and probe status live
+> in `README.md`, `probe_matrix.md`, `BENCHMARK.md`, and
+> `evaluation/writeup.html`.
+
 ## Context
 
 The RoboBlast grenade verifier currently distinguishes the ablated task from a

@@ -235,6 +235,10 @@ Run local calibration:
 powershell -NoProfile -ExecutionPolicy Bypass -File "$Verifier\run_calibration.ps1"
 ```
 
+This script reruns the ablated and reference checks. The probe and rollout rows
+below are curated evidence produced by the probe materializer and agent-run
+evidence workflows, not by `run_calibration.ps1` alone.
+
 Latest local calibration was recorded on 2026-07-03 with Godot
 `4.6.stable.official.89cea1439` and the `score >= 85` pass line.
 

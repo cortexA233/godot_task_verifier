@@ -16,10 +16,14 @@ and player self-damage for manual review.
 Run each probe as a separate candidate project with:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
-  --project C:\path\to\probe-project `
-  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\probe-name-score.json
+$Verifier = "<path-to-this-repo>"
+$Godot = "<path-to-godot-4.6-console-executable>"
+$ProbeProject = "<path-to-probe-project>"
+
+python "$Verifier\run_grader.py" `
+  --project "$ProbeProject" `
+  --godot "$Godot" `
+  --out "$Verifier\artifacts\probe-name-score.json"
 ```
 
 | Probe | Expected Score Band | Observed | Required Failure Evidence |
@@ -27,8 +31,8 @@ python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
 | HUD-only weapon switch, no projectile | 10-30 | `19/100` on 2026-07-03, `passed: false`, all core category floors fail (`evaluation/evidence/calibration-20260703-probe-hud-only-score.json`) | `projectile_physics`, calibration, `explosion_gameplay`, and `stability_repeatability` stay low. |
 | Attack directly damages all targets | 15-40 | deferred; covered by the stronger global targetable damage sweep probe below | `projectile_physics` low and far/side/rear target penalty appears. |
 | Visual explosion with no damage | 10-35 | `34/100` on 2026-07-03, `passed: false`, `visual_audio_polish` gets credit while `explosion_gameplay` stays `0/20` (`evaluation/evidence/calibration-20260703-probe-visual-no-damage-score.json`) | `visual_audio_polish` may score, `explosion_gameplay` remains low. |
-| Damage with no trajectory feedback | 30-60 | `54/100` on 2026-07-03, `passed: false`, `trajectory_preview` stays `0/30` (`evaluation/evidence/calibration-20260703-probe-damage-no-preview-score.json`) | `trajectory_preview` remains low even if adaptive explosion placement gives some damage credit. |
-| Single-use grenade | 40-75 | `75/100` on 2026-07-03, `passed: false`, `stability_repeatability` loses repeated-use credit and `explosion_gameplay` remains below the pass floor (`evaluation/evidence/calibration-20260703-probe-single-use-score.json`) | `stability_repeatability` loses repeated-use points. |
+| Damage with no trajectory feedback | 30-60 | `54/100` on 2026-07-03, `passed: false`, `trajectory_preview` stays `0/30`, `suspect: true` for sweep/safety-target damage (`evaluation/evidence/calibration-20260703-probe-damage-no-preview-score.json`) | `trajectory_preview` remains low even if adaptive explosion placement gives some damage credit. |
+| Single-use grenade | 40-75 | `75/100` on 2026-07-03, `passed: false`, `stability_repeatability` loses repeated-use credit, `explosion_gameplay` remains below the pass floor, `suspect: true` for sweep/safety-target damage (`evaluation/evidence/calibration-20260703-probe-single-use-score.json`) | `stability_repeatability` loses repeated-use points. |
 | Grenade damages player | 30-70 | deferred; player-safety scoring and suspect flag remain implemented, but no separate fake candidate was run in the fast probe pass | `explosion_gameplay` notes player impact or unsafe path. |
 | Fixed or wrong trajectory that ignores aim | 30-70 | `65/100` on 2026-07-03, `passed: false`, trajectory and projectile behavior are partial while `explosion_gameplay` stays below the pass floor (`evaluation/evidence/calibration-20260703-probe-fixed-trajectory-score.json`) | `trajectory_preview` loses aim-change and preview/projectile consistency points; `explosion_gameplay` may still credit localized damage when the blast is otherwise real, nearby, and safe. |
 | Hard-coded one-angle or one-distance blast | 25-65 | deferred; partially covered by the fixed-trajectory probe and the adaptive multi-heading explosion trials | Fixed-seed explosion variants include multiple deterministic headings, nearby radii, and safety placements; expected-direction hits receive full nearby credit, while off-seed localized hits are capped at partial credit. |
