@@ -109,8 +109,15 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
         _header_table(result, score, max_score, passed, source_json_path, styles),
         Spacer(1, 0.18 * inch),
         _score_summary_table(score, max_score, passed, styles, status_line, review_line),
-        Spacer(1, 0.18 * inch),
+        Spacer(1, 0.12 * inch),
     ]
+    if auxiliary_score_sections:
+        story.extend(
+            [
+                _auxiliary_score_highlight(auxiliary_score_sections[0], styles),
+                Spacer(1, 0.14 * inch),
+            ]
+        )
     if score_sections:
         story.extend(
             [
@@ -299,6 +306,31 @@ def _styles() -> dict[str, ParagraphStyle]:
             leading=8.2,
             textColor=INK,
         ),
+        "aux_title": ParagraphStyle(
+            "aux_title",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=10.5,
+            leading=12.5,
+            textColor=INK,
+        ),
+        "aux_score": ParagraphStyle(
+            "aux_score",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=18,
+            leading=20,
+            textColor=INK,
+            alignment=TA_CENTER,
+        ),
+        "aux_meta": ParagraphStyle(
+            "aux_meta",
+            parent=base["Normal"],
+            fontName="Helvetica",
+            fontSize=7.8,
+            leading=9.4,
+            textColor=MUTED,
+        ),
     }
 
 
@@ -373,6 +405,38 @@ def _score_summary_table(
                 ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                 ("TOPPADDING", (0, 0), (-1, -1), 8),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+    return table
+
+
+def _auxiliary_score_highlight(section: dict, styles: dict) -> Table:
+    note = section.get("notes", "")
+    summary = "Auxiliary only - not counted in 100-point score."
+    if note:
+        summary += "<br/>" + _escape(_compact_text(note, 145))
+    table = Table(
+        [
+            [
+                Paragraph("Screenshot visual score", styles["aux_title"]),
+                Paragraph(f'{section["score"]}/{section["max"]}', styles["aux_score"]),
+                Paragraph(summary, styles["aux_meta"]),
+            ]
+        ],
+        colWidths=[2.35 * inch, 0.85 * inch, 3.5 * inch],
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PANEL),
+                ("BOX", (0, 0), (-1, -1), 0.8, LINE),
+                ("LINEBEFORE", (1, 0), (1, 0), 2, _bar_color(_ratio(section))),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
             ]
         )
     )
@@ -649,3 +713,9 @@ def _compact_path(path: str, max_length: int) -> str:
     if len(path) <= max_length:
         return path
     return "..." + path[-(max_length - 3) :]
+
+
+def _compact_text(text: str, max_length: int) -> str:
+    if len(text) <= max_length:
+        return text
+    return text[: max_length - 3].rstrip() + "..."

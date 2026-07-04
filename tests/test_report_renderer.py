@@ -122,6 +122,12 @@ def extract_pdf_text(path: Path) -> str:
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 
+def extract_first_page_text(path: Path) -> str:
+    from pypdf import PdfReader
+
+    return PdfReader(path).pages[0].extract_text() or ""
+
+
 class ReportRendererTests(unittest.TestCase):
     def test_render_pdf_report_writes_pdf_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -196,6 +202,17 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("Analysis", pdf_text)
             self.assertIn("3/5", pdf_text)
             self.assertIn("not counted in 100-point score", pdf_text)
+
+    def test_pdf_report_promotes_screenshot_visual_score_on_first_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "report.pdf"
+
+            report_renderer.render_pdf_report(sample_result(), output, Path("score.json"))
+
+            first_page_text = extract_first_page_text(output)
+            self.assertIn("Screenshot visual score", first_page_text)
+            self.assertIn("3/5", first_page_text)
+            self.assertIn("Auxiliary only", first_page_text)
 
     def test_render_report_cli_writes_pdf(self):
         import render_report
