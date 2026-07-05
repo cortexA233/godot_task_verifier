@@ -39,6 +39,12 @@ capture camera placed broadly side-on to the player's throw direction, so arc
 height, forward travel, and landing feedback are easier to inspect.
 _Avoid_: side-view formal grader, gameplay side camera
 
+**Side-oblique capture view**:
+A side-view trajectory visual run composition where the capture camera is offset
+broadly perpendicular to the throw direction and elevated enough to keep both
+arc height and ground landing feedback inspectable.
+_Avoid_: flat side view, top-down view
+
 **Multi-heading trajectory sample**:
 A deterministic set of grenade preview and throw observations across more than
 one player heading, used to reduce single-angle overfitting in trajectory visual
