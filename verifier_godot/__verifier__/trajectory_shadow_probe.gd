@@ -16,6 +16,18 @@ const MIN_SIDE_CHANGED_PIXELS := 32
 const MIN_ARC_WIDTH_PX := 80
 const MIN_ARC_HEIGHT_PX := 18
 const RUNTIME_DIRECTION_MIN_DOT := 0.78
+const RENDER_SETTLE_FRAMES := 2
+const PREVIEW_SETTLE_FRAMES := 8
+const DEBUG_ARENA_READY_FRAMES := 540
+const SIDE_CAMERA_DISTANCE := 13.0
+const SIDE_CAMERA_HEIGHT := 5.0
+const SIDE_CAMERA_BACK_OFFSET := 1.5
+const SIDE_CAMERA_LOOKAHEAD := 8.5
+const SIDE_CAMERA_LOOK_HEIGHT := 1.7
+const GAMEPLAY_BASELINE_LABEL := "gameplay_baseline"
+const SIDE_BASELINE_LABEL := "side_baseline"
+const GAMEPLAY_PREVIEW_LABEL := "gameplay_preview"
+const SIDE_PREVIEW_LABEL := "side_preview"
 
 var tree: SceneTree
 var input
@@ -30,18 +42,194 @@ func _init(p_tree: SceneTree, p_input) -> void:
 
 func run() -> Dictionary:
 	_prepare_output_dir("%s/%s" % [OUTPUT_DIR, MODE_NAME])
+	root.size = ROOT_SIZE
+	var heading_results: Array[Dictionary] = []
+	var captures: Array[Dictionary] = []
+	for heading_degrees in TRAJECTORY_SAMPLE_HEADINGS_DEGREES:
+		var heading_result := await _run_heading_sample(float(heading_degrees))
+		heading_results.append(heading_result)
+		captures.append_array(heading_result.get("captures", []))
+	var summary := _trajectory_shadow_summary(heading_results)
 	return {
-		"ok": false,
+		"ok": not heading_results.is_empty(),
 		"artifact_dir": MODE_NAME,
 		"used_for_score": false,
-		"stop_reason": "not_executed",
-		"provisional_verdict": "suspect",
+		"stop_reason": "completed",
+		"provisional_verdict": _overall_verdict(summary),
 		"headings_degrees": TRAJECTORY_SAMPLE_HEADINGS_DEGREES,
-		"heading_results": [],
-		"captures": [],
+		"heading_results": heading_results,
+		"captures": captures,
 		"thresholds": _thresholds(),
-		"summary": _trajectory_shadow_summary([]),
+		"summary": summary,
 	}
+
+
+func _run_heading_sample(heading_degrees: float) -> Dictionary:
+	var debug_arena := DebugArenaScene.instantiate()
+	root.add_child(debug_arena)
+	var heading_label := _heading_label(heading_degrees)
+	if not await _wait_for_debug_arena_ready(debug_arena):
+		debug_arena.queue_free()
+		await tree.process_frame
+		return _heading_failure(heading_degrees, "debug arena did not become ready")
+
+	var player := debug_arena.find_child("VerifierPlayer", true, false) as Node3D
+	var gameplay_camera := debug_arena.find_child("DebugCamera", true, false) as Camera3D
+	if player == null or gameplay_camera == null:
+		debug_arena.queue_free()
+		await tree.process_frame
+		return _heading_failure(heading_degrees, "player or debug camera unavailable")
+
+	var heading_y := deg_to_rad(heading_degrees)
+	_set_player_heading(player, heading_y)
+	var side_camera := _set_side_oblique_camera(debug_arena, player, heading_y)
+	await input.wait_physics_frames(PREVIEW_SETTLE_FRAMES)
+
+	gameplay_camera.current = true
+	var gameplay_baseline := await _capture_image("%s_%s" % [heading_label, GAMEPLAY_BASELINE_LABEL], root)
+	side_camera.current = true
+	var side_baseline := await _capture_image("%s_%s" % [heading_label, SIDE_BASELINE_LABEL], root)
+
+	await input.tap(_weapon_switch_action(), 3, 12)
+	await input.wait_physics_frames(PREVIEW_SETTLE_FRAMES)
+
+	gameplay_camera.current = true
+	var gameplay_preview := await _capture_image("%s_%s" % [heading_label, GAMEPLAY_PREVIEW_LABEL], root)
+	side_camera.current = true
+	var side_preview := await _capture_image("%s_%s" % [heading_label, SIDE_PREVIEW_LABEL], root)
+
+	var gameplay_mask := _baseline_diff_metrics(gameplay_baseline.get("image", null), gameplay_preview.get("image", null), GAMEPLAY_ANALYSIS_REGION, GAMEPLAY_PREVIEW_LABEL)
+	var side_mask := _baseline_diff_metrics(side_baseline.get("image", null), side_preview.get("image", null), SIDE_ANALYSIS_REGION, SIDE_PREVIEW_LABEL)
+	var captures: Array[Dictionary] = [
+		gameplay_baseline.get("record", {}),
+		side_baseline.get("record", {}),
+		gameplay_preview.get("record", {}),
+		side_preview.get("record", {}),
+	]
+	var result := {
+		"heading_degrees": heading_degrees,
+		"heading_radians": heading_y,
+		"used_for_score": false,
+		"captures": captures,
+		"gameplay_preview_mask": gameplay_mask,
+		"side_preview_mask": side_mask,
+		"runtime_projectile": {},
+		"side_early_flight_mask": {},
+		"provisional_verdict": "suspect",
+	}
+	debug_arena.queue_free()
+	await tree.process_frame
+	return result
+
+
+func _set_side_oblique_camera(debug_arena: Node, player: Node3D, heading_y: float) -> Camera3D:
+	var camera := debug_arena.find_child("TrajectoryShadowCamera", true, false) as Camera3D
+	if camera == null:
+		camera = Camera3D.new()
+		camera.name = "TrajectoryShadowCamera"
+		debug_arena.add_child(camera)
+	var heading_basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward := (heading_basis * Vector3.FORWARD).normalized()
+	var right := (heading_basis * Vector3.RIGHT).normalized()
+	camera.current = true
+	camera.global_position = player.global_position + right * SIDE_CAMERA_DISTANCE - forward * SIDE_CAMERA_BACK_OFFSET + Vector3.UP * SIDE_CAMERA_HEIGHT
+	camera.look_at(player.global_position + forward * SIDE_CAMERA_LOOKAHEAD + Vector3.UP * SIDE_CAMERA_LOOK_HEIGHT, Vector3.UP)
+	return camera
+
+
+func _capture_image(label: String, viewport: Viewport) -> Dictionary:
+	await _wait_process_frames(RENDER_SETTLE_FRAMES)
+	var capture := SceneProbe.viewport_image(viewport)
+	var path := "%s/%s/%s.png" % [OUTPUT_DIR, MODE_NAME, label]
+	if not bool(capture.get("available", false)):
+		return {
+			"image": null,
+			"record": {
+				"label": label,
+				"path": path,
+				"available": false,
+				"saved": false,
+				"used_for_score": false,
+				"reason": String(capture.get("reason", "viewport image unavailable")),
+			},
+		}
+	var image: Image = capture["image"]
+	var error := image.save_png(path)
+	return {
+		"image": image,
+		"record": {
+			"label": label,
+			"path": path,
+			"available": true,
+			"saved": error == OK,
+			"error": error,
+			"used_for_score": false,
+			"width": image.get_width(),
+			"height": image.get_height(),
+		},
+	}
+
+
+func _wait_for_debug_arena_ready(debug_arena: Node) -> bool:
+	for _i in range(DEBUG_ARENA_READY_FRAMES):
+		if debug_arena.find_child("DebugCamera", true, false) != null and debug_arena.find_child("DebugVisibleFloor", true, false) != null:
+			return true
+		await tree.physics_frame
+	return false
+
+
+func _wait_process_frames(count: int) -> void:
+	for _i in range(count):
+		await tree.process_frame
+
+
+func _set_player_heading(player: Node3D, heading_y: float) -> void:
+	var heading_basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward := (heading_basis * Vector3.FORWARD).normalized()
+	player.rotation.y = heading_y
+	if _object_has_property(player, "_last_strong_direction"):
+		player.set("_last_strong_direction", forward)
+	var camera_controller := player.get_node_or_null("CameraController")
+	if camera_controller != null:
+		camera_controller.set("_euler_rotation", Vector3.ZERO)
+		(camera_controller as Node3D).transform.basis = Basis.IDENTITY
+
+
+func _object_has_property(object: Object, property_name: String) -> bool:
+	for property_info in object.get_property_list():
+		if String(property_info.get("name", "")) == property_name:
+			return true
+	return false
+
+
+func _heading_label(heading_degrees: float) -> String:
+	var rounded := int(round(heading_degrees))
+	if rounded < 0:
+		return "heading_neg_%03d" % abs(rounded)
+	return "heading_pos_%03d" % rounded
+
+
+func _heading_failure(heading_degrees: float, reason: String) -> Dictionary:
+	return {
+		"heading_degrees": heading_degrees,
+		"heading_radians": deg_to_rad(heading_degrees),
+		"used_for_score": false,
+		"captures": [],
+		"gameplay_preview_mask": _unavailable_diff_metrics(GAMEPLAY_ANALYSIS_REGION, "gameplay_preview", reason),
+		"side_preview_mask": _unavailable_diff_metrics(SIDE_ANALYSIS_REGION, "side_preview", reason),
+		"runtime_projectile": {"available": false, "reason": reason},
+		"side_early_flight_mask": _unavailable_diff_metrics(SIDE_ANALYSIS_REGION, "side_early_flight", reason),
+		"provisional_verdict": "missing",
+		"reason": reason,
+	}
+
+
+func _weapon_switch_action() -> String:
+	if InputMap.has_action("swap_weapons"):
+		return "swap_weapons"
+	if InputMap.has_action("weapon_switch"):
+		return "weapon_switch"
+	return "swap_weapons"
 
 
 func _baseline_diff_metrics(before_image: Image, after_image: Image, region: Rect2i, label: String) -> Dictionary:
@@ -183,6 +371,14 @@ func _trajectory_shadow_summary(heading_results: Array[Dictionary]) -> Dictionar
 	}
 
 
+func _overall_verdict(summary: Dictionary) -> String:
+	if int(summary.get("healthy_heading_count", 0)) >= 2:
+		return "healthy"
+	if int(summary.get("suspect_heading_count", 0)) > 0 or int(summary.get("heading_count", 0)) > 0:
+		return "suspect"
+	return "missing"
+
+
 func _thresholds() -> Dictionary:
 	return {
 		"pixel_diff_threshold": PIXEL_DIFF_THRESHOLD,
@@ -192,6 +388,14 @@ func _thresholds() -> Dictionary:
 		"min_arc_width_px": MIN_ARC_WIDTH_PX,
 		"min_arc_height_px": MIN_ARC_HEIGHT_PX,
 		"runtime_direction_min_dot": RUNTIME_DIRECTION_MIN_DOT,
+		"render_settle_frames": RENDER_SETTLE_FRAMES,
+		"preview_settle_frames": PREVIEW_SETTLE_FRAMES,
+		"debug_arena_ready_frames": DEBUG_ARENA_READY_FRAMES,
+		"side_camera_distance": SIDE_CAMERA_DISTANCE,
+		"side_camera_height": SIDE_CAMERA_HEIGHT,
+		"side_camera_back_offset": SIDE_CAMERA_BACK_OFFSET,
+		"side_camera_lookahead": SIDE_CAMERA_LOOKAHEAD,
+		"side_camera_look_height": SIDE_CAMERA_LOOK_HEIGHT,
 	}
 
 

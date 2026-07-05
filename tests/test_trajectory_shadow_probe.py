@@ -139,6 +139,21 @@ class TrajectoryShadowProbeTests(unittest.TestCase):
             self.assertGreater(result.get("vertical_span_px", 0), 18, result)
             self.assertTrue(result.get("suggests_arc"), result)
 
+    def test_shadow_probe_uses_fresh_debug_arena_and_two_view_baselines_per_heading(self):
+        source = SHADOW_PROBE.read_text(encoding="utf-8")
+
+        self.assertIn("for heading_degrees in TRAJECTORY_SAMPLE_HEADINGS_DEGREES", source)
+        self.assertIn("DebugArenaScene.instantiate()", source)
+        self.assertIn('"%s/%s" % [OUTPUT_DIR, MODE_NAME]', source)
+        self.assertIn('"gameplay_baseline"', source)
+        self.assertIn('"side_baseline"', source)
+        self.assertIn('"gameplay_preview"', source)
+        self.assertIn('"side_preview"', source)
+        self.assertIn("_set_side_oblique_camera", source)
+        self.assertIn("SIDE_CAMERA_DISTANCE", source)
+        self.assertIn("SIDE_CAMERA_HEIGHT", source)
+        self.assertIn("SIDE_CAMERA_BACK_OFFSET", source)
+
 
 if __name__ == "__main__":
     unittest.main()
