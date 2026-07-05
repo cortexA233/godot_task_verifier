@@ -330,8 +330,9 @@ complete. It must include the verifier repository entry, the
 full `run_grader.py` command with `--verifier-root`, `--pdf-report`, and
 `--log`, the operator/agent trust boundary, and the evidence files reviewers
 should inspect after a run. Do not write machine-specific local absolute paths
-in reviewer-facing docs, generated reports, README files, or AGENTS
-instructions; use repo-relative paths or placeholders such as
+in new or refreshed documentation, including reviewer-facing docs, generated
+reports, README files, and AGENTS instructions; use repo-relative paths or
+placeholders such as
 `<verifier-repo>`, `<candidate-project>`,
 `<godot-4.6-console-executable>`, and `<agent-runs-root>`.
 

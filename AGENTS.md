@@ -41,9 +41,10 @@ solution hints into the ablated game repository.
 - Keep verifier changes scoped and reproducible. The grader should exercise
   real game behavior rather than checking for exact filenames, class names,
   node paths, or code shape.
-- Do not write machine-specific local absolute paths in reviewer-facing docs,
-  generated reports, README files, or AGENTS instructions. Use repo-relative
-  paths or placeholders such as `<verifier-repo>`,
+- Do not write machine-specific local absolute paths in new or refreshed
+  documentation, including reviewer-facing docs, generated reports, README
+  files, and AGENTS instructions. Use repo-relative paths or placeholders such
+  as `<verifier-repo>`,
   `<candidate-project>`, `<godot-4.6-console-executable>`, and
   `<agent-runs-root>`.
 - Maintain deterministic headless execution. Control timing, scene setup,

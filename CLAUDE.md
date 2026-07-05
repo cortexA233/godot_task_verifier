@@ -23,9 +23,10 @@ workspace or rollout-agent prompt.
 - Use `apply_patch` for manual text edits.
 - Do not use destructive git commands unless the user explicitly asks for them.
 - Commit any verifier-repository changes in this repository after verification.
-- Do not add machine-specific local absolute paths to reviewer-facing docs,
-  generated reports, README files, or AGENTS instructions. Use repo-relative
-  paths or placeholders instead.
+- Do not add machine-specific local absolute paths to new or refreshed
+  documentation, including reviewer-facing docs, generated reports, README
+  files, and AGENTS instructions. Use repo-relative paths or placeholders
+  instead.
 
 ## Agent skills
 
