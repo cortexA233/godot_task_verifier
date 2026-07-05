@@ -39,6 +39,12 @@ capture camera placed broadly side-on to the player's throw direction, so arc
 height, forward travel, and landing feedback are easier to inspect.
 _Avoid_: side-view formal grader, gameplay side camera
 
+**Multi-heading trajectory sample**:
+A deterministic set of grenade preview and throw observations across more than
+one player heading, used to reduce single-angle overfitting in trajectory visual
+evidence.
+_Avoid_: random camera sweep, one-off side screenshot
+
 **Gameplay-view visual evidence**:
 Screenshot evidence captured from the candidate's normal gameplay presentation
 or the existing debug-arena view, used to confirm the grenade preview and throw
