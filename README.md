@@ -319,6 +319,10 @@ agent family, each with branch-captured `score.json`, `score-report.pdf`,
 | `agent-run/01-cc-opus` through `agent-run/03-cc-opus` | 74/100, 88/100, 80/100 |
 | `agent-run/01-cc-sonnet` through `agent-run/03-cc-sonnet` | 77/100, 82/100, 59/100 |
 
+The Codex 100/100 anomaly is also documented as the concrete trigger for the
+later screenshot-analysis iteration: retained frames exposed a visual mismatch
+that the formal logic score alone did not communicate.
+
 The replacement Codex score JSONs, PDF reports, logs, commands, and manifests
 are retained under
 `evaluation/evidence/agent-runs-20260703-151656/run-0{1,2,3}-codex/`.
@@ -337,7 +341,8 @@ placeholders such as
 `<godot-4.6-console-executable>`, and `<agent-runs-root>`. Any formal 100/100
 rollout contradicted by screenshot evidence, suspect flags, or manual review
 must be labeled as an anomalous failure case and grouped with failure analysis,
-not presented as a success.
+not presented as a success. If the mismatch motivates new screenshot-analysis
+checks, explain that iteration in the report.
 
 ## Development
 
