@@ -76,6 +76,13 @@ later trajectory-evidence screenshot, used to identify visible preview or throw
 changes without relying on runtime preview-node projection.
 _Avoid_: node-projected mask, whole-frame diff
 
+**Trajectory analysis region**:
+A verifier-defined image region for baseline-difference trajectory masks, chosen
+from the capture setup and expected throw corridor rather than from candidate
+preview nodes. It excludes unrelated screen areas such as HUD, labels, and
+camera-edge noise.
+_Avoid_: whole-frame mask, candidate-node crop
+
 **Per-heading clean baseline**:
 A baseline screenshot captured separately for each trajectory sample heading
 after the player and cameras have settled but before grenade mode shows preview
