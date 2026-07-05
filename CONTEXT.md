@@ -52,6 +52,17 @@ to evaluate whether the grenade preview communicates an arc, reacts to aim, and
 matches the projectile behavior.
 _Avoid_: pure screenshot score, node-shape score
 
+**Preview phase**:
+The period after grenade mode is selected and before the attack input launches a
+grenade, when the candidate should show aiming guidance for the next throw.
+_Avoid_: aiming setup frame, pre-attack screenshot
+
+**Early-flight phase**:
+The initial period after a grenade is launched and before detonation, when the
+projectile's visible and runtime movement can be compared with the earlier
+preview.
+_Avoid_: explosion phase, projectile-only score
+
 **Main scene visual run**:
 A screenshot probe mode that loads the candidate project's real playable scene
 and captures evidence that the grenade workflow still renders in that context.
