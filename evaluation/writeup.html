@@ -750,26 +750,6 @@ python "$Verifier\run_grader.py" --project "$Project" --godot "$Godot" --verifie
       <p>Godot version recorded in result JSON: <code>4.6-stable (official)</code>. The README also records the local executable build as <code>4.6.stable.official.89cea1439</code>.</p>
     </section>
 
-    <section>
-      <h2>Final Submission Checklist</h2>
-      <table>
-        <thead>
-          <tr><th>Item</th><th>Status</th><th>Next action</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Ablated task branch and behavioral spec</td><td><span class="tag good">Ready locally</span></td><td>Publish exact ablated branch and keep verifier/history out of agent reach.</td></tr>
-          <tr><td>Headless verifier and scoring docs</td><td><span class="tag good">Ready locally</span></td><td>Include exact command and Godot 4.6 version.</td></tr>
-          <tr><td>At least 3 Claude Code runs</td><td><span class="tag good">Scored</span></td><td>Published run branches record diff, score, verifier command/log, and tool evidence; this writeup records the model settings for Sonnet 5 medium, Opus 4.8 max, and Codex GPT-5.5 xhigh attempts.</td></tr>
-          <tr><td>Godot MCP available to rollout agents</td><td><span class="tag good">Configured locally</span></td><td>Document the MCP config in the public run metadata.</td></tr>
-          <tr><td>Anti-cheat fake solutions</td><td><span class="tag good">Representative set ready</span></td><td>Eight fake candidates have committed score JSONs; optional follow-up is to run the five deferred overlapping rows if exhaustive per-row evidence is requested.</td></tr>
-          <tr><td>HTML writeup with visuals</td><td><span class="tag good">This page</span></td><td>Keep the score table in sync with <code>evaluation/evidence/</code> whenever runs are replaced or rerun.</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <footer>
-      Updated from fresh local runs on 2026-07-03, with the wrong-projectile-model visual-floor probe added on 2026-07-04. This writeup is intentionally candid: the verifier discriminates reference vs ablated, produces useful partial-credit agent spread, keeps seven representative anti-cheat fake candidates below the score >= 85 pass line, and blocks one high-scoring visual defect with the visual_audio_polish floor; the remaining validity debt is five documented overlapping probe rows without separate fake-candidate runs.
-    </footer>
   </main>
 </body>
 </html>
