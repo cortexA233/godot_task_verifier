@@ -108,7 +108,7 @@ class TrajectoryShadowProbeTests(unittest.TestCase):
                         var normalized := float(x - 12) / 104.0
                         var y := 70 - int(round(sin(normalized * PI) * 34.0))
                         for dy in range(0, 4):
-                            after_image.set_pixel(x, clampi(y + dy, 0, 95), Color(1, 1, 1, 1))
+                            after_image.set_pixel(x, clampi(y + dy, 0, 95), Color(0.1, 0.6, 1.0, 1))
                     var probe := TrajectoryShadowProbe.new(self, null)
                     var metrics: Dictionary = probe._baseline_diff_metrics(before_image, after_image, Rect2i(0, 0, 128, 96), "unit_arc")
                     var file := FileAccess.open("res://result.json", FileAccess.WRITE)

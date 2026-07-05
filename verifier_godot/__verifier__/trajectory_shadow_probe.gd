@@ -15,7 +15,10 @@ const MIN_GAMEPLAY_CHANGED_PIXELS := 20
 const MIN_SIDE_CHANGED_PIXELS := 32
 const MIN_ARC_WIDTH_PX := 80
 const MIN_ARC_HEIGHT_PX := 18
-const RUNTIME_DIRECTION_MIN_DOT := 0.78
+const RUNTIME_DIRECTION_MIN_DOT := 0.90
+const TRAJECTORY_COLOR_MIN_BLUE := 0.35
+const TRAJECTORY_COLOR_BLUE_RED_MARGIN := 0.08
+const TRAJECTORY_COLOR_GREEN_RED_MARGIN := 0.02
 const RENDER_SETTLE_FRAMES := 2
 const PREVIEW_SETTLE_FRAMES := 8
 const DEBUG_ARENA_READY_FRAMES := 540
@@ -331,6 +334,8 @@ func _baseline_diff_metrics(before_image: Image, after_image: Image, region: Rec
 			) / 4.0
 			if delta < PIXEL_DIFF_THRESHOLD:
 				continue
+			if not _pixel_suggests_trajectory(after_color):
+				continue
 			changed_count += 1
 			min_x = mini(min_x, x)
 			min_y = mini(min_y, y)
@@ -388,6 +393,14 @@ func _baseline_diff_metrics(before_image: Image, after_image: Image, region: Rec
 		"lower_pixel_fraction": lower_fraction,
 		"suggests_arc": suggests_arc,
 	}
+
+
+func _pixel_suggests_trajectory(color: Color) -> bool:
+	return (
+		color.b >= TRAJECTORY_COLOR_MIN_BLUE
+		and color.b >= color.r + TRAJECTORY_COLOR_BLUE_RED_MARGIN
+		and color.g >= color.r + TRAJECTORY_COLOR_GREEN_RED_MARGIN
+	)
 
 
 func _unavailable_diff_metrics(region: Rect2i, label: String, reason: String) -> Dictionary:
@@ -502,6 +515,9 @@ func _thresholds() -> Dictionary:
 		"min_arc_width_px": MIN_ARC_WIDTH_PX,
 		"min_arc_height_px": MIN_ARC_HEIGHT_PX,
 		"runtime_direction_min_dot": RUNTIME_DIRECTION_MIN_DOT,
+		"trajectory_color_min_blue": TRAJECTORY_COLOR_MIN_BLUE,
+		"trajectory_color_blue_red_margin": TRAJECTORY_COLOR_BLUE_RED_MARGIN,
+		"trajectory_color_green_red_margin": TRAJECTORY_COLOR_GREEN_RED_MARGIN,
 		"render_settle_frames": RENDER_SETTLE_FRAMES,
 		"preview_settle_frames": PREVIEW_SETTLE_FRAMES,
 		"debug_arena_ready_frames": DEBUG_ARENA_READY_FRAMES,
