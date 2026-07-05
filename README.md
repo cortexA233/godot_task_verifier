@@ -315,7 +315,7 @@ agent family, each with branch-captured `score.json`, `score-report.pdf`,
 
 | Agent run family | Scores |
 | --- | --- |
-| `agent-run/01-codex` through `agent-run/03-codex` | 73/100, 75/100, 100/100 from the current verifier and PDF reports |
+| `agent-run/01-codex` through `agent-run/03-codex` | 73/100, 75/100, 100/100 from the current verifier and PDF reports; the 100/100 record is report-classified as an anomalous failure because auxiliary screenshot evidence did not support a clean visual pass |
 | `agent-run/01-cc-opus` through `agent-run/03-cc-opus` | 74/100, 88/100, 80/100 |
 | `agent-run/01-cc-sonnet` through `agent-run/03-cc-sonnet` | 77/100, 82/100, 59/100 |
 
@@ -334,7 +334,10 @@ in new or refreshed documentation, including reviewer-facing docs, generated
 reports, README files, and AGENTS instructions; use repo-relative paths or
 placeholders such as
 `<verifier-repo>`, `<candidate-project>`,
-`<godot-4.6-console-executable>`, and `<agent-runs-root>`.
+`<godot-4.6-console-executable>`, and `<agent-runs-root>`. Any formal 100/100
+rollout contradicted by screenshot evidence, suspect flags, or manual review
+must be labeled as an anomalous failure case and grouped with failure analysis,
+not presented as a success.
 
 ## Development
 

@@ -47,6 +47,9 @@ solution hints into the ablated game repository.
   as `<verifier-repo>`,
   `<candidate-project>`, `<godot-4.6-console-executable>`, and
   `<agent-runs-root>`.
+- In reports, any formal 100/100 rollout contradicted by screenshot evidence,
+  suspect flags, or manual review must be labeled as an anomalous failure case
+  and grouped with failure analysis, not presented as a success.
 - Maintain deterministic headless execution. Control timing, scene setup,
   target placement, input events, random seeds, viewport assumptions, and
   artifact paths where relevant.

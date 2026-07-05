@@ -27,6 +27,9 @@ workspace or rollout-agent prompt.
   documentation, including reviewer-facing docs, generated reports, README
   files, and AGENTS instructions. Use repo-relative paths or placeholders
   instead.
+- In reports, label any formal 100/100 rollout contradicted by screenshot
+  evidence, suspect flags, or manual review as an anomalous failure case and
+  group it with failure analysis, not successful rollouts.
 
 ## Agent skills
 

@@ -498,7 +498,7 @@
             <td><code>evaluation/evidence/agent-runs-20260703-151656/run-02-codex/score.json</code></td>
           </tr>
           <tr>
-            <td>Codex GPT-5.5 xhigh run 3</td>
+            <td>Codex GPT-5.5 xhigh run 3<br><span class="tag bad">anomalous failure</span></td>
             <td><span class="score high">100/100</span></td>
             <td><div class="bar"><span class="good" style="width:100%"></span></div></td>
             <td><code>evaluation/evidence/agent-runs-20260703-151656/run-03-codex/score.json</code></td>
@@ -555,6 +555,9 @@
       </table>
       <div class="callout">
         <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional low-score fake candidates cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven stay below the score >= 85 pass line. The wrong-projectile-model overlay probe intentionally remains high-scoring at 98/100 but records <code>passed: false</code> because <code>visual_audio_polish</code> is 3/5 and fails the visual floor.
+      </div>
+      <div class="callout warn">
+        <strong>Full-score anomaly:</strong> Codex GPT-5.5 xhigh run 3 remains recorded as a formal 100/100 score JSON, but the final report classifies that record as an anomalous failure case because auxiliary screenshot evidence did not support a clean visual pass. Future generated writeups must keep formal score facts separate from report classification and group contradicted full-score runs with failure analysis.
       </div>
     </section>
 
@@ -613,7 +616,7 @@
             <td>Codex runs</td>
             <td>Codex, GPT-5.5 xhigh</td>
             <td><code>agent-run/01-codex</code><br><code>agent-run/02-codex</code><br><code>agent-run/03-codex</code></td>
-            <td>73/100, 75/100, 100/100 in branch-captured score JSONs and PDF reports from the current verifier. Earlier Codex score records were erroneous and are not retained as evidence.</td>
+            <td>73/100, 75/100, 100/100 in branch-captured score JSONs and PDF reports from the current verifier. The 100/100 record is report-classified as an anomalous failure, not a successful rollout, because later auxiliary screenshot evidence did not support a clean visual pass. Earlier Codex score records were erroneous and are not retained as evidence.</td>
           </tr>
         </tbody>
       </table>
