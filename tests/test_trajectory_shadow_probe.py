@@ -71,6 +71,74 @@ class TrajectoryShadowProbeTests(unittest.TestCase):
         self.assertNotIn("board.add", source)
         self.assertNotIn('"score"', source)
 
+    def test_baseline_diff_metrics_detect_arc_like_changed_pixels_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            verifier_dir = tmp_path / "__verifier__"
+            verifier_dir.mkdir()
+            shutil.copy(SHADOW_PROBE, verifier_dir / "trajectory_shadow_probe.gd")
+            shutil.copy(ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd", verifier_dir / "scene_probe.gd")
+            (verifier_dir / "debug_arena.tscn").write_text(textwrap.dedent(
+                """
+                [gd_scene format=3]
+
+                [node name="DebugArena" type="Node3D"]
+                """
+            ).strip() + "\n", encoding="utf-8")
+            (tmp_path / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+            (tmp_path / "test_runner.gd").write_text(textwrap.dedent(
+                """
+                extends SceneTree
+
+                const TrajectoryShadowProbe = preload("res://__verifier__/trajectory_shadow_probe.gd")
+
+                func _init() -> void:
+                    call_deferred("_run")
+
+                func _run() -> void:
+                    var before_image := Image.create(128, 96, false, Image.FORMAT_RGBA8)
+                    before_image.fill(Color(0, 0, 0, 1))
+                    var after_image := Image.create(128, 96, false, Image.FORMAT_RGBA8)
+                    after_image.fill(Color(0, 0, 0, 1))
+                    for x in range(12, 117):
+                        var normalized := float(x - 12) / 104.0
+                        var y := 70 - int(round(sin(normalized * PI) * 34.0))
+                        for dy in range(0, 4):
+                            after_image.set_pixel(x, clampi(y + dy, 0, 95), Color(1, 1, 1, 1))
+                    var probe := TrajectoryShadowProbe.new(self, null)
+                    var metrics: Dictionary = probe._baseline_diff_metrics(before_image, after_image, Rect2i(0, 0, 128, 96), "unit_arc")
+                    var file := FileAccess.open("res://result.json", FileAccess.WRITE)
+                    file.store_string(JSON.stringify(metrics))
+                    quit(0)
+                """
+            ).strip() + "\n", encoding="utf-8")
+
+            completed = subprocess.run(
+                [
+                    str(godot),
+                    "--path",
+                    str(tmp_path),
+                    "--script",
+                    "res://test_runner.gd",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=60,
+            )
+            output = completed.stdout + completed.stderr
+            self.assertEqual(completed.returncode, 0, output)
+            result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+            self.assertTrue(result.get("available"), result)
+            self.assertGreater(result.get("changed_pixel_count", 0), 100, result)
+            self.assertGreater(result.get("horizontal_span_px", 0), 80, result)
+            self.assertGreater(result.get("vertical_span_px", 0), 18, result)
+            self.assertTrue(result.get("suggests_arc"), result)
+
 
 if __name__ == "__main__":
     unittest.main()
