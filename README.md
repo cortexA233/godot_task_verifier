@@ -324,6 +324,13 @@ are retained under
 `evaluation/evidence/agent-runs-20260703-151656/run-0{1,2,3}-codex/`.
 
 The repository writeup for the assignment is `evaluation/writeup.html`.
+When refreshing or regenerating that HTML report, keep the reproduction section
+complete. It must include the local verifier repository link
+`C:\recent_project\roboblast-grenade-verifier`, the
+`prepare-agent-run-workspace` and `collect-agent-run-evidence` workflow, the
+full `run_grader.py` command with `--verifier-root`, `--pdf-report`, and
+`--log`, the operator/agent trust boundary, and the evidence files reviewers
+should inspect after a run.
 
 ## Development
 

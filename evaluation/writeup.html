@@ -681,15 +681,68 @@
 
     <section>
       <h2>Reproduction Commands</h2>
-      <p>Verifier command pattern used for the fresh checks. The reference, probe, and Sonnet runs use the same pattern with their own project paths and <code>calibration-20260703-*</code> output names:</p>
-      <div class="command">$Verifier = "&lt;path-to-this-repo&gt;"
+      <div class="callout">
+        <strong>Verifier repository:</strong> the live local repo is
+        <a href="file:///C:/recent_project/roboblast-grenade-verifier/">C:\recent_project\roboblast-grenade-verifier</a>
+        (<a href="file:///C:/recent_project/roboblast-grenade-verifier/README.md">README</a>).
+        Future generated writeups should retain this repository link, the isolated-run skill workflow, and the complete grader command pattern below.
+      </div>
+      <ol>
+        <li>Set the verifier root, Godot 4.6 console executable, ablated project path, task prompt path, and a fresh run root.</li>
+        <li>Prepare the isolated agent workspace with <code>prepare-agent-run-workspace</code>. Give the rollout agent only <code>$RunRoot\workspace</code> and the prompt text copied into <code>$RunRoot\evidence\prompt-for-agent.md</code>.</li>
+        <li>Keep <code>$Verifier</code> and <code>$RunRoot\evidence</code> operator-only while the agent is running.</li>
+        <li>After the agent stops, run <code>collect-agent-run-evidence</code> once to capture git status, diff, final SHA, manifest, and transcript-facing artifacts.</li>
+        <li>Run <code>run_grader.py</code> against the completed workspace, then run <code>collect-agent-run-evidence</code> again with the score JSON and exact grader command.</li>
+        <li>Review <code>score.json</code>, <code>score-report.pdf</code>, <code>godot-verifier.log</code>, <code>diff.patch</code>, <code>run-manifest.json</code>, and any <code>screenshot-probe</code> outputs under <code>$RunRoot\evidence</code>.</li>
+      </ol>
+      <div class="command">$Verifier = "C:\recent_project\roboblast-grenade-verifier"
+$Godot = "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe"
+$AblatedProject = "C:\path\to\codex-grenade-rollout-task"
+$TaskPrompt = "$AblatedProject\TASK_PROMPT.md"
+$RunRoot = "C:\path\to\agent-runs\run-01-cc-sonnet"
+
+python "$Verifier\skills\prepare-agent-run-workspace\scripts\setup_agent_run.py" `
+  --source "$AblatedProject" `
+  --run-root "$RunRoot" `
+  --agent cc-sonnet `
+  --model "model/version if known" `
+  --tool "Godot MCP available" `
+  --godot-mcp available `
+  --prompt "$TaskPrompt"
+
+python "$Verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.py" `
+  --run-root "$RunRoot"
+
+$ScoreJson = "$RunRoot\evidence\score.json"
+$PdfReport = "$RunRoot\evidence\score-report.pdf"
+$Log = "$RunRoot\evidence\godot-verifier.log"
+
+python "$Verifier\run_grader.py" `
+  --project "$RunRoot\workspace" `
+  --godot "$Godot" `
+  --verifier-root "$Verifier" `
+  --out "$ScoreJson" `
+  --pdf-report "$PdfReport" `
+  --log "$Log"
+
+$GraderCommand = @"
+python "$Verifier\run_grader.py" --project "$RunRoot\workspace" --godot "$Godot" --verifier-root "$Verifier" --out "$ScoreJson" --pdf-report "$PdfReport" --log "$Log"
+"@
+
+python "$Verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.py" `
+  --run-root "$RunRoot" `
+  --score-json "$ScoreJson" `
+  --grader-command "$GraderCommand"</div>
+      <p>For reference, ablated-task, anti-cheat probe, or retained-run audits, use the same grader command pattern with the candidate project path and output names under <code>evaluation/evidence/</code>:</p>
+      <div class="command">$Verifier = "C:\recent_project\roboblast-grenade-verifier"
 $Godot = "&lt;path-to-godot-4.6-console-executable&gt;"
 $Project = "&lt;path-to-candidate-or-probe-project&gt;"
 $OutJson = "$Verifier\artifacts\calibration-20260703-name-score.json"
 $OutLog = "$Verifier\artifacts\calibration-20260703-name-score.log"
 
-python "$Verifier\run_grader.py" --project "$Project" --godot "$Godot" --out "$OutJson" --log "$OutLog"</div>
-      <p>The broad-damage probe used this pattern with the global targetable sweep fake candidate as <code>$Project</code>.</p>
+python "$Verifier\run_grader.py" --project "$Project" --godot "$Godot" --verifier-root "$Verifier" --out "$OutJson" --log "$OutLog"</div>
+      <p>The broad-damage probe used this pattern with the global targetable sweep fake candidate as <code>$Project</code>. To inspect an injected verifier scene manually, export the debug arena and open <code>res://__verifier__/debug_arena.tscn</code> in Godot:</p>
+      <div class="command">python "$Verifier\export_debug_arena.py" --project "$Project" --out "$Verifier\artifacts\debug-arena"</div>
       <p>Godot version recorded in result JSON: <code>4.6-stable (official)</code>. The README also records the local executable build as <code>4.6.stable.official.89cea1439</code>.</p>
     </section>
 
