@@ -126,3 +126,9 @@ Machine-readable measurements emitted by hybrid trajectory evidence, such as
 mask size, preview shape, preview movement, projectile agreement, and per-heading
 notes. They are calibration data, not formal score items.
 _Avoid_: hidden trajectory score, screenshot-only grade
+
+**Provisional visual verdict**:
+A human-readable shadow visual evidence conclusion, such as healthy, suspect, or
+missing, derived from trajectory shadow metrics without changing the formal
+grader's score, category floors, or `passed` flag.
+_Avoid_: visual pass, official verdict
