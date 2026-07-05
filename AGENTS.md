@@ -108,6 +108,11 @@ writeup, and temporary Chinese previews:
   separate row. For this submission, that means all nine runs: three Claude Code
   Sonnet 5 medium, three Claude Code Opus 4.8 max, and three Codex GPT-5 xhigh
   runs. Do not collapse Opus, Sonnet, or Codex into only a family summary.
+- The `Rollout Runs` table must not duplicate the consolidated score table.
+  Do not include formal score, pass/fail, screenshot auxiliary score, captured
+  PNG count, or score/PDF evidence columns there. Those facts belong only in
+  `Calibration And Scores`; `Rollout Runs` may reference score facts only as
+  narrative deduction analysis inside `Observed result`.
 - Model/tooling labels must be consistent across the report, score summary,
   branch notes, and reproduction notes. For this submission, record that Codex
   runs had Godot MCP available and use the same model labels everywhere.
