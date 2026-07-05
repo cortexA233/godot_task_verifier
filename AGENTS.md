@@ -69,6 +69,68 @@ solution hints into the ablated game repository.
 - Any changes made in this verifier repository must also be committed in this
   verifier repository. Stage only the files that belong to the current task.
 
+## Writeup Generation Rules
+
+These rules apply to `evaluation/writeup.html`, any copied final-deliverable
+writeup, and temporary Chinese previews:
+
+- Treat the English HTML writeup as the source deliverable. Chinese previews
+  are for user review only and must not be committed unless the user explicitly
+  asks.
+- Do not include machine-specific local absolute paths anywhere in the visible
+  report, reproduction commands, captions, or generated documentation. Use
+  repo-relative evidence paths or placeholders such as `<verifier-repo>`,
+  `<candidate-project>`, `<godot-4.6-console-executable>`, and
+  `<agent-runs-root>`.
+- Keep exactly one consolidated score table. `Calibration And Scores` is the
+  only place that should tabulate formal logic score, pass/fail,
+  screenshot auxiliary score, captured PNG count, and score/PDF evidence.
+  `Screenshot Evidence` must not add another score table; keep that section to
+  narrative visual-review notes and embedded example frames.
+- Every screenshot-probe rerun or screenshot-analysis result must be reflected
+  in the HTML in the same update. Update the consolidated score table, the
+  screenshot narrative notes, and the embedded representative frames when the
+  frame set changes.
+- Embed report screenshots directly in the HTML as data URIs. Do not reference
+  separate screenshot image files from the report. The report may explain where
+  full raw frames can be inspected using repo-relative evidence paths and the
+  `score.json` fields such as `screenshot_probe_dir` and `probe_result`, but it
+  must not print local absolute paths.
+- The screenshot examples should show real frames from retained runs and should
+  explain what actual test screenshots are used for: reference behavior, ablated
+  absence of grenade evidence, and at least one failure/anomaly case.
+- Any formal 100/100 rollout contradicted by screenshot evidence, suspect flags,
+  or manual review must be labeled as an anomalous failure case and grouped with
+  failure analysis, not presented as a success. For this submission, the Codex
+  full-score record should explicitly be called out as the anomaly that
+  motivated the screenshot-analysis iteration.
+- The `Rollout Runs` table must include every retained agent-run branch as a
+  separate row. For this submission, that means all nine runs: three Claude Code
+  Sonnet 5 medium, three Claude Code Opus 4.8 max, and three Codex GPT-5 xhigh
+  runs. Do not collapse Opus, Sonnet, or Codex into only a family summary.
+- Model/tooling labels must be consistent across the report, score summary,
+  branch notes, and reproduction notes. For this submission, record that Codex
+  runs had Godot MCP available and use the same model labels everywhere.
+- The `Observed result` column must provide detailed deduction analysis, not a
+  short generic outcome. It should call out category scores, pass-floor
+  failures, missed rubric subitems, screenshot footprint measurements, captured
+  frame timing when relevant, and whether the defect is agent behavior or
+  verifier/report artifact.
+- The anti-cheat probe set for this submission is seven representative fake
+  candidates. Keep probe branches, implementation notes, report prose, and docs
+  aligned to seven unless the user explicitly changes the probe set.
+- The writeup must mention that the evaluator used the verifier repository's
+  two repo-local skills: `prepare-agent-run-workspace` to create isolated
+  agent workspaces and `collect-agent-run-evidence` to collect objective run
+  evidence. Future evaluated runs should use the same two-skill workflow.
+- Include a verifier repository reference and complete reproduction/use
+  instructions: how to prepare an isolated run, run the grader, collect
+  evidence, inspect score JSON/PDF/log/screenshot outputs, export a debug arena
+  if needed, and record the exact Godot 4.6 version and command used.
+- Do not add a `Final Submission Checklist` section, duplicate footer status
+  block, or informal "updated on" footer unless the user explicitly asks for
+  that content.
+
 ## Agent skills
 
 ### Issue tracker
