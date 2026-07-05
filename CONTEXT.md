@@ -39,6 +39,19 @@ capture camera placed broadly side-on to the player's throw direction, so arc
 height, forward travel, and landing feedback are easier to inspect.
 _Avoid_: side-view formal grader, gameplay side camera
 
+**Gameplay-view visual evidence**:
+Screenshot evidence captured from the candidate's normal gameplay presentation
+or the existing debug-arena view, used to confirm the grenade preview and throw
+remain visible in a player-facing composition.
+_Avoid_: original camera score, real gameplay score
+
+**Hybrid trajectory evidence**:
+Shadow visual evidence that combines runtime trajectory observations,
+gameplay-view visual evidence, and side-view trajectory visual run measurements
+to evaluate whether the grenade preview communicates an arc, reacts to aim, and
+matches the projectile behavior.
+_Avoid_: pure screenshot score, node-shape score
+
 **Main scene visual run**:
 A screenshot probe mode that loads the candidate project's real playable scene
 and captures evidence that the grenade workflow still renders in that context.
