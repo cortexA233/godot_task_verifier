@@ -28,6 +28,12 @@ const GAMEPLAY_BASELINE_LABEL := "gameplay_baseline"
 const SIDE_BASELINE_LABEL := "side_baseline"
 const GAMEPLAY_PREVIEW_LABEL := "gameplay_preview"
 const SIDE_PREVIEW_LABEL := "side_preview"
+const SIDE_EARLY_FLIGHT_LABEL := "side_early_flight"
+const PROJECTILE_SPAWN_RADIUS := 6.0
+const EARLY_FLIGHT_CAPTURE_FRAMES := 8
+const RUNTIME_TRACK_FRAMES := 42
+const MIN_RUNTIME_TRAVEL_DISTANCE := 0.5
+const GAMEPLAY_CENTROID_SPREAD_HEALTHY_PX := 80.0
 
 var tree: SceneTree
 var input
@@ -106,6 +112,17 @@ func _run_heading_sample(heading_degrees: float) -> Dictionary:
 		gameplay_preview.get("record", {}),
 		side_preview.get("record", {}),
 	]
+	var before_attack_ids := SceneProbe.collect_instance_ids(debug_arena)
+	await input.tap("attack", 2, 2)
+	await input.wait_physics_frames(2)
+	var projectile_candidates := SceneProbe.node3d_candidates(SceneProbe.new_nodes_since(debug_arena, before_attack_ids), player.global_position, PROJECTILE_SPAWN_RADIUS)
+	await input.wait_physics_frames(EARLY_FLIGHT_CAPTURE_FRAMES)
+	side_camera.current = true
+	var side_early_flight := await _capture_image("%s_%s" % [heading_label, SIDE_EARLY_FLIGHT_LABEL], root)
+	captures.append(side_early_flight.get("record", {}))
+	var side_early_flight_mask := _baseline_diff_metrics(side_baseline.get("image", null), side_early_flight.get("image", null), SIDE_ANALYSIS_REGION, SIDE_EARLY_FLIGHT_LABEL)
+	var tracks: Dictionary = await SceneProbe.track_nodes_positions(tree, projectile_candidates, RUNTIME_TRACK_FRAMES)
+	var runtime_projectile := _runtime_projectile_metrics(projectile_candidates, tracks, player, heading_y)
 	var result := {
 		"heading_degrees": heading_degrees,
 		"heading_radians": heading_y,
@@ -113,9 +130,9 @@ func _run_heading_sample(heading_degrees: float) -> Dictionary:
 		"captures": captures,
 		"gameplay_preview_mask": gameplay_mask,
 		"side_preview_mask": side_mask,
-		"runtime_projectile": {},
-		"side_early_flight_mask": {},
-		"provisional_verdict": "suspect",
+		"runtime_projectile": runtime_projectile,
+		"side_early_flight_mask": side_early_flight_mask,
+		"provisional_verdict": _heading_verdict(gameplay_mask, side_mask, side_early_flight_mask, runtime_projectile),
 	}
 	debug_arena.queue_free()
 	await tree.process_frame
@@ -218,10 +235,58 @@ func _heading_failure(heading_degrees: float, reason: String) -> Dictionary:
 		"gameplay_preview_mask": _unavailable_diff_metrics(GAMEPLAY_ANALYSIS_REGION, "gameplay_preview", reason),
 		"side_preview_mask": _unavailable_diff_metrics(SIDE_ANALYSIS_REGION, "side_preview", reason),
 		"runtime_projectile": {"available": false, "reason": reason},
-		"side_early_flight_mask": _unavailable_diff_metrics(SIDE_ANALYSIS_REGION, "side_early_flight", reason),
+		"side_early_flight_mask": _unavailable_diff_metrics(SIDE_ANALYSIS_REGION, SIDE_EARLY_FLIGHT_LABEL, reason),
 		"provisional_verdict": "missing",
 		"reason": reason,
 	}
+
+
+func _runtime_projectile_metrics(candidates: Array[Node3D], tracks: Dictionary, player: Node3D, heading_y: float) -> Dictionary:
+	var best_points: Array = []
+	var best_distance := -1.0
+	var best_name := ""
+	for candidate in candidates:
+		if not is_instance_valid(candidate):
+			continue
+		var points: Array = tracks.get(candidate.get_instance_id(), [])
+		var distance := SceneProbe.horizontal_travel_distance(points)
+		if distance > best_distance:
+			best_distance = distance
+			best_points = points
+			best_name = String(candidate.name)
+	var direction := SceneProbe.track_horizontal_direction(best_points, MIN_RUNTIME_TRAVEL_DISTANCE)
+	var heading_basis := Basis.from_euler(Vector3(0, heading_y, 0))
+	var forward_3d := (heading_basis * Vector3.FORWARD).normalized()
+	var expected_direction := Vector2(forward_3d.x, forward_3d.z).normalized()
+	var direction_dot := -1.0
+	if direction.length() > 0.001 and expected_direction.length() > 0.001:
+		direction_dot = direction.normalized().dot(expected_direction)
+	return {
+		"available": not best_points.is_empty(),
+		"candidate_count": candidates.size(),
+		"best_candidate": best_name,
+		"tracked_point_count": best_points.size(),
+		"horizontal_travel_distance": best_distance,
+		"direction": [direction.x, direction.y],
+		"expected_direction": [expected_direction.x, expected_direction.y],
+		"direction_dot": direction_dot,
+		"direction_matches_heading": direction_dot >= RUNTIME_DIRECTION_MIN_DOT,
+		"has_arc_motion": SceneProbe.has_arc_motion(best_points),
+		"used_for_score": false,
+	}
+
+
+func _heading_verdict(gameplay_mask: Dictionary, side_mask: Dictionary, side_early_flight_mask: Dictionary, runtime_projectile: Dictionary) -> String:
+	var gameplay_visible := int(gameplay_mask.get("changed_pixel_count", 0)) >= MIN_GAMEPLAY_CHANGED_PIXELS
+	var side_visible := int(side_mask.get("changed_pixel_count", 0)) >= MIN_SIDE_CHANGED_PIXELS
+	var side_arc_like := bool(side_mask.get("suggests_arc", false))
+	var early_arc_like := bool(side_early_flight_mask.get("suggests_arc", false)) or bool(runtime_projectile.get("has_arc_motion", false))
+	var runtime_direction_ok := bool(runtime_projectile.get("direction_matches_heading", false))
+	if gameplay_visible and side_visible and side_arc_like and runtime_direction_ok:
+		return "healthy"
+	if gameplay_visible or side_visible or early_arc_like or bool(runtime_projectile.get("available", false)):
+		return "suspect"
+	return "missing"
 
 
 func _weapon_switch_action() -> String:
@@ -353,22 +418,71 @@ func _clamped_region(region: Rect2i, width: int, height: int) -> Rect2i:
 
 
 func _trajectory_shadow_summary(heading_results: Array[Dictionary]) -> Dictionary:
+	var healthy_count := 0
+	var suspect_count := 0
+	var missing_count := 0
+	var gameplay_visible_count := 0
+	var side_arc_count := 0
+	var runtime_direction_count := 0
+	var gameplay_centroids: Array[float] = []
+	for heading_result in heading_results:
+		var verdict := String(heading_result.get("provisional_verdict", "missing"))
+		if verdict == "healthy":
+			healthy_count += 1
+		elif verdict == "suspect":
+			suspect_count += 1
+		else:
+			missing_count += 1
+		var gameplay_mask: Dictionary = heading_result.get("gameplay_preview_mask", {})
+		if int(gameplay_mask.get("changed_pixel_count", 0)) >= MIN_GAMEPLAY_CHANGED_PIXELS:
+			gameplay_visible_count += 1
+			var centroid: Array = gameplay_mask.get("centroid", [])
+			if centroid.size() >= 2:
+				gameplay_centroids.append(float(centroid[0]))
+		var side_mask: Dictionary = heading_result.get("side_preview_mask", {})
+		if bool(side_mask.get("suggests_arc", false)):
+			side_arc_count += 1
+		var runtime_projectile: Dictionary = heading_result.get("runtime_projectile", {})
+		if bool(runtime_projectile.get("direction_matches_heading", false)):
+			runtime_direction_count += 1
+	var centroid_spread := _centroid_spread(gameplay_centroids)
 	return {
 		"used_for_score": false,
-		"healthy_heading_count": 0,
-		"suspect_heading_count": 0,
-		"missing_heading_count": 0,
-		"gameplay_preview_visible_count": 0,
-		"side_preview_arc_like_count": 0,
-		"runtime_direction_match_count": 0,
-		"gameplay_centroid_spread_px": 0.0,
+		"healthy_heading_count": healthy_count,
+		"suspect_heading_count": suspect_count,
+		"missing_heading_count": missing_count,
+		"gameplay_preview_visible_count": gameplay_visible_count,
+		"side_preview_arc_like_count": side_arc_count,
+		"runtime_direction_match_count": runtime_direction_count,
+		"gameplay_centroid_spread_px": centroid_spread,
 		"visual_claims": {
-			"preview_matches_projectile_direction": "missing",
-			"updates_with_aim_camera_direction": "missing",
-			"communicates_arcing_throw": "missing",
+			"preview_matches_projectile_direction": _claim_verdict(runtime_direction_count, heading_results.size()),
+			"updates_with_aim_camera_direction": "healthy" if centroid_spread >= GAMEPLAY_CENTROID_SPREAD_HEALTHY_PX else _claim_verdict(gameplay_visible_count, heading_results.size()),
+			"communicates_arcing_throw": _claim_verdict(side_arc_count, heading_results.size()),
 		},
 		"heading_count": heading_results.size(),
 	}
+
+
+func _centroid_spread(values: Array[float]) -> float:
+	if values.size() < 2:
+		return 0.0
+	var min_value := INF
+	var max_value := -INF
+	for value in values:
+		min_value = minf(min_value, value)
+		max_value = maxf(max_value, value)
+	return max_value - min_value
+
+
+func _claim_verdict(healthy_count: int, total_count: int) -> String:
+	if total_count <= 0:
+		return "missing"
+	if healthy_count >= 2:
+		return "healthy"
+	if healthy_count >= 1:
+		return "suspect"
+	return "missing"
 
 
 func _overall_verdict(summary: Dictionary) -> String:
@@ -396,6 +510,11 @@ func _thresholds() -> Dictionary:
 		"side_camera_back_offset": SIDE_CAMERA_BACK_OFFSET,
 		"side_camera_lookahead": SIDE_CAMERA_LOOKAHEAD,
 		"side_camera_look_height": SIDE_CAMERA_LOOK_HEIGHT,
+		"projectile_spawn_radius": PROJECTILE_SPAWN_RADIUS,
+		"early_flight_capture_frames": EARLY_FLIGHT_CAPTURE_FRAMES,
+		"runtime_track_frames": RUNTIME_TRACK_FRAMES,
+		"min_runtime_travel_distance": MIN_RUNTIME_TRAVEL_DISTANCE,
+		"gameplay_centroid_spread_healthy_px": GAMEPLAY_CENTROID_SPREAD_HEALTHY_PX,
 	}
 
 

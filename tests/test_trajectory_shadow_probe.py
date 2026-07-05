@@ -154,6 +154,64 @@ class TrajectoryShadowProbeTests(unittest.TestCase):
         self.assertIn("SIDE_CAMERA_HEIGHT", source)
         self.assertIn("SIDE_CAMERA_BACK_OFFSET", source)
 
+    def test_trajectory_shadow_mode_writes_hybrid_metrics_for_reference_when_available(self):
+        godot = find_godot()
+        if godot is None:
+            self.skipTest("Godot console executable is not available")
+        reference_project = Path(r"C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\reference-main-complete")
+        if not (reference_project / "project.godot").exists():
+            self.skipTest(f"reference project unavailable: {reference_project}")
+
+        out_dir = Path(tempfile.mkdtemp(prefix="trajectory-shadow-reference-"))
+        try:
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_screenshot_probe.py"),
+                    "--project",
+                    str(reference_project),
+                    "--godot",
+                    str(godot),
+                    "--out-dir",
+                    str(out_dir),
+                    "--mode",
+                    "trajectory-shadow",
+                    "--timeout",
+                    "180",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=240,
+            )
+            output = completed.stdout + completed.stderr
+            if not (out_dir / "result.json").exists():
+                self.skipTest(f"trajectory shadow probe unavailable in this renderer: {output}")
+            self.assertEqual(completed.returncode, 0, output)
+            result = json.loads((out_dir / "result.json").read_text(encoding="utf-8"))
+            self.assertFalse(result.get("used_for_score", True), result)
+            shadow = result.get("modes", {}).get("trajectory_shadow", {})
+            self.assertTrue(shadow.get("ok"), result)
+            self.assertFalse(shadow.get("used_for_score", True), shadow)
+            self.assertEqual(len(shadow.get("heading_results", [])), 3, shadow)
+            self.assertIn(shadow.get("provisional_verdict"), ["healthy", "suspect", "missing"], shadow)
+            summary = shadow.get("summary", {})
+            self.assertFalse(summary.get("used_for_score", True), summary)
+            self.assertIn("preview_matches_projectile_direction", summary.get("visual_claims", {}), summary)
+            self.assertIn("updates_with_aim_camera_direction", summary.get("visual_claims", {}), summary)
+            self.assertIn("communicates_arcing_throw", summary.get("visual_claims", {}), summary)
+            first_heading = shadow.get("heading_results", [{}])[0]
+            runtime_projectile = first_heading.get("runtime_projectile", {})
+            side_early_flight_mask = first_heading.get("side_early_flight_mask", {})
+            self.assertIn("direction_dot", runtime_projectile, first_heading)
+            self.assertIn("direction_matches_heading", runtime_projectile, first_heading)
+            self.assertFalse(runtime_projectile.get("used_for_score", True), first_heading)
+            self.assertIn("changed_pixel_count", side_early_flight_mask, first_heading)
+            self.assertIn("suggests_arc", side_early_flight_mask, first_heading)
+            self.assertTrue((out_dir / "trajectory_shadow").exists(), result)
+        finally:
+            shutil.rmtree(out_dir, ignore_errors=True)
+
 
 if __name__ == "__main__":
     unittest.main()
