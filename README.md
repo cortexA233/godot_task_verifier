@@ -263,7 +263,8 @@ Modes:
 | --- | --- |
 | `debug-arena` | Controlled verifier arena screenshots every 10 physics frames after grenade throw until explosion or timeout. |
 | `main-scene` | Real `res://main.tscn` ready, aim, grenade-ready, and post-throw screenshots when the playable scene exposes a player and camera. |
-| `both` | Runs both visual modes and writes separate `debug_arena/` and `main_scene/` artifact folders. |
+| `both` | Runs `debug-arena` and `main-scene`, writing separate `debug_arena/` and `main_scene/` artifact folders. It intentionally does not run `trajectory-shadow`. |
+| `trajectory-shadow` | Opt-in shadow evidence for grenade trajectory preview. It captures per-heading gameplay-view and side-oblique baselines/previews, extracts baseline-difference pixel masks, combines them with runtime projectile tracking, and writes `modes.trajectory_shadow` with `used_for_score: false`. |
 
 The top-level `result.json` contains one `modes` entry per attempted visual run.
 It also includes an `auxiliary_score_sections` entry for the screenshot visual
@@ -276,6 +277,14 @@ score.
 Windowed rendering can be unavailable on headless machines; that is reported as
 probe infrastructure state rather than as a candidate scoring failure.
 
+`trajectory-shadow` is a shadow-analysis mode for calibrating screenshot-based
+trajectory evidence. It is deliberately excluded from `both` and from the
+formal score. The visual mask is derived only from per-heading clean-baseline
+pixel differences in verifier-defined analysis regions; runtime projectile
+tracking is reported separately as hybrid context. Use this mode to compare
+reference, ablated, near-miss, and agent-run behavior before deciding whether
+any screenshot-derived signal is stable enough for formal grading.
+
 ## Calibration And Evidence
 
 Run local calibration:
@@ -283,6 +292,16 @@ Run local calibration:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File "$Verifier\run_calibration.ps1"
 ```
+
+Run trajectory shadow calibration after changing the shadow probe:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "$Verifier\run_trajectory_shadow_calibration.ps1"
+```
+
+The calibration runner compares reference, ablated, fixed-trajectory,
+damage-no-preview, Sonnet-3, and high-score Codex workspaces. Treat the output
+as threshold calibration evidence, not as a formal score.
 
 This script reruns the ablated and reference checks. The probe and rollout rows
 below are curated evidence produced by the probe materializer and agent-run
