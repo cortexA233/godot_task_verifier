@@ -2,9 +2,10 @@ extends SceneTree
 
 const InputDriver = preload("res://__verifier__/input_driver.gd")
 const ScreenshotVisualProbe = preload("res://__verifier__/screenshot_visual_probe.gd")
+const TrajectoryShadowProbe = preload("res://__verifier__/trajectory_shadow_probe.gd")
 
 const OUTPUT_DIR := "res://__screenshot_probe__"
-const VALID_MODES := ["debug-arena", "main-scene", "both"]
+const VALID_MODES := ["debug-arena", "main-scene", "both", "trajectory-shadow"]
 const DEBUG_FOOTPRINT_PARTIAL_AREA := 64
 const DEBUG_FOOTPRINT_FULL_AREA := 96
 const MAIN_FOOTPRINT_PARTIAL_AREA := 50
@@ -27,6 +28,9 @@ func _run() -> void:
 		mode_results["debug_arena"] = await probe.run_debug_arena()
 	if requested_mode == "main-scene" or requested_mode == "both":
 		mode_results["main_scene"] = await probe.run_main_scene()
+	if requested_mode == "trajectory-shadow":
+		var trajectory_probe := TrajectoryShadowProbe.new(self, input)
+		mode_results["trajectory_shadow"] = await trajectory_probe.run()
 	var result := {
 		"ok": true,
 		"display_driver": DisplayServer.get_name(),

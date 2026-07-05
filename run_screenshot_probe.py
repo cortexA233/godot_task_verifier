@@ -61,7 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project", required=True, type=Path, help="Path to the candidate Godot project.")
     parser.add_argument("--godot", required=True, type=Path, help="Path to the Godot console executable.")
     parser.add_argument("--out-dir", required=True, type=Path, help="Directory to write screenshots and result.json.")
-    parser.add_argument("--mode", choices=["debug-arena", "main-scene", "both"], default="both", help="Screenshot probe mode to run. Defaults to both debug arena and main scene evidence.")
+    parser.add_argument(
+        "--mode",
+        choices=["debug-arena", "main-scene", "both", "trajectory-shadow"],
+        default="both",
+        help="Screenshot probe mode to run. Defaults to debug arena plus main scene evidence; trajectory-shadow must be requested explicitly.",
+    )
     parser.add_argument("--verifier-root", type=Path, default=Path(__file__).resolve().parent, help="Root directory containing verifier_godot.")
     parser.add_argument("--timeout", type=int, default=120, help="Timeout in seconds for each Godot command.")
     parser.add_argument("--keep-temp", action="store_true", help="Keep the injected temporary project copy.")
@@ -102,9 +107,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Wrote screenshot probe artifacts: {args.out_dir}")
         print(f"Requested mode: {result.get('requested_mode', args.mode)}")
         for mode_name, mode_result in result.get("modes", {}).items():
+            stop_label = mode_result.get("provisional_verdict", mode_result.get("stop_reason", "unknown"))
             print(
                 f"{mode_name}: ok={mode_result.get('ok', False)} "
-                f"stop={mode_result.get('stop_reason', 'unknown')} "
+                f"stop={stop_label} "
                 f"frame={mode_result.get('explosion_frame', -1)} "
                 f"screenshots={len(mode_result.get('captures', []))}"
             )

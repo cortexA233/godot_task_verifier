@@ -283,7 +283,7 @@ class RunGraderTests(unittest.TestCase):
         cli_source = (ROOT / "run_screenshot_probe.py").read_text(encoding="utf-8")
 
         self.assertIn('"--mode"', cli_source)
-        self.assertIn('choices=["debug-arena", "main-scene", "both"]', cli_source)
+        self.assertIn('choices=["debug-arena", "main-scene", "both", "trajectory-shadow"]', cli_source)
         self.assertIn('default="both"', cli_source)
         self.assertIn('"--probe-mode"', cli_source)
         self.assertIn("copytree", cli_source)
