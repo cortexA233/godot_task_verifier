@@ -70,6 +70,12 @@ to evaluate whether the grenade preview communicates an arc, reacts to aim, and
 matches the projectile behavior.
 _Avoid_: pure screenshot score, node-shape score
 
+**Baseline-difference trajectory mask**:
+A pixel mask derived from differences between a stable baseline screenshot and a
+later trajectory-evidence screenshot, used to identify visible preview or throw
+changes without relying on runtime preview-node projection.
+_Avoid_: node-projected mask, whole-frame diff
+
 **Preview phase**:
 The period after grenade mode is selected and before the attack input launches a
 grenade, when the candidate should show aiming guidance for the next throw.
