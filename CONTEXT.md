@@ -120,3 +120,9 @@ Auxiliary evidence that mirrors a possible future scoring rule by producing
 structured measurements, provisional findings, and calibration notes without
 changing the formal grader's score, category floors, or `passed` flag.
 _Avoid_: provisional official score, hidden penalty
+
+**Trajectory shadow metrics**:
+Machine-readable measurements emitted by hybrid trajectory evidence, such as
+mask size, preview shape, preview movement, projectile agreement, and per-heading
+notes. They are calibration data, not formal score items.
+_Avoid_: hidden trajectory score, screenshot-only grade
