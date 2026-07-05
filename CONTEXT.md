@@ -76,6 +76,12 @@ later trajectory-evidence screenshot, used to identify visible preview or throw
 changes without relying on runtime preview-node projection.
 _Avoid_: node-projected mask, whole-frame diff
 
+**Per-heading clean baseline**:
+A baseline screenshot captured separately for each trajectory sample heading
+after the player and cameras have settled but before grenade mode shows preview
+guidance.
+_Avoid_: startup baseline, shared baseline
+
 **Preview phase**:
 The period after grenade mode is selected and before the attack input launches a
 grenade, when the candidate should show aiming guidance for the next throw.
