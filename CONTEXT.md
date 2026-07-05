@@ -45,6 +45,12 @@ or the existing debug-arena view, used to confirm the grenade preview and throw
 remain visible in a player-facing composition.
 _Avoid_: original camera score, real gameplay score
 
+**Gameplay-view visibility gate**:
+A shadow visual evidence check that requires grenade preview guidance to be
+visible in a player-facing or existing debug-arena view before side-view
+trajectory measurements are treated as healthy evidence.
+_Avoid_: side-view-only pass, screenshot beauty gate
+
 **Hybrid trajectory evidence**:
 Shadow visual evidence that combines runtime trajectory observations,
 gameplay-view visual evidence, and side-view trajectory visual run measurements
