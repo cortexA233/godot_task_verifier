@@ -240,6 +240,14 @@
     .bar .bad { background: var(--red); }
     .muted { color: var(--muted); }
 
+    .observed-list {
+      margin: 6px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .observed-list li { margin: 3px 0; }
+
     .callout {
       margin: 16px 0;
       padding: 16px 18px;
@@ -560,69 +568,106 @@
         <strong>Full-score anomaly:</strong> Codex GPT-5.5 xhigh run 3 remains recorded as a formal 100/100 score JSON, but the final report classifies that record as an anomalous failure case because auxiliary screenshot evidence did not support a clean visual pass. Future generated writeups must keep formal score facts separate from report classification and group contradicted full-score runs with failure analysis.
       </div>
       <div class="callout">
-        <strong>Iteration lesson:</strong> this Codex full-score anomaly directly motivated the later screenshot-analysis iteration. The 100-point logic score alone made the run look solved; retained frames exposed the visual mismatch, so later report updates include auxiliary screenshot scores, footprint measurements, embedded example frames, and failure-analysis notes alongside the formal score.
+        <strong>Iteration lesson:</strong> this Codex full-score anomaly directly motivated the later screenshot-analysis iteration. The 100-point logic score alone made the run look solved; retained frames exposed the visual mismatch, so later report updates include auxiliary screenshot scores, footprint measurements, embedded example frames, and failure-analysis notes alongside the formal score. Future writeups must keep screenshot auxiliary numbers in the consolidated score table and use narrative screenshot notes instead of adding a second screenshot-score table.
       </div>
     </section>
 
     <section>
       <h2>Rollout Runs</h2>
       <div class="callout">
-        Rollout workspaces were prepared as isolated copies with verifier files, local git history, generated artifacts, and assignment-only materials stripped from the agent-facing workspace. The local Godot MCP configuration for the task project enables <code>@coding-solo/godot-mcp</code> through Node and points <code>GODOT_PATH</code> at the Godot 4.6 installation used for the run.
+        Rollout workspaces were prepared as isolated copies with verifier files, local git history, generated artifacts, and assignment-only materials stripped from the agent-facing workspace. The local Godot MCP configuration for the task project enables <code>@coding-solo/godot-mcp</code> through Node and points <code>GODOT_PATH</code> at the Godot 4.6 installation used for the run. Codex runs had that same Godot MCP configuration available, even when the run record's final evidence came from shell/static checks rather than direct editor-driving MCP calls.
       </div>
+      <p>The rollout setup and evidence capture used the verifier repository's two repo-local skills. Before each evaluated run, <code>skills/prepare-agent-run-workspace/</code> created an isolated <code>workspace/</code> plus evaluator-owned <code>evidence/</code> directory from the ablated task. After the agent stopped, <code>skills/collect-agent-run-evidence/</code> captured the objective run record: git status, binary-capable diff, final SHA, manifest updates, score JSON/PDF/log paths, and the exact grader command. Future evaluated agent runs should use this same two-skill workflow; ad hoc manual copies should be treated as an exception and documented in the run notes.</p>
+      <p>The retained evidence set contains nine agent-run branches: three Claude Code Sonnet 5 medium runs, three Claude Code Opus 4.8 max runs, and three Codex GPT-5 xhigh runs. The observed-result column below must include concrete deduction analysis, not just a score bar or one-line summary.</p>
       <table>
         <thead>
-          <tr><th>Run</th><th>Agent / model</th><th>Diff summary</th><th>Score</th><th>Failure analysis</th></tr>
+          <tr><th>Branch</th><th>Agent / model</th><th>Diff</th><th>Formal score</th><th>Screenshot aux</th><th>Final SHA</th><th>Observed result and deductions</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td>Sonnet 1</td>
-            <td>Claude Code, Sonnet 5 medium</td>
-            <td>6 modified, 6 added, 1 prompt-localized file removed. Added <code>thrown_grenade</code> and trajectory resources; modified player, weapon UI, project settings, and explosion scene.</td>
+            <td><code>agent-run/01-cc-sonnet</code></td>
+            <td>Claude Code Sonnet 5 medium</td>
+            <td>26 files, +399/-53</td>
+            <td><span class="score mid">77/100</span></td>
+            <td><span class="score mid">7/10</span> (19 PNGs)</td>
+            <td><code>9efaf3cd81f3</code></td>
+            <td><strong>Partial implementation; failed the trajectory floor.</strong><ul class="observed-list"><li>Lost 21 points in <code>trajectory_preview</code>: the aiming aid was visible, but did not clearly show an arc, did not update with aim/camera direction, and could not be matched to projectile direction.</li><li><code>explosion_gameplay</code> lost 2 points for borderline throw-distance calibration; damage, locality, safety, and detonation behavior were otherwise credited.</li><li>Screenshot aux lost 3 points because the debug footprint was 42px, below the 64px minimum; main-scene footprint was 169px and explosion was visible at frame 80.</li></ul></td>
+          </tr>
+          <tr>
+            <td><code>agent-run/02-cc-sonnet</code></td>
+            <td>Claude Code Sonnet 5 medium</td>
+            <td>31 files, +1071/-52</td>
+            <td><span class="score mid">82/100</span></td>
+            <td><span class="score high">10/10</span> (19 PNGs)</td>
+            <td><code>d4850dd760dd</code></td>
+            <td><strong>Near pass visually, but failed the explosion floor.</strong><ul class="observed-list"><li>Controls, HUD, trajectory preview, projectile physics, and polish all scored full; the missing category was <code>explosion_gameplay</code> at 2/20.</li><li>Lost 18 explosion points: seeded trials did not credit nearby target damage, destructible damage, blast locality, player safety, or detonation effects; only throw calibration earned credit.</li><li>Screenshot aux was 10/10 with 144px debug and 1271px main footprints, so the deficit is gameplay damage/detonation behavior, not rendered visibility.</li></ul></td>
+          </tr>
+          <tr>
+            <td><code>agent-run/03-cc-sonnet</code></td>
+            <td>Claude Code Sonnet 5 medium</td>
+            <td>27 files, +405/-57</td>
+            <td><span class="score low">59/100</span></td>
+            <td><span class="score mid">6/10</span> (24 PNGs)</td>
+            <td><code>223356ab7172</code></td>
+            <td><strong>Lowest retained implementation; failed trajectory and explosion floors.</strong><ul class="observed-list"><li><code>trajectory_preview</code> was 9/30: the aid appeared, but did not communicate an arc, did not update, and could not be matched to projectile direction.</li><li><code>explosion_gameplay</code> was 0/20: throw calibration landed outside the accepted envelope, no seeded target/destructible damage was credited, and no detonation-effects or player-safety credit was earned.</li><li>Screenshot aux was 6/10: debug footprint was 36px, main footprint was 80px, and explosion evidence arrived late in debug at frame 120.</li></ul></td>
+          </tr>
+          <tr>
+            <td><code>agent-run/01-cc-opus</code></td>
+            <td>Claude Code Opus 4.8 max</td>
+            <td>24 files, +525/-51</td>
+            <td><span class="score mid">74/100</span></td>
+            <td><span class="score high">9/10</span> (13 PNGs)</td>
+            <td><code>075b9178f3e4</code></td>
+            <td><strong>Good visuals, but failed the trajectory floor.</strong><ul class="observed-list"><li>Lost 21 points in <code>trajectory_preview</code>: the aiming aid did not clearly communicate an arc, did not update with aim/camera, and therefore could not be matched to the projectile direction.</li><li><code>explosion_gameplay</code> lost 5 points: nearby target damage was only 3/5 and the damageable-only destructible probe was 0/3.</li><li>Screenshot aux was 9/10: the 64px debug footprint earned only partial debug credit, while the 252px main footprint and frame-50 explosions were strong.</li></ul></td>
+          </tr>
+          <tr>
+            <td><code>agent-run/02-cc-opus</code></td>
+            <td>Claude Code Opus 4.8 max</td>
+            <td>26 files, +536/-57</td>
+            <td><span class="score high">88/100</span></td>
+            <td><span class="score high">10/10</span> (13 PNGs)</td>
+            <td><code>9554e94d052f</code></td>
+            <td><strong>Formal pass and visual pass, with remaining partial-credit defects.</strong><ul class="observed-list"><li>Still lost 12 logic points: <code>trajectory_preview</code> missed preview/projectile direction consistency for 0/7, and <code>explosion_gameplay</code> lost 5 points.</li><li>Explosion deductions were partial nearby target damage at 3/5 and no damageable-only destructible damage at 0/3.</li><li>No pass-floor failures: trajectory stayed at 23/30, explosion stayed at 15/20, and screenshots were 10/10 with 182px debug and 1036px main footprints.</li></ul></td>
+          </tr>
+          <tr>
+            <td><code>agent-run/03-cc-opus</code></td>
+            <td>Claude Code Opus 4.8 max</td>
+            <td>23 files, +724/-59</td>
             <td><span class="score mid">80/100</span></td>
-            <td>Earlier verifier builds scored this run 43: its weapon switch takes effect slightly later than the tight input taps the weapon/HUD/projectile/polish checks used, so those categories never saw the grenade — a verifier timing artifact, not an agent defect. After harmonizing every category on the same weapon-switch input timing, those categories score fully. Real remaining defects: the aiming aid does not update with aim/camera direction (15/30) and the damageable-only destructible probes were not damaged (15/20).</td>
+            <td><span class="score high">10/10</span> (19 PNGs)</td>
+            <td><code>7e13eb8593f8</code></td>
+            <td><strong>Near pass; no floor failure, but total score stayed below 85.</strong><ul class="observed-list"><li><code>trajectory_preview</code> lost 15 points: the aid communicated an arc, but did not update with aim/camera, so projectile-direction consistency was not credited.</li><li><code>explosion_gameplay</code> lost 5 points for 3/5 nearby target damage and 0/3 damageable-only destructible damage.</li><li>Screenshot aux was 10/10 with 196px debug and 980px main footprints, so the miss is formal behavior coverage rather than visible projectile size.</li></ul></td>
           </tr>
           <tr>
-            <td>Sonnet 2</td>
-            <td>Claude Code, Sonnet 5 medium</td>
-            <td>5 modified, 5 added, 1 prompt-localized file removed. Added <code>grenade_projectile</code>, projectile scene, landing marker, and a grenade implementation plan.</td>
-            <td><span class="score mid">78/100</span></td>
-            <td>Strong partial run. It implemented switchable grenade attacks through a Tab-bound custom input action with a controller binding, projectile physics, localized damage, visual/audio feedback, and repeat use. Name-based scoring used to dock it 4 points for not naming the action <code>swap_weapons</code>; behavioral scoring now credits it. Real remaining defects: preview did not update with aim/camera direction, default throw landed at 13.20 units outside the preferred 6-12 band, and the damageable-only destructible probes were not damaged.</td>
+            <td><code>agent-run/01-codex</code></td>
+            <td>Codex GPT-5 xhigh</td>
+            <td>40 files, +525/-68</td>
+            <td><span class="score mid">73/100</span></td>
+            <td><span class="score mid">6/10</span> (17 PNGs)</td>
+            <td><code>5027154fb012</code></td>
+            <td><strong>Failed the trajectory floor and had partial explosion coverage.</strong><ul class="observed-list"><li><code>trajectory_preview</code> lost 21 points: the aiming aid appeared but did not communicate an arc, update with aim/camera, or match projectile direction.</li><li><code>explosion_gameplay</code> lost 6 points: throw distance was borderline at 13.38 units, nearby target damage was 3/5, and destructible-only damage was 1/3.</li><li>Screenshot aux was 6/10 because debug footprint was 36px and main-scene footprint was 56px; explosions were visible at frame 70 but the projectile footprint was too small.</li></ul></td>
           </tr>
           <tr>
-            <td>Sonnet 3</td>
-            <td>Claude Code, Sonnet 5 medium</td>
-            <td>0 code/resource changes relative to the ablated baseline; removed the localized task prompt file.</td>
-            <td><span class="score low">13/100</span></td>
-            <td>Real agent failure: no grenade trajectory, projectile, explosion gameplay, or polish behavior was implemented. The remaining points come from existing UI/default-player behavior that survived the ablation.</td>
+            <td><code>agent-run/02-codex</code></td>
+            <td>Codex GPT-5 xhigh</td>
+            <td>12 files, +577/-11</td>
+            <td><span class="score mid">75/100</span></td>
+            <td><span class="score mid">6/10</span> (5 PNGs)</td>
+            <td><code>151ae134255a</code></td>
+            <td><strong>Failed the trajectory floor; compact implementation left visual behavior too short-lived.</strong><ul class="observed-list"><li><code>trajectory_preview</code> was again 9/30 because the visible aid did not communicate arc, update with aim/camera, or match projectile direction.</li><li><code>explosion_gameplay</code> lost 4 points: nearby target damage was 3/5 and destructible-only damage was 1/3.</li><li>Screenshot aux was 6/10: only one visible debug frame and one visible main frame were captured, with 36px and 99px footprints before explosion at frame 10.</li></ul></td>
+          </tr>
+          <tr>
+            <td><code>agent-run/03-codex</code></td>
+            <td>Codex GPT-5 xhigh</td>
+            <td>40 files, +658/-76</td>
+            <td><span class="score high">100/100</span></td>
+            <td><span class="score mid">6/10</span> (19 PNGs)</td>
+            <td><code>5226a3467f38</code></td>
+            <td><strong>Anomalous failure case despite 100/100 formal logic.</strong><ul class="observed-list"><li>The formal rubric lost no logic points, but the report classification is failure because retained screenshot evidence contradicts a clean visual pass.</li><li>Screenshot aux lost 4 points: debug projectile footprint was 36px, below the 64px minimum, and main-scene footprint was only 72px for partial credit.</li><li>This run motivated the screenshot-analysis iteration: full formal score is not treated as final success when visual evidence or manual review says otherwise.</li></ul></td>
           </tr>
         </tbody>
       </table>
-      <p class="muted">Full run evidence is published on per-run branches. Each branch includes <code>evaluation/agent-runs/&lt;run&gt;/diff.patch</code>, <code>score.json</code>, <code>score-report.pdf</code>, <code>run-manifest.json</code>, the prompt given to the agent, and the verifier command/log.</p>
-      <table>
-        <thead>
-          <tr><th>Run family</th><th>Agent / model</th><th>Published branches</th><th>Branch-recorded scores</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Sonnet runs</td>
-            <td>Claude Code, Sonnet 5 medium</td>
-            <td><code>agent-run/01-cc-sonnet</code><br><code>agent-run/02-cc-sonnet</code><br><code>agent-run/03-cc-sonnet</code></td>
-            <td>77/100, 82/100, 59/100 in branch-captured score JSONs; current calibration scores shown above are 80/100, 78/100, and 13/100.</td>
-          </tr>
-          <tr>
-            <td>Opus runs</td>
-            <td>Claude Code, Opus 4.8 max</td>
-            <td><code>agent-run/01-cc-opus</code><br><code>agent-run/02-cc-opus</code><br><code>agent-run/03-cc-opus</code></td>
-            <td>74/100, 88/100, 80/100 in branch-captured score JSONs.</td>
-          </tr>
-          <tr>
-            <td>Codex runs</td>
-            <td>Codex, GPT-5.5 xhigh</td>
-            <td><code>agent-run/01-codex</code><br><code>agent-run/02-codex</code><br><code>agent-run/03-codex</code></td>
-            <td>73/100, 75/100, 100/100 in branch-captured score JSONs and PDF reports from the current verifier. The 100/100 record is report-classified as an anomalous failure, not a successful rollout, because later auxiliary screenshot evidence did not support a clean visual pass. Earlier Codex score records were erroneous and are not retained as evidence.</td>
-          </tr>
-        </tbody>
-      </table>
+      <p class="muted">Each retained run folder contains <code>score.json</code>, <code>score-report.pdf</code>, <code>screenshot-probe/result.json</code>, <code>diff.patch</code>, <code>run-manifest.json</code>, <code>grader-command.txt</code>, and <code>godot-verifier.log</code>. The summary table above is sourced from <code>evaluation/evidence/agent-runs-20260703-151656/verifier-score-summary.md</code>.</p>
     </section>
 
     <section>
