@@ -1,6 +1,7 @@
 param(
     [string]$Godot = "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe",
-    [string]$OutRoot = "$PSScriptRoot\artifacts\trajectory-shadow-calibration"
+    [string]$OutRoot = "$PSScriptRoot\artifacts\trajectory-shadow-calibration",
+    [string]$ProbeCandidateRoot = "$PSScriptRoot\artifacts\probe-candidates"
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,11 +11,18 @@ if (-not (Test-Path $Godot)) {
     throw "Godot 4.6 console executable not found at $Godot"
 }
 
+if (-not (Test-Path $ProbeCandidateRoot)) {
+    $mainVerifierProbeRoot = "C:\recent_project\roboblast-grenade-verifier\artifacts\probe-candidates"
+    if (Test-Path $mainVerifierProbeRoot) {
+        $ProbeCandidateRoot = $mainVerifierProbeRoot
+    }
+}
+
 $Cases = @(
     @{ Name = "reference"; Project = "C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\reference-main-complete" },
     @{ Name = "ablated"; Project = "C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\rollout-task\workspace" },
-    @{ Name = "fixed-trajectory"; Project = "$Verifier\artifacts\probe-candidates\fixed-trajectory" },
-    @{ Name = "damage-no-preview"; Project = "$Verifier\artifacts\probe-candidates\damage-no-preview" },
+    @{ Name = "fixed-trajectory"; Project = "$ProbeCandidateRoot\fixed-trajectory" },
+    @{ Name = "damage-no-preview"; Project = "$ProbeCandidateRoot\damage-no-preview" },
     @{ Name = "sonnet-3"; Project = "C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\run-03-cc-sonnet\workspace" },
     @{ Name = "high-score-codex"; Project = "C:\recent_project\godot-4-3d-third-person-controller-agent-runs-20260703-151656\run-03-codex\workspace" }
 )
