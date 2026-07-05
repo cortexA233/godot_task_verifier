@@ -53,3 +53,9 @@ _Avoid_: whole-frame similarity, grenade screenshot
 Artifacts and metrics that help a human inspect a run but do not directly award
 or remove formal grader points.
 _Avoid_: hidden score, unofficial penalty
+
+**Shadow visual evidence**:
+Auxiliary evidence that mirrors a possible future scoring rule by producing
+structured measurements, provisional findings, and calibration notes without
+changing the formal grader's score, category floors, or `passed` flag.
+_Avoid_: provisional official score, hidden penalty
