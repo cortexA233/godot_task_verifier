@@ -682,10 +682,8 @@
     <section>
       <h2>Reproduction Commands</h2>
       <div class="callout">
-        <strong>Verifier repository:</strong> the live local repo is
-        <a href="file:///C:/recent_project/roboblast-grenade-verifier/">C:\recent_project\roboblast-grenade-verifier</a>
-        (<a href="file:///C:/recent_project/roboblast-grenade-verifier/README.md">README</a>).
-        Future generated writeups should retain this repository link, the isolated-run skill workflow, and the complete grader command pattern below.
+        <strong>Verifier repository:</strong> use the operator's live verifier checkout for new runs.
+        Future generated writeups should retain this verifier-repository entry, the isolated-run skill workflow, the complete grader command pattern below, and the rule that docs must use placeholders instead of machine-specific local absolute paths.
       </div>
       <ol>
         <li>Set the verifier root, Godot 4.6 console executable, ablated project path, task prompt path, and a fresh run root.</li>
@@ -695,11 +693,11 @@
         <li>Run <code>run_grader.py</code> against the completed workspace, then run <code>collect-agent-run-evidence</code> again with the score JSON and exact grader command.</li>
         <li>Review <code>score.json</code>, <code>score-report.pdf</code>, <code>godot-verifier.log</code>, <code>diff.patch</code>, <code>run-manifest.json</code>, and any <code>screenshot-probe</code> outputs under <code>$RunRoot\evidence</code>.</li>
       </ol>
-      <div class="command">$Verifier = "C:\recent_project\roboblast-grenade-verifier"
-$Godot = "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe"
-$AblatedProject = "C:\path\to\codex-grenade-rollout-task"
+      <div class="command">$Verifier = "&lt;verifier-repo&gt;"
+$Godot = "&lt;godot-4.6-console-executable&gt;"
+$AblatedProject = "&lt;ablated-task-project&gt;"
 $TaskPrompt = "$AblatedProject\TASK_PROMPT.md"
-$RunRoot = "C:\path\to\agent-runs\run-01-cc-sonnet"
+$RunRoot = "&lt;agent-runs-root&gt;\run-01-cc-sonnet"
 
 python "$Verifier\skills\prepare-agent-run-workspace\scripts\setup_agent_run.py" `
   --source "$AblatedProject" `
@@ -734,7 +732,7 @@ python "$Verifier\skills\collect-agent-run-evidence\scripts\finalize_agent_run.p
   --score-json "$ScoreJson" `
   --grader-command "$GraderCommand"</div>
       <p>For reference, ablated-task, anti-cheat probe, or retained-run audits, use the same grader command pattern with the candidate project path and output names under <code>evaluation/evidence/</code>:</p>
-      <div class="command">$Verifier = "C:\recent_project\roboblast-grenade-verifier"
+      <div class="command">$Verifier = "&lt;verifier-repo&gt;"
 $Godot = "&lt;path-to-godot-4.6-console-executable&gt;"
 $Project = "&lt;path-to-candidate-or-probe-project&gt;"
 $OutJson = "$Verifier\artifacts\calibration-20260703-name-score.json"

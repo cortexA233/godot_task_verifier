@@ -252,7 +252,7 @@ the formal 0-100 score and every result marks `used_for_score: false`.
 ```powershell
 python "$Verifier\run_screenshot_probe.py" `
   --project "$Project" `
-  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
+  --godot "$Godot" `
   --out-dir "$Verifier\artifacts\screenshot-probe" `
   --mode both
 ```
@@ -325,12 +325,15 @@ are retained under
 
 The repository writeup for the assignment is `evaluation/writeup.html`.
 When refreshing or regenerating that HTML report, keep the reproduction section
-complete. It must include the local verifier repository link
-`C:\recent_project\roboblast-grenade-verifier`, the
+complete. It must include the verifier repository entry, the
 `prepare-agent-run-workspace` and `collect-agent-run-evidence` workflow, the
 full `run_grader.py` command with `--verifier-root`, `--pdf-report`, and
 `--log`, the operator/agent trust boundary, and the evidence files reviewers
-should inspect after a run.
+should inspect after a run. Do not write machine-specific local absolute paths
+in reviewer-facing docs, generated reports, README files, or AGENTS
+instructions; use repo-relative paths or placeholders such as
+`<verifier-repo>`, `<candidate-project>`,
+`<godot-4.6-console-executable>`, and `<agent-runs-root>`.
 
 ## Development
 

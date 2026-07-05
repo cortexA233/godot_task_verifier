@@ -11,7 +11,7 @@ workspace or rollout-agent prompt.
 
 ## How To Work Here
 
-- Use PowerShell commands from `C:\recent_project\roboblast-grenade-verifier`.
+- Use PowerShell commands from the verifier repository root.
 - Prefer `rg` / `rg --files` for searching.
 - Keep edits small, deterministic, and tied to the verifier behavior being
   changed.
@@ -23,6 +23,9 @@ workspace or rollout-agent prompt.
 - Use `apply_patch` for manual text edits.
 - Do not use destructive git commands unless the user explicitly asks for them.
 - Commit any verifier-repository changes in this repository after verification.
+- Do not add machine-specific local absolute paths to reviewer-facing docs,
+  generated reports, README files, or AGENTS instructions. Use repo-relative
+  paths or placeholders instead.
 
 ## Agent skills
 

@@ -41,6 +41,11 @@ solution hints into the ablated game repository.
 - Keep verifier changes scoped and reproducible. The grader should exercise
   real game behavior rather than checking for exact filenames, class names,
   node paths, or code shape.
+- Do not write machine-specific local absolute paths in reviewer-facing docs,
+  generated reports, README files, or AGENTS instructions. Use repo-relative
+  paths or placeholders such as `<verifier-repo>`,
+  `<candidate-project>`, `<godot-4.6-console-executable>`, and
+  `<agent-runs-root>`.
 - Maintain deterministic headless execution. Control timing, scene setup,
   target placement, input events, random seeds, viewport assumptions, and
   artifact paths where relevant.
@@ -79,20 +84,28 @@ Use a single-context layout: root `CONTEXT.md` plus root `docs/adr/` when they e
 Run the verifier against a candidate project:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
-  --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json
+$Verifier = "<verifier-repo>"
+$Project = "<candidate-project>"
+$Godot = "<godot-4.6-console-executable>"
+
+python "$Verifier\run_grader.py" `
+  --project "$Project" `
+  --godot "$Godot" `
+  --out "$Verifier\artifacts\score.json"
 ```
 
 Run with a PDF report:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\run_grader.py `
-  --project C:\path\to\candidate-project `
-  --godot "C:\Godot_v4.6\Godot_v4.6-stable_win64_console.exe" `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\score.json `
-  --pdf-report C:\recent_project\roboblast-grenade-verifier\artifacts\score-report.pdf
+$Verifier = "<verifier-repo>"
+$Project = "<candidate-project>"
+$Godot = "<godot-4.6-console-executable>"
+
+python "$Verifier\run_grader.py" `
+  --project "$Project" `
+  --godot "$Godot" `
+  --out "$Verifier\artifacts\score.json" `
+  --pdf-report "$Verifier\artifacts\score-report.pdf"
 ```
 
 Run unit tests:
@@ -104,15 +117,19 @@ python -m unittest discover -s tests
 Run calibration:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File C:\recent_project\roboblast-grenade-verifier\run_calibration.ps1
+$Verifier = "<verifier-repo>"
+powershell -NoProfile -ExecutionPolicy Bypass -File "$Verifier\run_calibration.ps1"
 ```
 
 Export a manual debug arena:
 
 ```powershell
-python C:\recent_project\roboblast-grenade-verifier\export_debug_arena.py `
-  --project C:\path\to\candidate-project `
-  --out C:\recent_project\roboblast-grenade-verifier\artifacts\debug-arena
+$Verifier = "<verifier-repo>"
+$Project = "<candidate-project>"
+
+python "$Verifier\export_debug_arena.py" `
+  --project "$Project" `
+  --out "$Verifier\artifacts\debug-arena"
 ```
 
 ## Verification Expectations
