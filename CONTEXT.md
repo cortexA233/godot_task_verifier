@@ -127,6 +127,13 @@ mask size, preview shape, preview movement, projectile agreement, and per-headin
 notes. They are calibration data, not formal score items.
 _Avoid_: hidden trajectory score, screenshot-only grade
 
+**Trajectory shadow calibration set**:
+A curated set of candidate projects used to tune and validate trajectory shadow
+metrics before any future scoring promotion. It should include known passing,
+ablated, missing-preview, fixed-trajectory, node-observation edge-case, and
+high-score anomaly examples.
+_Avoid_: rollout leaderboard, official benchmark set
+
 **Provisional visual verdict**:
 A human-readable shadow visual evidence conclusion, such as healthy, suspect, or
 missing, derived from trajectory shadow metrics without changing the formal
