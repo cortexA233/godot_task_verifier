@@ -1147,7 +1147,7 @@ class RunGraderTests(unittest.TestCase):
             self.assertLess(red, 96, result)
             self.assertGreater(green, 128, result)
 
-    def test_scene_probe_rejects_placeholder_projectile_meshes(self):
+    def test_scene_probe_scores_projectile_and_explosion_asset_quality(self):
         godot = find_godot()
         if godot is None:
             self.skipTest("Godot console executable is not available")
@@ -1167,13 +1167,14 @@ class RunGraderTests(unittest.TestCase):
                 func _init() -> void:
                     call_deferred("_run")
 
-                func _make_array_mesh() -> ArrayMesh:
+                func _make_array_mesh(extent: float = 0.5) -> ArrayMesh:
                     var mesh := ArrayMesh.new()
+                    var h := extent * 0.5
                     var vertices := PackedVector3Array([
-                        Vector3(-0.25, -0.15, -0.35),
-                        Vector3(0.25, -0.15, -0.35),
-                        Vector3(0.0, 0.2, -0.1),
-                        Vector3(0.0, -0.05, 0.35),
+                        Vector3(-h, -h, -h),
+                        Vector3(h, -h, -h),
+                        Vector3(0.0, h, -h * 0.5),
+                        Vector3(0.0, 0.0, h),
                     ])
                     var indices := PackedInt32Array([
                         0, 1, 2,
@@ -1188,38 +1189,70 @@ class RunGraderTests(unittest.TestCase):
                     mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
                     return mesh
 
-                func _add_visual(parent: Node3D, mesh: Mesh) -> MeshInstance3D:
+                func _add_mesh(parent: Node3D, mesh: Mesh, scale_value: float = 1.0) -> MeshInstance3D:
                     var visual := MeshInstance3D.new()
                     visual.mesh = mesh
+                    visual.scale = Vector3.ONE * scale_value
                     parent.add_child(visual)
                     return visual
 
                 func _run() -> void:
-                    var bad := Node3D.new()
-                    bad.name = "BadProjectile"
-                    root.add_child(bad)
-                    _add_visual(bad, SphereMesh.new())
+                    var bad_projectile := Node3D.new()
+                    bad_projectile.name = "BadProjectile"
+                    root.add_child(bad_projectile)
+                    _add_mesh(bad_projectile, SphereMesh.new())
 
-                    var good := Node3D.new()
-                    good.name = "GoodProjectile"
-                    root.add_child(good)
-                    _add_visual(good, _make_array_mesh())
+                    var good_projectile := Node3D.new()
+                    good_projectile.name = "GoodProjectile"
+                    root.add_child(good_projectile)
+                    _add_mesh(good_projectile, _make_array_mesh(0.5))
+
+                    var tiny_explosion := Node3D.new()
+                    tiny_explosion.name = "TinyExplosionVFX"
+                    root.add_child(tiny_explosion)
+                    _add_mesh(tiny_explosion, _make_array_mesh(0.02))
+
+                    var primitive_explosion := Node3D.new()
+                    primitive_explosion.name = "PrimitiveExplosionVFX"
+                    root.add_child(primitive_explosion)
+                    _add_mesh(primitive_explosion, SphereMesh.new(), 3.0)
+
+                    var good_explosion := Node3D.new()
+                    good_explosion.name = "GoodExplosionVFX"
+                    root.add_child(good_explosion)
+                    _add_mesh(good_explosion, _make_array_mesh(2.0))
 
                     var tracks := {}
-                    tracks[bad.get_instance_id()] = [Vector3.ZERO, Vector3(0.0, 0.2, -1.0)]
-                    tracks[good.get_instance_id()] = [Vector3.ZERO, Vector3(0.0, 0.2, -1.0)]
+                    tracks[bad_projectile.get_instance_id()] = [Vector3.ZERO, Vector3(0.0, 0.2, -1.0)]
+                    tracks[good_projectile.get_instance_id()] = [Vector3.ZERO, Vector3(0.0, 0.2, -1.0)]
 
-                    var bad_report: Dictionary = SceneProbe.grenade_projectile_visual_report([bad], tracks, 0.5, 0.1, 2.0)
-                    var good_report: Dictionary = SceneProbe.grenade_projectile_visual_report([good], tracks, 0.5, 0.1, 2.0)
+                    var bad_projectile_report: Dictionary = SceneProbe.grenade_projectile_visual_report([bad_projectile], tracks, 0.5, 0.1, 2.0)
+                    var good_projectile_report: Dictionary = SceneProbe.grenade_projectile_visual_report([good_projectile], tracks, 0.5, 0.1, 2.0)
+                    var tiny_explosion_report: Dictionary = SceneProbe.explosion_vfx_asset_quality_report([tiny_explosion], Vector3.ZERO, 0.5, 8.0)
+                    var primitive_explosion_report: Dictionary = SceneProbe.explosion_vfx_asset_quality_report([primitive_explosion], Vector3.ZERO, 0.5, 8.0)
+                    var good_explosion_report: Dictionary = SceneProbe.explosion_vfx_asset_quality_report([good_explosion], Vector3.ZERO, 0.5, 8.0)
+
                     var result := {
-                        "bad_has_model": bool(bad_report.get("has_model_visual", false)),
-                        "bad_notes": String(bad_report.get("notes", "")),
-                        "good_has_model": bool(good_report.get("has_model_visual", false)),
-                        "good_notes": String(good_report.get("notes", "")),
+                        "bad_projectile_score": int(bad_projectile_report.get("projectile_asset_quality_score", -1)),
+                        "bad_projectile_notes": String(bad_projectile_report.get("notes", "")),
+                        "good_projectile_score": int(good_projectile_report.get("projectile_asset_quality_score", -1)),
+                        "tiny_explosion_score": int(tiny_explosion_report.get("explosion_vfx_asset_quality_score", -1)),
+                        "primitive_explosion_score": int(primitive_explosion_report.get("explosion_vfx_asset_quality_score", -1)),
+                        "primitive_explosion_notes": String(primitive_explosion_report.get("notes", "")),
+                        "good_explosion_score": int(good_explosion_report.get("explosion_vfx_asset_quality_score", -1)),
                     }
                     var file := FileAccess.open("res://result.json", FileAccess.WRITE)
                     file.store_string(JSON.stringify(result))
-                    quit(0 if not result["bad_has_model"] and result["good_has_model"] else 1)
+                    var ok: bool = (
+                        result["bad_projectile_score"] == 2
+                        and result["bad_projectile_notes"].find("placeholder primitive") >= 0
+                        and result["good_projectile_score"] == 4
+                        and result["tiny_explosion_score"] == 3
+                        and result["primitive_explosion_score"] == 2
+                        and result["primitive_explosion_notes"].find("placeholder primitive") >= 0
+                        and result["good_explosion_score"] == 4
+                    )
+                    quit(0 if ok else 1)
                 """
             ), encoding="utf-8")
 
@@ -1240,9 +1273,13 @@ class RunGraderTests(unittest.TestCase):
 
             self.assertTrue((tmp_path / "result.json").exists(), completed.stdout + completed.stderr)
             result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
-            self.assertFalse(result["bad_has_model"], completed.stdout + completed.stderr)
-            self.assertIn("placeholder primitive", result["bad_notes"], completed.stdout + completed.stderr)
-            self.assertTrue(result["good_has_model"], completed.stdout + completed.stderr)
+            self.assertEqual(result["bad_projectile_score"], 2, completed.stdout + completed.stderr)
+            self.assertIn("placeholder primitive", result["bad_projectile_notes"], completed.stdout + completed.stderr)
+            self.assertEqual(result["good_projectile_score"], 4, completed.stdout + completed.stderr)
+            self.assertEqual(result["tiny_explosion_score"], 3, completed.stdout + completed.stderr)
+            self.assertEqual(result["primitive_explosion_score"], 2, completed.stdout + completed.stderr)
+            self.assertIn("placeholder primitive", result["primitive_explosion_notes"], completed.stdout + completed.stderr)
+            self.assertEqual(result["good_explosion_score"], 4, completed.stdout + completed.stderr)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
     def test_copy_candidate_project_excludes_git_and_godot_cache(self):

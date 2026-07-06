@@ -197,15 +197,31 @@ static func _capture_viewport_screenshot(viewport: Viewport) -> Dictionary:
 	}
 
 
-static func observe_runtime_activity(tree: SceneTree, root: Node, before: Dictionary, point: Vector3, radius: float, frame_count: int) -> Dictionary:
+static func observe_runtime_activity(
+	tree: SceneTree,
+	root: Node,
+	before: Dictionary,
+	point: Vector3,
+	radius: float,
+	frame_count: int,
+	vfx_min_extent: float = 0.5,
+	vfx_max_extent: float = 8.0
+) -> Dictionary:
 	var visible_ids := {}
 	var saw_audio := false
+	var best_explosion_vfx_score := 0
+	var best_explosion_vfx_notes := ""
 	for _i in range(frame_count):
 		for node in new_nodes_since(root, before):
 			if node is Node3D:
 				var node_3d := node as Node3D
 				if node_3d.visible and node_3d.global_position.distance_to(point) <= radius:
 					visible_ids[node_3d.get_instance_id()] = true
+					var vfx_report := explosion_vfx_asset_quality_report([node_3d], point, vfx_min_extent, vfx_max_extent)
+					var vfx_score := int(vfx_report.get("explosion_vfx_asset_quality_score", 0))
+					if vfx_score > best_explosion_vfx_score:
+						best_explosion_vfx_score = vfx_score
+						best_explosion_vfx_notes = String(vfx_report.get("notes", ""))
 		if audio_players_playing(root).size() > 0:
 			saw_audio = true
 		await tree.physics_frame
@@ -217,6 +233,8 @@ static func observe_runtime_activity(tree: SceneTree, root: Node, before: Dictio
 		"visible_count": visible_ids.size(),
 		"remaining_visible_count": remaining_visible_count,
 		"saw_audio": saw_audio,
+		"explosion_vfx_asset_quality_score": best_explosion_vfx_score,
+		"explosion_vfx_notes": best_explosion_vfx_notes,
 	}
 
 
@@ -367,6 +385,10 @@ static func grenade_projectile_visual_report(
 				continue
 			accepted_count += 1
 			inspected_notes.append("%s has non-placeholder projectile mesh %s, extent %.2f" % [str(mesh_instance.get_path()), mesh_class, max_extent])
+	var has_visible_model := mesh_count > 0
+	var has_non_placeholder_asset := accepted_count > 0 or (mesh_count > 0 and placeholder_count <= 0 and reused_asset_count <= 0)
+	var has_plausible_scale := accepted_count > 0 or (mesh_count > 0 and bad_size_count <= 0)
+	var quality_score := _presentation_asset_quality_score(has_visible_model, has_non_placeholder_asset, has_plausible_scale)
 	var notes := ""
 	if accepted_count > 0:
 		notes = "moving grenade projectile carries a visible non-placeholder model"
@@ -384,6 +406,10 @@ static func grenade_projectile_visual_report(
 		notes += ": " + "; ".join(inspected_notes.slice(0, 3))
 	return {
 		"has_model_visual": accepted_count > 0,
+		"has_visible_model": has_visible_model,
+		"has_non_placeholder_asset": has_non_placeholder_asset,
+		"has_plausible_scale": has_plausible_scale,
+		"projectile_asset_quality_score": quality_score,
 		"moving_projectile_count": moving_projectile_count,
 		"visible_mesh_count": mesh_count,
 		"accepted_mesh_count": accepted_count,
@@ -392,6 +418,81 @@ static func grenade_projectile_visual_report(
 		"bad_size_count": bad_size_count,
 		"notes": notes,
 	}
+
+
+static func explosion_vfx_asset_quality_report(
+	candidates: Array[Node3D],
+	origin: Vector3,
+	min_visual_extent: float = 0.5,
+	max_visual_extent: float = 8.0
+) -> Dictionary:
+	var visible_count := 0
+	var placeholder_count := 0
+	var reused_asset_count := 0
+	var plausible_extent_count := 0
+	var non_placeholder_count := 0
+	var inspected_notes: Array[String] = []
+	for candidate in candidates:
+		if not is_instance_valid(candidate):
+			continue
+		if not candidate.visible:
+			continue
+		if candidate.global_position.distance_to(origin) > max_visual_extent * 2.0:
+			continue
+		var child_meshes := visible_mesh_instances_under(candidate)
+		if _node_is_particle_vfx(candidate):
+			visible_count += 1
+			non_placeholder_count += 1
+			var particle_extent := _node3d_visual_extent(candidate)
+			if particle_extent >= min_visual_extent and particle_extent <= max_visual_extent:
+				plausible_extent_count += 1
+			inspected_notes.append("%s uses particle explosion VFX, extent %.2f" % [str(candidate.get_path()), particle_extent])
+		for mesh_instance in child_meshes:
+			visible_count += 1
+			var mesh := mesh_instance.mesh
+			var mesh_class := mesh.get_class()
+			var max_extent := _mesh_max_world_extent(mesh_instance)
+			if max_extent >= min_visual_extent and max_extent <= max_visual_extent:
+				plausible_extent_count += 1
+			if _mesh_is_placeholder_primitive(mesh):
+				placeholder_count += 1
+				inspected_notes.append("%s uses placeholder primitive %s" % [str(mesh_instance.get_path()), mesh_class])
+				continue
+			if _mesh_uses_reused_explosion_asset(mesh_instance):
+				reused_asset_count += 1
+				inspected_notes.append("%s appears to reuse non-explosion asset %s" % [str(mesh_instance.get_path()), _mesh_resource_path(mesh_instance)])
+				continue
+			non_placeholder_count += 1
+			inspected_notes.append("%s has non-placeholder explosion visual %s, extent %.2f" % [str(mesh_instance.get_path()), mesh_class, max_extent])
+	var has_visible_vfx := visible_count > 0
+	var has_non_placeholder_asset := non_placeholder_count > 0
+	var has_plausible_footprint := plausible_extent_count > 0
+	var score := _presentation_asset_quality_score(has_visible_vfx, has_non_placeholder_asset, has_plausible_footprint)
+	var notes := "explosion VFX asset quality score %d/4" % score
+	if not inspected_notes.is_empty():
+		notes += ": " + "; ".join(inspected_notes.slice(0, 3))
+	return {
+		"has_visible_vfx": has_visible_vfx,
+		"has_non_placeholder_asset": has_non_placeholder_asset,
+		"has_plausible_footprint": has_plausible_footprint,
+		"visible_vfx_count": visible_count,
+		"placeholder_mesh_count": placeholder_count,
+		"reused_asset_count": reused_asset_count,
+		"plausible_extent_count": plausible_extent_count,
+		"explosion_vfx_asset_quality_score": score,
+		"notes": notes,
+	}
+
+
+static func _presentation_asset_quality_score(has_visible: bool, has_non_placeholder_asset: bool, has_plausible_footprint: bool) -> int:
+	var score := 0
+	if has_visible:
+		score += 1
+	if has_non_placeholder_asset:
+		score += 2
+	if has_plausible_footprint:
+		score += 1
+	return score
 
 
 static func _mesh_instance_is_visible(mesh_instance: MeshInstance3D) -> bool:
@@ -411,6 +512,17 @@ static func _mesh_max_world_extent(mesh_instance: MeshInstance3D) -> float:
 		absf(aabb.size.z * scale.z)
 	)
 	return maxf(size.x, maxf(size.y, size.z))
+
+
+static func _node3d_visual_extent(node_3d: Node3D) -> float:
+	if node_3d is MeshInstance3D:
+		return _mesh_max_world_extent(node_3d as MeshInstance3D)
+	var scale := node_3d.global_transform.basis.get_scale()
+	return maxf(absf(scale.x), maxf(absf(scale.y), absf(scale.z)))
+
+
+static func _node_is_particle_vfx(node: Node) -> bool:
+	return node is GPUParticles3D or node is CPUParticles3D
 
 
 static func _mesh_resource_path(mesh_instance: MeshInstance3D) -> String:
@@ -455,6 +567,23 @@ static func _mesh_uses_reused_projectile_asset(mesh_instance: MeshInstance3D) ->
 		"reticle",
 		"explosion",
 		"smoke",
+	]
+	for token in rejected_tokens:
+		if text.find(token) >= 0:
+			return true
+	return false
+
+
+static func _mesh_uses_reused_explosion_asset(mesh_instance: MeshInstance3D) -> bool:
+	var text := _mesh_context_text(mesh_instance)
+	var rejected_tokens := [
+		"bullet",
+		"coin",
+		"gdbot",
+		"player/model",
+		"trajectory",
+		"target",
+		"reticle",
 	]
 	for token in rejected_tokens:
 		if text.find(token) >= 0:
