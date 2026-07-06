@@ -1,9 +1,9 @@
 # Anti-Cheat Probe Fixtures
 
-This folder stores the fake-candidate test cases used by the anti-cheat probe
-matrix. The repository keeps compact overlays instead of six full Godot project
-copies. This avoids committing hundreds of megabytes of repeated assets while
-still keeping the probe definitions versioned with the verifier.
+This folder stores the fake-candidate overlay test cases used by the anti-cheat
+probe matrix. The repository keeps compact overlays instead of full Godot
+project copies. This avoids committing hundreds of megabytes of repeated assets
+while still keeping the probe definitions versioned with the verifier.
 
 ## Cases
 
@@ -13,12 +13,11 @@ still keeping the probe definitions versioned with the verifier.
 - `single-use`: one grenade can be thrown, repeat use fails.
 - `fixed-trajectory`: grenade behavior ignores aim direction.
 - `bad-distance`: default throw distance is far outside the accepted envelope.
-- `wrong-projectile-model`: replaces an otherwise complete grenade visual scene
-  with a placeholder `SphereMesh` to prove model-only defects lose visual model
-  credit and fail the visual floor.
 
-The observed score JSONs for these cases are committed under
-`evaluation/evidence/`.
+The global targetable damage sweep probe is maintained as a separate full
+candidate project rather than an overlay. The historical wrong-projectile-model
+score JSON remains under `evaluation/evidence/`, but that probe overlay has
+been retired and is no longer materialized by this folder.
 
 ## Materialize Runnable Projects
 

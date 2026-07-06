@@ -122,6 +122,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn('"projectile_physics": 8', board_source)
         self.assertIn('"explosion_gameplay": 10', board_source)
         self.assertIn('"visual_audio_polish": 5', board_source)
+        self.assertIn('"stability_repeatability": 5', board_source)
         self.assertIn("failed_category_floors", board_source)
         self.assertIn("floor_failures.is_empty()", board_source)
         self.assertIn('"category_floor_failures": floor_failures', board_source)

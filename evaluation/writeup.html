@@ -379,7 +379,7 @@
       <div class="metric status-good">
         <b>7</b>
         <span>Active anti-cheat probes</span>
-        <small>All seven observed fake candidates stay below score >= 85.</small>
+        <small>Six stay below score >= 85; single-use scores 90 but fails the stability floor.</small>
       </div>
     </div>
 
@@ -457,7 +457,7 @@
 
     <section>
       <h2>Calibration And Scores</h2>
-      <p>Most numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier version used for that calibration pass. The presentation-fidelity rubric keeps the global-damage sweep cap, scores weapon-switch input behaviorally instead of by action name, and defines <code>passed</code> as <code>score >= 85</code> plus pass floors in the core gameplay categories (<code>trajectory_preview >= 11</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>) and the visual presentation category (<code>visual_audio_polish >= 5</code>). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
+      <p>Most verifier and active-probe numbers are from fresh local Godot 4.6 verifier runs on 2026-07-06 with <code>4.6.stable.official.89cea1439</code>. The presentation-fidelity rubric keeps the global-damage sweep cap, scores weapon-switch input behaviorally instead of by action name, and defines <code>passed</code> as <code>score >= 85</code> plus pass floors in the core gameplay categories (<code>trajectory_preview >= 11</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>), the visual presentation category (<code>visual_audio_polish >= 5</code>), and repeatability/integration (<code>stability_repeatability >= 5</code>). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
       <table>
         <thead>
           <tr><th>Candidate</th><th>Score</th><th>Observed</th><th>Evidence path</th></tr>
@@ -465,15 +465,15 @@
         <tbody>
           <tr>
             <td>Reference complete implementation</td>
-            <td><span class="score high">91/100</span></td>
-            <td><div class="bar"><span class="good" style="width:91%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-reference-score.json</code></td>
+            <td><span class="score high">93/100</span></td>
+            <td><div class="bar"><span class="good" style="width:93%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-reference-score.json</code></td>
           </tr>
           <tr>
             <td>Ablated task workspace</td>
-            <td><span class="score low">13/100</span></td>
-            <td><div class="bar"><span class="bad" style="width:13%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-ablated-score.json</code></td>
+            <td><span class="score low">11/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:11%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-ablated-score.json</code></td>
           </tr>
           <tr>
             <td>Claude Code Sonnet 5 medium run 1</td>
@@ -513,50 +513,50 @@
           </tr>
           <tr>
             <td>Fake broad/global damage probe (capped)</td>
-            <td><span class="score mid">78/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-global-damage-score.json</code></td>
+            <td><span class="score mid">80/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:80%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-global-damage-score.json</code></td>
           </tr>
           <tr>
             <td>Fake HUD-only probe</td>
-            <td><span class="score low">19/100</span></td>
-            <td><div class="bar"><span class="bad" style="width:19%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-hud-only-score.json</code></td>
+            <td><span class="score low">17/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:17%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-hud-only-score.json</code></td>
           </tr>
           <tr>
             <td>Fake visual-only/no-damage probe</td>
-            <td><span class="score low">34/100</span></td>
-            <td><div class="bar"><span class="bad" style="width:34%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-visual-no-damage-score.json</code></td>
+            <td><span class="score low">33/100</span></td>
+            <td><div class="bar"><span class="bad" style="width:33%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-visual-no-damage-score.json</code></td>
           </tr>
           <tr>
             <td>Fake damage-without-preview probe</td>
-            <td><span class="score mid">54/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:54%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-damage-no-preview-score.json</code></td>
+            <td><span class="score mid">78/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:78%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-damage-no-preview-score.json</code></td>
           </tr>
           <tr>
             <td>Fake single-use grenade probe</td>
-            <td><span class="score mid">75/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:75%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-single-use-score.json</code></td>
+            <td><span class="score high">90/100</span></td>
+            <td><div class="bar"><span class="good" style="width:90%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-single-use-score.json</code></td>
           </tr>
           <tr>
             <td>Fake fixed-trajectory probe</td>
-            <td><span class="score mid">65/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:65%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-fixed-trajectory-score.json</code></td>
+            <td><span class="score mid">57/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:57%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-fixed-trajectory-score.json</code></td>
           </tr>
           <tr>
             <td>Fake bad-distance probe</td>
-            <td><span class="score mid">50/100</span></td>
-            <td><div class="bar"><span class="warn" style="width:50%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260703-probe-bad-distance-score.json</code></td>
+            <td><span class="score mid">58/100</span></td>
+            <td><div class="bar"><span class="warn" style="width:58%"></span></div></td>
+            <td><code>evaluation/evidence/calibration-20260706-probe-bad-distance-score.json</code></td>
           </tr>
         </tbody>
       </table>
       <div class="callout">
-        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional low-score fake candidates cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven active fake candidates stay below the score >= 85 pass line.
+        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 80/100 and <code>passed: false</code>. Six additional fake candidates cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; six active probes stay below the score >= 85 pass line, and the single-use probe scores 90/100 but records <code>passed: false</code> because <code>stability_repeatability</code> is 4/5 and fails the stability floor.
       </div>
       <div class="callout warn">
         <strong>Full-score anomaly:</strong> Codex GPT-5.5 xhigh run 3 remains recorded as a formal 100/100 score JSON, but the final report classifies that record as an anomalous failure case because auxiliary screenshot evidence did not support a clean visual pass. Future generated writeups must keep formal score facts separate from report classification and group contradicted full-score runs with failure analysis.
@@ -664,9 +664,9 @@
         </div>
         <div class="panel">
           <h3>Probes Actually Run</h3>
-          <p><span class="tag good">global damage capped at 78</span></p>
-          <p><span class="tag good">HUD-only 19</span> <span class="tag good">visual-only 34</span> <span class="tag good">no-preview damage 54</span> <span class="tag good">single-use 75</span> <span class="tag good">fixed trajectory 65</span> <span class="tag good">bad distance 50</span></p>
-          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The strongest low-score fake lands at 78/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage. Presentation-fidelity checks now penalize placeholder projectile and explosion VFX assets through <code>visual_audio_polish</code> without making a model-only defect an automatic pass blocker.</p>
+          <p><span class="tag good">global damage capped at 80</span> <span class="tag good">single-use 90/floor fail</span></p>
+          <p><span class="tag good">HUD-only 17</span> <span class="tag good">visual-only 33</span> <span class="tag good">no-preview damage 78</span> <span class="tag good">fixed trajectory 57</span> <span class="tag good">bad distance 58</span></p>
+          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The global sweep fake lands at 80/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage. The single-use fake lands above the numeric line at 90/100, but <code>stability_repeatability >= 5</code> blocks <code>passed</code>. Presentation-fidelity checks now penalize placeholder projectile and explosion VFX assets through <code>visual_audio_polish</code> without making a model-only defect an automatic pass blocker.</p>
         </div>
         <div class="panel">
           <h3>Deferred Work</h3>
@@ -699,7 +699,7 @@
           </tr>
           <tr>
             <td>Verifier accepts reward hacking</td>
-            <td>Seven representative fake candidates are observed, and all seven stay below the numeric pass line. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
+            <td>Seven representative fake candidates are observed: six stay below the numeric pass line, and single-use is blocked by the stability floor despite scoring above the numeric line. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
             <td><span class="tag good">Representative validation</span></td>
           </tr>
         </tbody>

@@ -119,8 +119,9 @@ The `passed` flag is a reporting convenience. It currently requires
 `score >= 85` plus half-credit floors in the core gameplay categories:
 `trajectory_preview >= 11`, `projectile_physics >= 8`, and
 `explosion_gameplay >= 10`, plus a conservative visual presentation floor of
-`visual_audio_polish >= 5`. The primary benchmark signal is the 0-100 score and
-category breakdown.
+`visual_audio_polish >= 5` and a repeatability/integration floor of
+`stability_repeatability >= 5`. The primary benchmark signal is the 0-100 score
+and category breakdown.
 
 The score JSON can also include a soft `suspect` flag with `suspect_reasons`
 for manual review. Suspect conditions include global damage sweeps, damaged
@@ -312,20 +313,20 @@ This script reruns the ablated and reference checks. The probe and rollout rows
 below are curated evidence produced by the probe materializer and agent-run
 evidence workflows, not by `run_calibration.ps1` alone.
 
-Latest local calibration was recorded on 2026-07-03 with Godot
+Latest local calibration was recorded on 2026-07-06 with Godot
 `4.6.stable.official.89cea1439` and the `score >= 85` pass line.
 
 | Candidate or probe | Score | Result |
 | --- | ---: | --- |
-| Ablated task branch `codex/grenade-rollout-task` at `fb0fd4f` | 13/100 | Fails as expected. |
-| Reference `main` at `1cf08f7` | 91/100 | Passes. |
-| Global targetable sweep probe at `14310ca` | 78/100 | Fails; `explosion_gameplay` capped to 4/20. |
-| HUD-only probe | 19/100 | Caught. |
-| Visual-only/no-damage probe | 34/100 | Caught. |
-| Damage-without-preview probe | 54/100 | Caught. |
-| Fixed-trajectory probe | 65/100 | Caught. |
-| Bad-distance probe | 50/100 | Caught. |
-| Single-use probe | 75/100 | Caught. |
+| Ablated task branch `codex/grenade-rollout-task` at `fb0fd4f` | 11/100 | Fails as expected. |
+| Reference `main` at `1cf08f7` | 93/100 | Passes. |
+| Global targetable sweep probe at `14310ca` | 80/100 | Fails; `explosion_gameplay` capped to 4/20 and `suspect: true`. |
+| HUD-only probe | 17/100 | Caught. |
+| Visual-only/no-damage probe | 33/100 | Caught. |
+| Damage-without-preview probe | 78/100 | Caught by the trajectory floor. |
+| Fixed-trajectory probe | 57/100 | Caught. |
+| Bad-distance probe | 58/100 | Caught. |
+| Single-use probe | 90/100 | `passed: false`; `stability_repeatability` floor catches one-shot grenade behavior. |
 | Historical wrong-projectile-model overlay evidence | 98/100 | Retained as pre-reweighting evidence only; the active probe set no longer includes this high-scoring model-only probe. |
 
 Curated calibration, probe, and replacement Codex rollout score evidence lives

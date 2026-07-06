@@ -143,18 +143,20 @@ The `passed` flag currently uses `score >= 85` as a report convenience, and it
 additionally requires at least half credit in each core gameplay category:
 `trajectory_preview >= 11/22`, `projectile_physics >= 8/15`, and
 `explosion_gameplay >= 10/20`, plus a conservative visual presentation floor of
-`visual_audio_polish >= 5/15`. The score JSON records the threshold in
+`visual_audio_polish >= 5/15` and a repeatability/integration floor of
+`stability_repeatability >= 5/5`. The score JSON records the threshold in
 `pass_threshold` and lists any floor misses in `category_floor_failures`, so a
 candidate cannot pass by stacking supporting-category points while a core
-category or required visual presentation stays badly broken. The primary
-benchmark signal is the 0-100 score and category breakdown. The numeric pass
-line still sits between the strongest observed low-score near-miss probe (the
-capped global targetable sweep at `78/100`) and the reference implementation
-(`91/100`). Any scoring or calibration change must re-run the global-sweep
-probe and any affected visual or damage probe before publishing updated
-evidence. A reference score below 100 should be inspected as either reference
-incompleteness or a possible verifier false negative; it is not proof that the
-verifier is perfect.
+category, required visual presentation, or repeated-use/integration behavior
+stays badly broken. The primary benchmark signal is the 0-100 score and
+category breakdown. The 2026-07-06 active probe refresh has six probes below the
+numeric `score >= 85` line, a single-use probe at `90/100` blocked by the
+`stability_repeatability` floor, and the reference implementation passing at
+`93/100`. Any scoring or calibration change must re-run the global-sweep probe
+and any affected visual, repeatability, or damage probe before publishing
+updated evidence. A reference score below 100 should be inspected as either
+reference incompleteness or a possible verifier false negative; it is not proof
+that the verifier is perfect.
 
 The score JSON also carries a soft `suspect` flag with `suspect_reasons`.
 Global damage sweeps, damaged far/side/rear safety targets, and player
@@ -200,7 +202,8 @@ Observed column and keep the score JSON as curated evidence under
 - the reference behavior scores high
 - representative HUD-only, visual-only, no-preview damage, fixed or wrong
   trajectory, global targetable sweep, borderline throw-distance, and
-  single-use implementations do not pass
+  single-use implementations do not pass; single-use is a deliberate
+  high-score floor-fail case because repeated use is required behavior
 - deferred direct all-target damage, player-self-damage, one-angle/one-distance
   blast, distant-target damage, and default-weapon regression rows are
   explicitly documented in `probe_matrix.md` rather than treated as silent
