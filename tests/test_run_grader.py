@@ -33,7 +33,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("_score_detail(", runner_source)
         self.assertIn('"Projectile spawned"', runner_source)
         self.assertIn('"Nearby target damage across angles"', runner_source)
-        self.assertIn('"Detonation effects across angles"', runner_source)
+        self.assertNotIn('"Detonation effects across angles"', runner_source)
 
     def test_explosion_gameplay_uses_multiple_out_of_range_safety_targets(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -118,10 +118,10 @@ class RunGraderTests(unittest.TestCase):
         board_source = (ROOT / "verifier_godot" / "__verifier__" / "score_board.gd").read_text(encoding="utf-8")
 
         self.assertIn("PASS_THRESHOLD := 85", board_source)
-        self.assertIn('"trajectory_preview": 15', board_source)
+        self.assertIn('"trajectory_preview": 11', board_source)
         self.assertIn('"projectile_physics": 8', board_source)
         self.assertIn('"explosion_gameplay": 10', board_source)
-        self.assertIn('"visual_audio_polish": 4', board_source)
+        self.assertIn('"visual_audio_polish": 5', board_source)
         self.assertIn("failed_category_floors", board_source)
         self.assertIn("floor_failures.is_empty()", board_source)
         self.assertIn('"category_floor_failures": floor_failures', board_source)
@@ -219,25 +219,49 @@ class RunGraderTests(unittest.TestCase):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
         self.assertIn('board.add("weapon_controls", _detail_score(details), 15', runner_source)
-        self.assertIn('board.add("hud_feedback", _detail_score(details), 10', runner_source)
-        self.assertIn('board.add("trajectory_preview", _detail_score(details), 30', runner_source)
+        self.assertIn('board.add("hud_feedback", _detail_score(details), 8', runner_source)
+        self.assertIn('board.add("trajectory_preview", _detail_score(details), 22', runner_source)
         self.assertIn('board.add("projectile_physics", _detail_score(details), 15', runner_source)
         self.assertIn('board.add("explosion_gameplay", capped_score, 20', runner_source)
         self.assertIn("_explosion_gameplay_score_cap", runner_source)
-        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 15', runner_source)
         self.assertIn('board.add("stability_repeatability", _detail_score(details), 5', runner_source)
+
+    def test_hud_feedback_uses_reweighted_supporting_details(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"Visible UI controls",\n\t\t2,', runner_source)
+        self.assertIn('_detail("Weapon-switch UI state", 4, 4', runner_source)
+        self.assertIn('"Aiming UI feedback",\n\t\t2,', runner_source)
 
     def test_trajectory_preview_uses_quality_gates_and_consistency_detail(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
         self.assertIn('"Visible grenade aiming aid"', runner_source)
+        self.assertIn('"Visible grenade aiming aid",\n\t\t4,', runner_source)
         self.assertIn('"Communicates arcing throw"', runner_source)
+        self.assertIn('_detail("Communicates arcing throw", 0, 4', runner_source)
+        self.assertIn('"Communicates arcing throw",\n\t\t4,', runner_source)
         self.assertIn('"Updates with aim/camera direction"', runner_source)
+        self.assertIn('"Updates with aim/camera direction",\n\t\t6,', runner_source)
         self.assertIn('"Preview matches projectile direction"', runner_source)
+        self.assertIn('_detail("Preview matches projectile direction", 6, 6', runner_source)
         self.assertIn('"Visibility lifecycle/cooldown behavior"', runner_source)
+        self.assertIn('_detail("Visibility lifecycle/cooldown behavior", 0, 2', runner_source)
+        self.assertIn('"Visibility lifecycle/cooldown behavior",\n\t\t2,', runner_source)
         self.assertIn("trajectory details gated because no visible aiming aid was observed", runner_source)
         self.assertIn("consistency not credited because aiming aid did not update", runner_source)
         self.assertIn("SceneProbe.directions_match", runner_source)
+
+    def test_explosion_gameplay_moves_visual_effect_weight_to_blast_locality(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertNotIn('"Detonation effects across angles"', runner_source)
+        self.assertIn('"Nearby target damage across angles",\n\t\tnearby_score,\n\t\t5,', runner_source)
+        self.assertIn('"Nearby destructible damage across angles",\n\t\tdestructible_score,\n\t\t3,', runner_source)
+        self.assertIn('"Blast locality across angles",\n\t\tlocality_score,\n\t\t8,', runner_source)
+        self.assertIn('"Player safety across angles",\n\t\tplayer_score,\n\t\t2,', runner_source)
+        self.assertIn('"Throw distance calibration quality",\n\t\tcalibration_quality_score,\n\t\t2,', runner_source)
 
     def test_scene_probe_has_trajectory_direction_helpers(self):
         probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
@@ -256,7 +280,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("frame_signature_delta", probe_source)
         self.assertIn("save_viewport_screenshot", probe_source)
         self.assertIn('DisplayServer.get_name() == "headless"', probe_source)
-        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 5', runner_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 15', runner_source)
 
     def test_screenshot_probe_captures_every_ten_frames_until_explosion(self):
         probe_runner = ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd"
@@ -340,12 +364,26 @@ class RunGraderTests(unittest.TestCase):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
         probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
 
-        self.assertIn('"Thrown grenade model"', runner_source)
+        self.assertIn('"Thrown grenade model asset quality"', runner_source)
         self.assertIn("grenade_projectile_visual_report", runner_source)
         self.assertIn("PROJECTILE_VISUAL_MIN_EXTENT", runner_source)
         self.assertIn("grenade_projectile_visual_report", probe_source)
         self.assertIn("_mesh_is_placeholder_primitive", probe_source)
         self.assertIn("_mesh_uses_reused_projectile_asset", probe_source)
+
+    def test_visual_audio_polish_scores_asset_quality_without_hard_blocking_placeholders(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+        probe_source = (ROOT / "verifier_godot" / "__verifier__" / "scene_probe.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"Thrown grenade model asset quality"', runner_source)
+        self.assertIn('"Explosion VFX asset quality"', runner_source)
+        self.assertIn('"Detonation visual timing/location"', runner_source)
+        self.assertIn('"Detonation audio"', runner_source)
+        self.assertIn('"Temporary visual cleanup"', runner_source)
+        self.assertIn('"Presentation consistency across trials"', runner_source)
+        self.assertIn("projectile_asset_quality_score", probe_source)
+        self.assertIn("explosion_vfx_asset_quality_score", probe_source)
+        self.assertIn("_presentation_asset_quality_score", probe_source)
 
     def test_runner_declares_main_scene_integration_smoke_check(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
