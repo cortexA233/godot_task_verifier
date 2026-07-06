@@ -6,8 +6,9 @@ verifier for the RoboBlast grenade weapon task.
 ## Language
 
 **Formal grader**:
-The deterministic headless verifier path that produces the official 0-100 score
-and `passed` flag for a candidate project.
+The deterministic unattended verifier path that produces the official 0-100
+score and `passed` flag for a candidate project. It may require a render-capable
+Godot display mode when formal screenshot evidence is part of the score.
 _Avoid_: official screenshot runner, visual grader
 
 **Gameplay communication**:
@@ -42,10 +43,10 @@ over-broad damage. It is core explosion behavior, not presentation fidelity.
 _Avoid_: explosion visual size, effect polish
 
 **Screenshot probe**:
-An auxiliary render-capable verifier run that captures viewport images and
-visual metrics as evidence. It can fail, skip, or be unavailable without changing
-the formal grader's score.
-_Avoid_: formal visual score, screenshot grader
+A render-capable verifier run that captures viewport images and visual metrics.
+Its evidence may be auxiliary or may feed a formal presentation-fidelity score,
+depending on the current grading contract.
+_Avoid_: screenshot grader
 
 **Debug arena visual run**:
 A screenshot probe mode that instantiates the verifier-owned deterministic arena
@@ -141,10 +142,25 @@ The projectile's screen-space visual presence before detonation, measured by a
 projected rectangle and local pixel activity around the moving projectile.
 _Avoid_: whole-frame similarity, grenade screenshot
 
+**Projectile footprint size band**:
+The formal presentation-fidelity range for a rendered grenade projectile's
+screen-space footprint. Too-small projectiles lose credit strictly, while
+too-large projectiles lose credit only when the oversize footprint persists
+across frames or controlled views.
+_Avoid_: projectile world scale, single-frame close-camera failure
+
 **Auxiliary evidence**:
 Artifacts and metrics that help a human inspect a run but do not directly award
 or remove formal grader points.
 _Avoid_: hidden score, unofficial penalty
+
+**Render-backed presentation evidence**:
+Screenshot-derived evidence used by the formal grader to evaluate whether
+grenade visuals are actually visible and readable at an appropriate screen-space
+footprint in a rendered viewport as part of presentation fidelity. Footprints
+that are too small to read or too large for grenade-scale feedback should both
+lose credit.
+_Avoid_: auxiliary screenshot score, separate visual score
 
 **Historical probe evidence**:
 Retained score artifacts from a previous verifier calibration point that are no

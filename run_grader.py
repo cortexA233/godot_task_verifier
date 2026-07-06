@@ -39,9 +39,22 @@ def _run_command(command: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(command, text=True, capture_output=True, check=False, encoding="utf-8", errors="replace")
 
 
-def run_godot(godot: Path, godot_args: list[str], project_copy: Path, log_path: Path) -> subprocess.CompletedProcess:
+def run_godot(
+    godot: Path,
+    godot_args: list[str],
+    project_copy: Path,
+    log_path: Path,
+    render_mode: str = "windowed",
+    verifier_args: list[str] | None = None,
+) -> subprocess.CompletedProcess:
+    verifier_args = verifier_args or []
     import_command = [str(godot), *godot_args, "--headless", "--path", str(project_copy), "--import"]
-    script_command = [str(godot), *godot_args, "--headless", "--path", str(project_copy), "--script", "res://__verifier__/runner.gd"]
+    script_command = [str(godot), *godot_args]
+    if render_mode == "headless":
+        script_command.append("--headless")
+    script_command.extend(["--path", str(project_copy), "--script", "res://__verifier__/runner.gd"])
+    if verifier_args:
+        script_command.extend(["--", *verifier_args])
 
     import_run = _run_command(import_command)
     script_run = _run_command(script_command)
@@ -84,11 +97,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the RoboBlast grenade benchmark verifier.")
     parser.add_argument("--project", required=True, type=Path, help="Path to the candidate Godot project.")
     parser.add_argument("--godot", required=True, type=Path, help="Path to the Godot console executable.")
-    parser.add_argument("--godot-arg", action="append", default=[], help="Additional argument placed before --headless. Used by tests.")
+    parser.add_argument("--godot-arg", action="append", default=[], help="Additional argument passed to Godot before verifier mode arguments. Used by tests.")
     parser.add_argument("--verifier-root", type=Path, default=Path(__file__).resolve().parent, help="Root directory containing verifier_godot.")
     parser.add_argument("--out", required=True, type=Path, help="Path to write score JSON.")
     parser.add_argument("--pdf-report", type=Path, help="Optional path to write a detailed PDF score report.")
     parser.add_argument("--log", type=Path, help="Path to write Godot stdout/stderr log.")
+    parser.add_argument(
+        "--render-mode",
+        choices=["windowed", "headless"],
+        default="windowed",
+        help="Godot display mode for the verifier script. Full formal scoring defaults to render-capable windowed mode.",
+    )
+    parser.add_argument(
+        "--skip-screenshot-scoring",
+        action="store_true",
+        help="Run a diagnostic incomplete score without formal screenshot footprint scoring.",
+    )
     parser.add_argument("--keep-temp", action="store_true", help="Keep the temporary project copy for inspection.")
     return parser
 
@@ -97,16 +121,17 @@ def infrastructure_failure(message: str, out_path: Path, log_path: Path) -> int:
     failure = {
         "score": 0,
         "max_score": 100,
-        "logic_score": 0,
-        "logic_max_score": 100,
         "passed": False,
         "suspect": False,
         "suspect_reasons": [],
+        "formal_score_complete": False,
+        "diagnostic_only": False,
+        "omitted_formal_components": [],
         "godot_version": "",
         "score_sections": [
             {
-                "name": "logic",
-                "label": "Logic Score",
+                "name": "formal",
+                "label": "Formal Score",
                 "score": 0,
                 "max": 100,
                 "categories": ["grader_infrastructure"],
@@ -130,8 +155,6 @@ def render_optional_pdf_report(result: dict, pdf_report: Path | None, source_jso
 
 def print_score_summary(result: dict) -> None:
     print(f"Score: {result.get('score', 0)}/{result.get('max_score', 100)}")
-    if "logic_score" in result and "logic_max_score" in result:
-        print(f"Logic score: {result.get('logic_score', 0)}/{result.get('logic_max_score', 0)}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -141,13 +164,21 @@ def main(argv: list[str] | None = None) -> int:
     temp_project = temp_root / "candidate"
 
     try:
+        if args.render_mode == "headless" and not args.skip_screenshot_scoring:
+            raise RuntimeError("Headless render mode requires --skip-screenshot-scoring because formal screenshot scoring needs a render-capable display.")
         copy_candidate_project(args.project, temp_project)
         inject_verifier(args.verifier_root.resolve(), temp_project)
-        completed = run_godot(args.godot, args.godot_arg, temp_project, log_path)
+        verifier_args = ["--skip-screenshot-scoring"] if args.skip_screenshot_scoring else []
+        completed = run_godot(args.godot, args.godot_arg, temp_project, log_path, args.render_mode, verifier_args)
         result = read_result(temp_project)
         result.setdefault("artifacts", {})
         result["artifacts"]["log"] = str(log_path)
         write_result(result, args.out)
+        if result.get("verifier_infrastructure_failure"):
+            breakdown = result.get("breakdown", [])
+            message = breakdown[0].get("notes", "unknown") if breakdown else "unknown"
+            print(f"Verifier infrastructure failure: {message}", file=sys.stderr)
+            return 2
         try:
             render_optional_pdf_report(result, args.pdf_report, args.out)
         except Exception as exc:

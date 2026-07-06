@@ -6,6 +6,7 @@ const ArenaBuilder = preload("res://__verifier__/arena_builder.gd")
 const InputDriver = preload("res://__verifier__/input_driver.gd")
 const SceneProbe = preload("res://__verifier__/scene_probe.gd")
 const MouseSafety = preload("res://__verifier__/mouse_safety.gd")
+const ScreenshotVisualProbe = preload("res://__verifier__/screenshot_visual_probe.gd")
 
 const FALLBACK_THROW_DISTANCE := 8.0
 const TARGET_FIELD_RADIUS := 30.0
@@ -33,6 +34,17 @@ const PROJECTILE_VISUAL_MAX_EXTENT := 2.0
 const EXPLOSION_VFX_MIN_EXTENT := 0.5
 const EXPLOSION_VFX_MAX_EXTENT := 8.0
 const VISUAL_PRESENTATION_HEADINGS := [0.0, 0.45]
+const DEBUG_FOOTPRINT_MAX_SCORE := 3
+const MAIN_FOOTPRINT_MAX_SCORE := 2
+const PROJECTILE_FOOTPRINT_MAX_SCORE := 5
+const EXPLOSION_FOOTPRINT_MAX_SCORE := 5
+const PROJECTILE_FOOTPRINT_PARTIAL_AREA := 64
+const PROJECTILE_FOOTPRINT_FULL_AREA := 96
+const PROJECTILE_FOOTPRINT_OVERSIZE_AREA := 1800
+const EXPLOSION_FOOTPRINT_PARTIAL_DELTA := 0.010
+const EXPLOSION_FOOTPRINT_FULL_DELTA := 0.025
+const EXPLOSION_FOOTPRINT_OVERSIZE_DELTA := 0.55
+const FOOTPRINT_OVERSIZE_PERSISTENCE_FRAMES := 2
 
 var board
 var input
@@ -40,6 +52,8 @@ var arena: Node3D
 var player: Node3D
 var weapon_ui: Node
 var mouse_safety: Node
+var skip_screenshot_scoring := false
+var verifier_infrastructure_failure := ""
 
 
 func _init() -> void:
@@ -50,6 +64,7 @@ func _run() -> void:
 	seed(12345)
 	board = ScoreBoard.new()
 	input = InputDriver.new(self)
+	skip_screenshot_scoring = _skip_screenshot_scoring_requested()
 	_install_mouse_safety()
 	print("Verifier swap input route: ", input.describe_route(_weapon_switch_action()))
 	await _build_arena()
@@ -64,11 +79,48 @@ func _run() -> void:
 	await _score_explosion_gameplay()
 	await _build_arena()
 	await _score_visual_audio_polish()
+	if verifier_infrastructure_failure != "":
+		JsonWriter.write_result(_infrastructure_failure_result(verifier_infrastructure_failure))
+		quit(2)
+		return
 	await _build_arena()
 	await _score_stability_repeatability()
 	await _cleanup_before_quit()
 	JsonWriter.write_result(board.to_dictionary(Engine.get_version_info().get("string", "")))
 	quit()
+
+
+func _skip_screenshot_scoring_requested() -> bool:
+	return OS.get_cmdline_user_args().has("--skip-screenshot-scoring")
+
+
+func _infrastructure_failure_result(message: String) -> Dictionary:
+	return {
+		"score": 0,
+		"max_score": 100,
+		"passed": false,
+		"suspect": false,
+		"suspect_reasons": [],
+		"formal_score_complete": false,
+		"diagnostic_only": false,
+		"omitted_formal_components": [],
+		"godot_version": Engine.get_version_info().get("string", ""),
+		"score_sections": [
+			{
+				"name": "formal",
+				"label": "Formal Score",
+				"score": 0,
+				"max": 100,
+				"categories": ["grader_infrastructure"],
+			},
+		],
+		"breakdown": [{"name": "grader_infrastructure", "score": 0, "max": 100, "notes": message}],
+		"artifacts": {
+			"log": "",
+			"screenshots": [],
+		},
+		"verifier_infrastructure_failure": true,
+	}
 
 
 func _cleanup_before_quit() -> void:
@@ -310,8 +362,8 @@ func _projectile_direction_after_attack(before_attack: Dictionary) -> Vector2:
 
 func _score_trajectory_preview() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 22, "missed", "No player available.")]
-		board.add("trajectory_preview", 0, 22, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 17, "missed", "No player available.")]
+		board.add("trajectory_preview", 0, 17, _detail_notes(details), details)
 		return
 	var details: Array[Dictionary] = []
 	var before_visible := SceneProbe.visible_3d_node_ids(arena)
@@ -321,17 +373,17 @@ func _score_trajectory_preview() -> void:
 	var visible_aid := aiming_aid_nodes.size() > 0
 	details.append(_score_detail(
 		"Visible grenade aiming aid",
-		4,
+		3,
 		visible_aid,
 		"visible grenade aiming aid appears in grenade mode",
 		"no visible grenade trajectory, landing marker, or equivalent aiming aid detected"
 	))
 	if not visible_aid:
-		details.append(_detail("Communicates arcing throw", 0, 4, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		details.append(_detail("Updates with aim/camera direction", 0, 6, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Communicates arcing throw", 0, 3, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Updates with aim/camera direction", 0, 4, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Preview matches projectile direction", 0, 5, "missed", "trajectory details gated because no visible aiming aid was observed"))
 		details.append(_detail("Visibility lifecycle/cooldown behavior", 0, 2, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		board.add("trajectory_preview", _detail_score(details), 22, _detail_notes(details), details)
+		board.add("trajectory_preview", _detail_score(details), 17, _detail_notes(details), details)
 		return
 
 	var first_transforms: Array[Transform3D] = []
@@ -341,7 +393,7 @@ func _score_trajectory_preview() -> void:
 	var communicates_arc := SceneProbe.visible_nodes_suggest_arc_or_landing(aiming_aid_nodes, player.global_position)
 	details.append(_score_detail(
 		"Communicates arcing throw",
-		4,
+		3,
 		communicates_arc,
 		"aiming aid communicates an arcing throw or landing area",
 		"aiming aid does not clearly communicate an arcing grenade throw"
@@ -355,7 +407,7 @@ func _score_trajectory_preview() -> void:
 	var updates_with_aim := moved_feedback or changed_direction
 	details.append(_score_detail(
 		"Updates with aim/camera direction",
-		6,
+		4,
 		updates_with_aim,
 		"aiming aid updates after aim or camera direction changes",
 		"aiming aid did not update after aim or camera direction changed"
@@ -365,13 +417,13 @@ func _score_trajectory_preview() -> void:
 	var projectile_direction := await _projectile_direction_after_attack(before_attack)
 	var consistency := updates_with_aim and SceneProbe.directions_match(second_direction, projectile_direction, TRAJECTORY_DIRECTION_MIN_DOT)
 	if consistency:
-		details.append(_detail("Preview matches projectile direction", 6, 6, "earned", "aiming aid direction matches the thrown grenade direction"))
+		details.append(_detail("Preview matches projectile direction", 5, 5, "earned", "aiming aid direction matches the thrown grenade direction"))
 	elif not updates_with_aim:
-		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "consistency not credited because aiming aid did not update"))
+		details.append(_detail("Preview matches projectile direction", 0, 5, "missed", "consistency not credited because aiming aid did not update"))
 	elif projectile_direction.is_zero_approx():
-		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "consistency not credited because no measurable grenade projectile direction was observed"))
+		details.append(_detail("Preview matches projectile direction", 0, 5, "missed", "consistency not credited because no measurable grenade projectile direction was observed"))
 	else:
-		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "aiming aid direction did not match the thrown grenade direction"))
+		details.append(_detail("Preview matches projectile direction", 0, 5, "missed", "aiming aid direction did not match the thrown grenade direction"))
 
 	await input.wait_physics_frames(12)
 	var visible_during_cooldown := _count_visible_nodes(aiming_aid_nodes) > 0
@@ -386,7 +438,7 @@ func _score_trajectory_preview() -> void:
 		"aiming aid remains available in grenade mode and hides after leaving grenade mode",
 		"aiming aid did not show the expected grenade-mode lifecycle"
 	))
-	board.add("trajectory_preview", _detail_score(details), 22, _detail_notes(details), details)
+	board.add("trajectory_preview", _detail_score(details), 17, _detail_notes(details), details)
 
 
 func _score_projectile_physics() -> void:
@@ -920,6 +972,149 @@ func _score_status(score: int, max_score: int) -> String:
 	return "partial"
 
 
+func _scale_score_to_max(score: int, original_max: int, new_max: int) -> int:
+	if original_max <= 0:
+		return 0
+	return clampi(int(round(float(score * new_max) / float(original_max))), 0, new_max)
+
+
+func _run_formal_render_probe() -> Dictionary:
+	if skip_screenshot_scoring:
+		board.mark_diagnostic_incomplete([
+			"visual_audio_polish.rendered_projectile_footprint",
+			"visual_audio_polish.rendered_explosion_footprint",
+		])
+		return {
+			"skipped": true,
+			"reason": "formal screenshot scoring skipped for diagnostic run",
+		}
+	if arena != null and is_instance_valid(arena):
+		_stop_audio_players_under(arena)
+		arena.queue_free()
+		arena = null
+		player = null
+		weapon_ui = null
+		await process_frame
+	root.size = Vector2i(1280, 720)
+	var probe := ScreenshotVisualProbe.new(self, input)
+	return {
+		"debug_arena": await probe.run_debug_arena(),
+		"main_scene": await probe.run_main_scene(),
+	}
+
+
+func _render_probe_infrastructure_failure(render_results: Dictionary) -> String:
+	if bool(render_results.get("skipped", false)):
+		return ""
+	var debug_result: Dictionary = render_results.get("debug_arena", {})
+	if debug_result.is_empty():
+		return "formal debug-arena screenshot result was not produced"
+	if not bool(debug_result.get("ok", false)):
+		return "formal debug-arena screenshot probe failed: %s" % String(debug_result.get("reason", "unknown"))
+	for mode_name in ["debug_arena", "main_scene"]:
+		var mode_result: Dictionary = render_results.get(mode_name, {})
+		var capture_failure := _capture_infrastructure_failure_reason(mode_result)
+		if capture_failure != "":
+			return "%s screenshot capture failed: %s" % [String(mode_name), capture_failure]
+	return ""
+
+
+func _capture_infrastructure_failure_reason(mode_result: Dictionary) -> String:
+	for capture in mode_result.get("captures", []):
+		var signature: Dictionary = capture.get("signature", {})
+		if signature.has("available") and not bool(signature.get("available", false)):
+			return String(signature.get("reason", "viewport signature unavailable"))
+		var saved: Dictionary = capture.get("saved", {})
+		if saved.has("available") and not bool(saved.get("available", false)):
+			return String(saved.get("reason", "viewport screenshot unavailable"))
+		var projectile_visual: Dictionary = capture.get("projectile_visual", {})
+		if projectile_visual.has("available") and not bool(projectile_visual.get("available", false)):
+			var reason := String(projectile_visual.get("reason", "projectile visual unavailable"))
+			if reason.find("camera unavailable") < 0:
+				return reason
+	return ""
+
+
+func _score_rendered_projectile_footprint(render_results: Dictionary) -> int:
+	if bool(render_results.get("skipped", false)):
+		return 0
+	return (
+		_mode_projectile_footprint_score(render_results.get("debug_arena", {}), DEBUG_FOOTPRINT_MAX_SCORE)
+		+ _mode_projectile_footprint_score(render_results.get("main_scene", {}), MAIN_FOOTPRINT_MAX_SCORE)
+	)
+
+
+func _score_rendered_explosion_footprint(render_results: Dictionary) -> int:
+	if bool(render_results.get("skipped", false)):
+		return 0
+	return (
+		_mode_explosion_footprint_score(render_results.get("debug_arena", {}), DEBUG_FOOTPRINT_MAX_SCORE)
+		+ _mode_explosion_footprint_score(render_results.get("main_scene", {}), MAIN_FOOTPRINT_MAX_SCORE)
+	)
+
+
+func _mode_projectile_footprint_score(mode_result: Dictionary, max_score: int) -> int:
+	if not bool(mode_result.get("ok", false)):
+		return 0
+	var footprint: Dictionary = mode_result.get("projectile_footprint", {})
+	var max_area := int(footprint.get("max_area_px", 0))
+	var visible_count := int(footprint.get("visible_frame_count", 0))
+	if visible_count <= 0:
+		return 0
+	if _oversize_persists_across_captures(mode_result.get("captures", []), "projectile"):
+		return maxi(1, max_score - 2)
+	if max_area >= PROJECTILE_FOOTPRINT_FULL_AREA:
+		return max_score
+	return maxi(1, max_score - 1) if max_area >= PROJECTILE_FOOTPRINT_PARTIAL_AREA else 1
+
+
+func _mode_explosion_footprint_score(mode_result: Dictionary, max_score: int) -> int:
+	if not bool(mode_result.get("ok", false)):
+		return 0
+	var max_delta := 0.0
+	var explosion_frame_count := 0
+	for capture in mode_result.get("captures", []):
+		if bool(capture.get("explosion_observed", false)):
+			explosion_frame_count += 1
+			max_delta = maxf(max_delta, float(capture.get("delta_from_baseline", 0.0)))
+	if explosion_frame_count <= 0:
+		return 0
+	if _oversize_persists_across_captures(mode_result.get("captures", []), "explosion"):
+		return maxi(1, max_score - 2)
+	if max_delta >= EXPLOSION_FOOTPRINT_FULL_DELTA:
+		return max_score
+	return maxi(1, max_score - 1) if max_delta >= EXPLOSION_FOOTPRINT_PARTIAL_DELTA else 1
+
+
+func _oversize_persists_across_captures(captures: Array, footprint_kind: String) -> bool:
+	var oversized_count := 0
+	for capture in captures:
+		if footprint_kind == "projectile":
+			var visual: Dictionary = capture.get("projectile_visual", {})
+			if int(visual.get("area_px", 0)) >= PROJECTILE_FOOTPRINT_OVERSIZE_AREA:
+				oversized_count += 1
+		elif footprint_kind == "explosion" and bool(capture.get("explosion_observed", false)):
+			if float(capture.get("delta_from_baseline", 0.0)) >= EXPLOSION_FOOTPRINT_OVERSIZE_DELTA:
+				oversized_count += 1
+	return oversized_count >= FOOTPRINT_OVERSIZE_PERSISTENCE_FRAMES
+
+
+func _render_footprint_notes(render_results: Dictionary, label: String, score: int, max_score: int) -> String:
+	if bool(render_results.get("skipped", false)):
+		return "%s omitted because --skip-screenshot-scoring requested a diagnostic incomplete run" % label
+	var debug_result: Dictionary = render_results.get("debug_arena", {})
+	var main_result: Dictionary = render_results.get("main_scene", {})
+	return "%s scored %d/%d from debug_arena=%d/%d and main_scene=%d/%d" % [
+		label,
+		score,
+		max_score,
+		_mode_projectile_footprint_score(debug_result, DEBUG_FOOTPRINT_MAX_SCORE) if label == "projectile" else _mode_explosion_footprint_score(debug_result, DEBUG_FOOTPRINT_MAX_SCORE),
+		DEBUG_FOOTPRINT_MAX_SCORE,
+		_mode_projectile_footprint_score(main_result, MAIN_FOOTPRINT_MAX_SCORE) if label == "projectile" else _mode_explosion_footprint_score(main_result, MAIN_FOOTPRINT_MAX_SCORE),
+		MAIN_FOOTPRINT_MAX_SCORE,
+	]
+
+
 func _run_visual_presentation_trial(heading_y: float) -> Dictionary:
 	await _build_arena()
 	if player == null:
@@ -977,9 +1172,16 @@ func _run_visual_presentation_trial(heading_y: float) -> Dictionary:
 
 func _score_visual_audio_polish() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 15, "missed", "No player available.")]
-		board.add("visual_audio_polish", 0, 15, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 20, "missed", "No player available.")]
+		board.add("visual_audio_polish", 0, 20, _detail_notes(details), details)
 		return
+	var render_results := await _run_formal_render_probe()
+	var render_failure := _render_probe_infrastructure_failure(render_results)
+	if render_failure != "":
+		verifier_infrastructure_failure = render_failure
+		return
+	var projectile_footprint_score := _score_rendered_projectile_footprint(render_results)
+	var explosion_footprint_score := _score_rendered_explosion_footprint(render_results)
 	var trial_results: Array[Dictionary] = []
 	for heading_y in VISUAL_PRESENTATION_HEADINGS:
 		trial_results.append(await _run_visual_presentation_trial(float(heading_y)))
@@ -987,46 +1189,43 @@ func _score_visual_audio_polish() -> void:
 	var best_projectile_notes := ""
 	var best_vfx_score := 0
 	var best_vfx_notes := ""
-	var timing_count := 0
 	var audio_count := 0
 	var cleanup_count := 0
 	var strong_consistency_count := 0
 	var present_consistency_count := 0
 	for result in trial_results:
-		var projectile_score := int(result.get("projectile_quality", 0))
+		var projectile_score := _scale_score_to_max(int(result.get("projectile_quality", 0)), 4, 3)
 		if projectile_score > best_projectile_score:
 			best_projectile_score = projectile_score
 			best_projectile_notes = String(result.get("projectile_notes", ""))
-		var vfx_score := int(result.get("vfx_quality", 0))
+		var vfx_score := _scale_score_to_max(int(result.get("vfx_quality", 0)), 4, 3)
 		if vfx_score > best_vfx_score:
 			best_vfx_score = vfx_score
 			best_vfx_notes = String(result.get("vfx_notes", ""))
-		if bool(result.get("visual_timing_location", false)):
-			timing_count += 1
 		if bool(result.get("saw_audio", false)):
 			audio_count += 1
 		if bool(result.get("cleanup", false)):
 			cleanup_count += 1
-		if projectile_score >= 3 and vfx_score >= 3:
+		if projectile_score >= 2 and vfx_score >= 2:
 			strong_consistency_count += 1
 		if projectile_score > 0 and vfx_score > 0:
 			present_consistency_count += 1
-	var timing_score := _scaled_average_score(timing_count, trial_results.size(), 1, 2)
 	var audio_score := _scaled_average_score(audio_count, trial_results.size(), 1, 2)
 	var cleanup_score := 1 if cleanup_count > 0 else 0
 	var consistency_score := 0
 	if strong_consistency_count == trial_results.size():
-		consistency_score = 2
+		consistency_score = 1
 	elif present_consistency_count == trial_results.size():
 		consistency_score = 1
 	var details: Array[Dictionary] = []
-	details.append(_detail("Thrown grenade model asset quality", best_projectile_score, 4, _score_status(best_projectile_score, 4), best_projectile_notes))
-	details.append(_detail("Explosion VFX asset quality", best_vfx_score, 4, _score_status(best_vfx_score, 4), best_vfx_notes))
-	details.append(_detail("Detonation visual timing/location", timing_score, 2, _score_status(timing_score, 2), "detonation visual appeared in %d/%d presentation trials" % [timing_count, trial_results.size()]))
+	details.append(_detail("Rendered projectile footprint", projectile_footprint_score, 5, _score_status(projectile_footprint_score, 5), _render_footprint_notes(render_results, "projectile", projectile_footprint_score, PROJECTILE_FOOTPRINT_MAX_SCORE)))
+	details.append(_detail("Rendered explosion footprint", explosion_footprint_score, 5, _score_status(explosion_footprint_score, 5), _render_footprint_notes(render_results, "explosion", explosion_footprint_score, EXPLOSION_FOOTPRINT_MAX_SCORE)))
+	details.append(_detail("Thrown grenade model asset quality", best_projectile_score, 3, _score_status(best_projectile_score, 3), best_projectile_notes))
+	details.append(_detail("Explosion VFX asset quality", best_vfx_score, 3, _score_status(best_vfx_score, 3), best_vfx_notes))
 	details.append(_detail("Detonation audio", audio_score, 2, _score_status(audio_score, 2), "detonation audio appeared with visible effects in %d/%d presentation trials" % [audio_count, trial_results.size()]))
 	details.append(_detail("Temporary visual cleanup", cleanup_score, 1, _score_status(cleanup_score, 1), "temporary visual cleanup observed in %d/%d presentation trials" % [cleanup_count, trial_results.size()]))
-	details.append(_detail("Presentation consistency across trials", consistency_score, 2, _score_status(consistency_score, 2), "projectile and explosion presentation consistency across %d trials" % trial_results.size()))
-	board.add("visual_audio_polish", _detail_score(details), 15, _detail_notes(details), details)
+	details.append(_detail("Runtime presentation consistency", consistency_score, 1, _score_status(consistency_score, 1), "projectile and explosion asset quality stayed present across %d trials" % trial_results.size()))
+	board.add("visual_audio_polish", _detail_score(details), 20, _detail_notes(details), details)
 
 
 func _score_main_scene_integration() -> Array[Dictionary]:

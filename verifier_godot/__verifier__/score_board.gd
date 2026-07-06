@@ -2,15 +2,17 @@ extends RefCounted
 
 const PASS_THRESHOLD := 85
 const CATEGORY_PASS_FLOORS := {
-	"trajectory_preview": 11,
+	"trajectory_preview": 9,
 	"projectile_physics": 8,
 	"explosion_gameplay": 10,
-	"visual_audio_polish": 5,
 	"stability_repeatability": 5,
 }
 
 var _items: Array[Dictionary] = []
 var _suspect_reasons: Array[String] = []
+var _formal_score_complete := true
+var _diagnostic_only := false
+var _omitted_formal_components: Array[String] = []
 
 
 func add(name: String, score: int, max_score: int, notes: String, details: Array[Dictionary] = []) -> void:
@@ -29,6 +31,15 @@ func add(name: String, score: int, max_score: int, notes: String, details: Array
 func flag_suspect(reason: String) -> void:
 	if not _suspect_reasons.has(reason):
 		_suspect_reasons.append(reason)
+
+
+func mark_diagnostic_incomplete(omitted_components: Array) -> void:
+	_formal_score_complete = false
+	_diagnostic_only = true
+	for component in omitted_components:
+		var component_name := String(component)
+		if not _omitted_formal_components.has(component_name):
+			_omitted_formal_components.append(component_name)
 
 
 func total_score() -> int:
@@ -57,7 +68,7 @@ func score_sections() -> Array[Dictionary]:
 	for item in _items:
 		category_names.append(String(item["name"]))
 	return [
-		_score_section("logic", "Logic Score", category_names),
+		_score_section("formal", "Formal Score", category_names),
 	]
 
 
@@ -97,13 +108,14 @@ func to_dictionary(godot_version: String) -> Dictionary:
 	return {
 		"score": score_total,
 		"max_score": max_total,
-		"logic_score": score_total,
-		"logic_max_score": max_total,
-		"passed": score_total >= PASS_THRESHOLD and floor_failures.is_empty(),
+		"passed": score_total >= PASS_THRESHOLD and floor_failures.is_empty() and _formal_score_complete,
 		"pass_threshold": PASS_THRESHOLD,
 		"category_floor_failures": floor_failures,
 		"suspect": not _suspect_reasons.is_empty(),
 		"suspect_reasons": _suspect_reasons,
+		"formal_score_complete": _formal_score_complete,
+		"diagnostic_only": _diagnostic_only,
+		"omitted_formal_components": _omitted_formal_components,
 		"godot_version": godot_version,
 		"score_sections": sections,
 		"breakdown": _items,

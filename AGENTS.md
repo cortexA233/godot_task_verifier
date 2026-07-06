@@ -6,8 +6,9 @@ This repository is the private external verifier for the RoboBlast grenade
 weapon benchmark. It implements the verifier side of the assignment described
 in `game_take_home.html`: grade candidate Godot projects behaviorally, out of
 100, by copying a candidate project to a temporary directory, injecting
-`verifier_godot/__verifier__`, running Godot headlessly, and writing structured
-score artifacts.
+`verifier_godot/__verifier__`, running Godot unattended, and writing structured
+score artifacts. Complete formal scoring requires render-capable screenshot
+capture; headless runs are diagnostic only when screenshot scoring is skipped.
 
 The verifier is part of the evaluation infrastructure, not part of the ablated
 task handed to rollout agents. Keep it private from candidate workspaces and do
@@ -50,7 +51,7 @@ solution hints into the ablated game repository.
 - In reports, any formal 100/100 rollout contradicted by screenshot evidence,
   suspect flags, or manual review must be labeled as an anomalous failure case
   and grouped with failure analysis, not presented as a success.
-- Maintain deterministic headless execution. Control timing, scene setup,
+- Maintain deterministic unattended execution. Control timing, scene setup,
   target placement, input events, random seeds, viewport assumptions, and
   artifact paths where relevant.
 - Pin verifier runs, calibration, and assignment evidence to Godot 4.6 unless a
@@ -83,8 +84,8 @@ writeup, and temporary Chinese previews:
   `<candidate-project>`, `<godot-4.6-console-executable>`, and
   `<agent-runs-root>`.
 - Keep exactly one consolidated score table. `Calibration And Scores` is the
-  only place that should tabulate formal logic score, pass/fail,
-  screenshot auxiliary score, captured PNG count, and score/PDF evidence.
+  only place that should tabulate formal score, pass/fail, captured PNG count,
+  and score/PDF evidence.
   `Screenshot Evidence` must not add another score table; keep that section to
   narrative visual-review notes and embedded example frames.
 - Every screenshot-probe rerun or screenshot-analysis result must be reflected
@@ -101,16 +102,15 @@ writeup, and temporary Chinese previews:
   absence of grenade evidence, and at least one failure/anomaly case.
 - Any formal 100/100 rollout contradicted by screenshot evidence, suspect flags,
   or manual review must be labeled as an anomalous failure case and grouped with
-  failure analysis, not presented as a success. For this submission, the Codex
-  full-score record should explicitly be called out as the anomaly that
-  motivated the screenshot-analysis iteration.
+  failure analysis, not presented as a success. If a contradicted full-score
+  rollout is retained, call it out as the anomaly that motivated the
+  screenshot-analysis iteration.
 - The `Rollout Runs` table must include every retained agent-run branch as a
-  separate row. For this submission, that means all nine runs: three Claude Code
-  Sonnet 5 medium, three Claude Code Opus 4.8 max, and three Codex GPT-5 xhigh
-  runs. Do not collapse Opus, Sonnet, or Codex into only a family summary.
+  separate row. Do not rerun deleted Codex rows unless those workspaces are
+  deliberately restored for a new calibration pass.
 - The `Rollout Runs` table must not duplicate the consolidated score table.
-  Do not include formal score, pass/fail, screenshot auxiliary score, captured
-  PNG count, or score/PDF evidence columns there. Those facts belong only in
+  Do not include formal score, pass/fail, captured PNG count, or score/PDF
+  evidence columns there. Those facts belong only in
   `Calibration And Scores`; `Rollout Runs` may reference score facts only as
   narrative deduction analysis inside `Observed result`.
 - Model/tooling labels must be consistent across the report, score summary,
@@ -207,8 +207,9 @@ python "$Verifier\export_debug_arena.py" `
 
 Before claiming a verifier change is complete, run the narrowest relevant test
 command and record the result. For scoring or Godot-runner changes, prefer a
-real headless verifier run or calibration pass in addition to Python unit tests
-when the required Godot executable is available.
+real render-capable formal verifier run or calibration pass in addition to
+Python unit tests when the required Godot executable and display mode are
+available. Use headless verifier runs only for diagnostic/no-screenshot checks.
 
 Record the exact Godot executable and version used for any calibration or
 assignment evidence.

@@ -27,8 +27,8 @@ def sample_result() -> dict:
         "godot_version": "4.6-stable (official)",
         "score_sections": [
             {
-                "name": "logic",
-                "label": "Logic Score",
+                "name": "formal",
+                "label": "Formal Score",
                 "score": 35,
                 "max": 100,
                 "categories": [
@@ -39,17 +39,6 @@ def sample_result() -> dict:
                     "explosion_gameplay",
                     "visual_audio_polish",
                 ],
-            },
-        ],
-        "auxiliary_score_sections": [
-            {
-                "name": "screenshot_visual",
-                "label": "Screenshot Visual Analysis",
-                "score": 6,
-                "max": 10,
-                "used_for_score": False,
-                "notes": "projectile visible in rendered screenshot frames; projectile footprint too small in debug_arena",
-                "categories": ["debug_arena", "main_scene"],
             },
         ],
         "breakdown": [
@@ -68,7 +57,7 @@ def sample_result() -> dict:
             {
                 "name": "trajectory_preview",
                 "score": 6,
-                "max": 30,
+                "max": 17,
                 "notes": "visible aiming aid appeared; aim feedback did not update or match projectile direction",
             },
             {
@@ -108,9 +97,9 @@ def sample_result() -> dict:
             },
             {
                 "name": "visual_audio_polish",
-                "score": 5,
-                "max": 5,
-                "notes": "visible and audio effects appeared",
+                "score": 8,
+                "max": 20,
+                "notes": "rendered projectile footprint was small; explosion VFX was visible",
             },
         ],
         "artifacts": {"log": "score.log", "screenshots": []},
@@ -208,7 +197,25 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("Flagged for manual review", pdf_text)
             self.assertIn("global damage sweep", pdf_text)
 
-    def test_pdf_report_keeps_formal_logic_score_at_one_hundred_points(self):
+    def test_pdf_report_marks_diagnostic_incomplete_scores(self):
+        result = sample_result()
+        result["score"] = 90
+        result["passed"] = False
+        result["formal_score_complete"] = False
+        result["diagnostic_only"] = True
+        result["omitted_formal_components"] = ["visual_audio_polish.rendered_projectile_footprint"]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "report.pdf"
+
+            report_renderer.render_pdf_report(result, output, Path("score.json"))
+
+            pdf_text = extract_pdf_text(output)
+            self.assertIn("Formal score incomplete", pdf_text)
+            self.assertIn("diagnostic", pdf_text)
+            self.assertIn("visual_audio_polish.rendered_projectile_footprint", pdf_text)
+
+    def test_pdf_report_shows_formal_score_section_at_one_hundred_points(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "report.pdf"
 
@@ -216,15 +223,28 @@ class ReportRendererTests(unittest.TestCase):
 
             pdf_text = extract_pdf_text(output)
             self.assertIn("Score Sections", pdf_text)
-            self.assertIn("Logic Score", pdf_text)
+            self.assertIn("Formal Score", pdf_text)
             self.assertIn("35/100", pdf_text)
+            self.assertNotIn("Logic Score", pdf_text)
             self.assertNotIn("Visual Score\n5/5", pdf_text)
 
     def test_pdf_report_shows_auxiliary_screenshot_visual_score_separately(self):
+        result = sample_result()
+        result["auxiliary_score_sections"] = [
+            {
+                "name": "screenshot_visual",
+                "label": "Screenshot Visual Analysis",
+                "score": 6,
+                "max": 10,
+                "used_for_score": False,
+                "notes": "standalone screenshot probe evidence",
+                "categories": ["debug_arena", "main_scene"],
+            }
+        ]
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "report.pdf"
 
-            report_renderer.render_pdf_report(sample_result(), output, Path("score.json"))
+            report_renderer.render_pdf_report(result, output, Path("score.json"))
 
             pdf_text = extract_pdf_text(output)
             self.assertIn("Auxiliary Visual Scores", pdf_text)
@@ -233,16 +253,15 @@ class ReportRendererTests(unittest.TestCase):
             self.assertIn("6/10", pdf_text)
             self.assertIn("not counted in 100-point score", pdf_text)
 
-    def test_pdf_report_promotes_screenshot_visual_score_on_first_page(self):
+    def test_pdf_report_does_not_promote_auxiliary_screenshot_score_when_absent(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "report.pdf"
 
             report_renderer.render_pdf_report(sample_result(), output, Path("score.json"))
 
             first_page_text = extract_first_page_text(output)
-            self.assertIn("Screenshot visual score", first_page_text)
-            self.assertIn("6/10", first_page_text)
-            self.assertIn("Auxiliary only", first_page_text)
+            self.assertNotIn("Screenshot visual score", first_page_text)
+            self.assertNotIn("Auxiliary only", first_page_text)
 
     def test_pdf_report_embeds_representative_screenshot_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:

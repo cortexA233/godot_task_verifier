@@ -118,30 +118,34 @@ class RunGraderTests(unittest.TestCase):
         board_source = (ROOT / "verifier_godot" / "__verifier__" / "score_board.gd").read_text(encoding="utf-8")
 
         self.assertIn("PASS_THRESHOLD := 85", board_source)
-        self.assertIn('"trajectory_preview": 11', board_source)
+        self.assertIn('"trajectory_preview": 9', board_source)
         self.assertIn('"projectile_physics": 8', board_source)
         self.assertIn('"explosion_gameplay": 10', board_source)
-        self.assertIn('"visual_audio_polish": 5', board_source)
+        self.assertNotIn('"visual_audio_polish":', board_source)
         self.assertIn('"stability_repeatability": 5', board_source)
         self.assertIn("failed_category_floors", board_source)
         self.assertIn("floor_failures.is_empty()", board_source)
+        self.assertIn("and _formal_score_complete", board_source)
         self.assertIn('"category_floor_failures": floor_failures', board_source)
         self.assertIn("func flag_suspect", board_source)
         self.assertIn('"suspect": not _suspect_reasons.is_empty()', board_source)
         self.assertIn('"suspect_reasons": _suspect_reasons', board_source)
 
-    def test_score_board_keeps_visual_polish_inside_formal_logic_score(self):
+    def test_score_board_uses_formal_score_contract(self):
         board_source = (ROOT / "verifier_godot" / "__verifier__" / "score_board.gd").read_text(encoding="utf-8")
 
-        self.assertIn('"visual_audio_polish"', board_source)
         self.assertIn('"score_sections": sections', board_source)
-        self.assertIn('"logic_score": score_total', board_source)
-        self.assertIn('"logic_max_score": max_total', board_source)
-        self.assertIn('_score_section("logic", "Logic Score"', board_source)
+        self.assertNotIn('"logic_score":', board_source)
+        self.assertNotIn('"logic_max_score":', board_source)
+        self.assertIn('_score_section("formal", "Formal Score"', board_source)
+        self.assertNotIn('_score_section("logic", "Logic Score"', board_source)
         self.assertNotIn("VISUAL_SCORE_CATEGORIES", board_source)
         self.assertNotIn('_score_section("visual", "Visual Score"', board_source)
         self.assertNotIn('"visual_score":', board_source)
         self.assertIn("func score_sections() -> Array[Dictionary]", board_source)
+        self.assertIn('"formal_score_complete"', board_source)
+        self.assertIn('"diagnostic_only"', board_source)
+        self.assertIn('"omitted_formal_components"', board_source)
 
     def test_screenshot_probe_declares_auxiliary_visual_score_not_used_for_score(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd").read_text(encoding="utf-8")
@@ -221,11 +225,11 @@ class RunGraderTests(unittest.TestCase):
 
         self.assertIn('board.add("weapon_controls", _detail_score(details), 15', runner_source)
         self.assertIn('board.add("hud_feedback", _detail_score(details), 8', runner_source)
-        self.assertIn('board.add("trajectory_preview", _detail_score(details), 22', runner_source)
+        self.assertIn('board.add("trajectory_preview", _detail_score(details), 17', runner_source)
         self.assertIn('board.add("projectile_physics", _detail_score(details), 15', runner_source)
         self.assertIn('board.add("explosion_gameplay", capped_score, 20', runner_source)
         self.assertIn("_explosion_gameplay_score_cap", runner_source)
-        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 15', runner_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 20', runner_source)
         self.assertIn('board.add("stability_repeatability", _detail_score(details), 5', runner_source)
 
     def test_hud_feedback_uses_reweighted_supporting_details(self):
@@ -239,14 +243,14 @@ class RunGraderTests(unittest.TestCase):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
 
         self.assertIn('"Visible grenade aiming aid"', runner_source)
-        self.assertIn('"Visible grenade aiming aid",\n\t\t4,', runner_source)
+        self.assertIn('"Visible grenade aiming aid",\n\t\t3,', runner_source)
         self.assertIn('"Communicates arcing throw"', runner_source)
-        self.assertIn('_detail("Communicates arcing throw", 0, 4', runner_source)
-        self.assertIn('"Communicates arcing throw",\n\t\t4,', runner_source)
+        self.assertIn('_detail("Communicates arcing throw", 0, 3', runner_source)
+        self.assertIn('"Communicates arcing throw",\n\t\t3,', runner_source)
         self.assertIn('"Updates with aim/camera direction"', runner_source)
-        self.assertIn('"Updates with aim/camera direction",\n\t\t6,', runner_source)
+        self.assertIn('"Updates with aim/camera direction",\n\t\t4,', runner_source)
         self.assertIn('"Preview matches projectile direction"', runner_source)
-        self.assertIn('_detail("Preview matches projectile direction", 6, 6', runner_source)
+        self.assertIn('_detail("Preview matches projectile direction", 5, 5', runner_source)
         self.assertIn('"Visibility lifecycle/cooldown behavior"', runner_source)
         self.assertIn('_detail("Visibility lifecycle/cooldown behavior", 0, 2', runner_source)
         self.assertIn('"Visibility lifecycle/cooldown behavior",\n\t\t2,', runner_source)
@@ -281,7 +285,7 @@ class RunGraderTests(unittest.TestCase):
         self.assertIn("frame_signature_delta", probe_source)
         self.assertIn("save_viewport_screenshot", probe_source)
         self.assertIn('DisplayServer.get_name() == "headless"', probe_source)
-        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 15', runner_source)
+        self.assertIn('board.add("visual_audio_polish", _detail_score(details), 20', runner_source)
 
     def test_screenshot_probe_captures_every_ten_frames_until_explosion(self):
         probe_runner = ROOT / "verifier_godot" / "__verifier__" / "screenshot_probe_runner.gd"
@@ -378,13 +382,40 @@ class RunGraderTests(unittest.TestCase):
 
         self.assertIn('"Thrown grenade model asset quality"', runner_source)
         self.assertIn('"Explosion VFX asset quality"', runner_source)
-        self.assertIn('"Detonation visual timing/location"', runner_source)
+        self.assertIn('"Rendered projectile footprint"', runner_source)
+        self.assertIn('"Rendered explosion footprint"', runner_source)
         self.assertIn('"Detonation audio"', runner_source)
         self.assertIn('"Temporary visual cleanup"', runner_source)
-        self.assertIn('"Presentation consistency across trials"', runner_source)
+        self.assertIn('"Runtime presentation consistency"', runner_source)
         self.assertIn("projectile_asset_quality_score", probe_source)
         self.assertIn("explosion_vfx_asset_quality_score", probe_source)
         self.assertIn("_presentation_asset_quality_score", probe_source)
+
+    def test_runner_uses_render_backed_visual_polish_weights(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn("DEBUG_FOOTPRINT_MAX_SCORE := 3", runner_source)
+        self.assertIn("MAIN_FOOTPRINT_MAX_SCORE := 2", runner_source)
+        self.assertIn("PROJECTILE_FOOTPRINT_MAX_SCORE := 5", runner_source)
+        self.assertIn("EXPLOSION_FOOTPRINT_MAX_SCORE := 5", runner_source)
+        self.assertIn('"Rendered projectile footprint", projectile_footprint_score, 5', runner_source)
+        self.assertIn('"Rendered explosion footprint", explosion_footprint_score, 5', runner_source)
+        self.assertIn('"Thrown grenade model asset quality", best_projectile_score, 3', runner_source)
+        self.assertIn('"Explosion VFX asset quality", best_vfx_score, 3', runner_source)
+        self.assertIn('"Detonation audio", audio_score, 2', runner_source)
+        self.assertIn('"Temporary visual cleanup", cleanup_score, 1', runner_source)
+        self.assertIn('"Runtime presentation consistency", consistency_score, 1', runner_source)
+        self.assertIn("_score_rendered_projectile_footprint", runner_source)
+        self.assertIn("_score_rendered_explosion_footprint", runner_source)
+        self.assertIn("_oversize_persists_across_captures", runner_source)
+
+    def test_runner_declares_diagnostic_skip_for_screenshot_scoring(self):
+        runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
+
+        self.assertIn('"--skip-screenshot-scoring"', runner_source)
+        self.assertIn("board.mark_diagnostic_incomplete", runner_source)
+        self.assertIn("visual_audio_polish.rendered_projectile_footprint", runner_source)
+        self.assertIn("visual_audio_polish.rendered_explosion_footprint", runner_source)
 
     def test_runner_declares_main_scene_integration_smoke_check(self):
         runner_source = (ROOT / "verifier_godot" / "__verifier__" / "runner.gd").read_text(encoding="utf-8")
@@ -1320,6 +1351,15 @@ class RunGraderTests(unittest.TestCase):
 
             self.assertTrue((project / "__verifier__" / "runner.gd").exists())
 
+    def test_cli_declares_render_mode_and_diagnostic_screenshot_skip(self):
+        parser_source = (ROOT / "run_grader.py").read_text(encoding="utf-8")
+
+        self.assertIn('"--render-mode"', parser_source)
+        self.assertIn('choices=["windowed", "headless"]', parser_source)
+        self.assertIn('default="windowed"', parser_source)
+        self.assertIn('"--skip-screenshot-scoring"', parser_source)
+        self.assertIn('"--skip-screenshot-scoring"', parser_source)
+
     def test_cli_runs_fake_godot_and_writes_score_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -1343,15 +1383,10 @@ class RunGraderTests(unittest.TestCase):
                 result = {
                     "score": 11,
                     "max_score": 100,
-                    "logic_score": 11,
-                    "logic_max_score": 100,
                     "passed": False,
                     "godot_version": "fake-godot",
                     "score_sections": [
-                        {"name": "logic", "label": "Logic Score", "score": 11, "max": 100, "categories": ["weapon_controls", "visual_audio_polish"]}
-                    ],
-                    "auxiliary_score_sections": [
-                        {"name": "screenshot_visual", "label": "Screenshot Visual Analysis", "score": 4, "max": 10, "used_for_score": False}
+                        {"name": "formal", "label": "Formal Score", "score": 11, "max": 100, "categories": ["weapon_controls", "visual_audio_polish"]}
                     ],
                     "breakdown": [{"name": "weapon_controls", "score": 11, "max": 15, "notes": "fake"}],
                     "artifacts": {"log": "run.log", "screenshots": []}
@@ -1388,9 +1423,95 @@ class RunGraderTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             data = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(data["score"], 11)
-            self.assertIn("Logic score: 11/100", completed.stdout)
+            self.assertNotIn("Logic score:", completed.stdout)
             self.assertNotIn("Visual score:", completed.stdout)
-            self.assertIn("fake godot executed", log.read_text(encoding="utf-8"))
+            log_text = log.read_text(encoding="utf-8")
+            self.assertIn("fake godot executed", log_text)
+            script_command = log_text.split("SCRIPT COMMAND:", 1)[1].split("SCRIPT STDOUT:", 1)[0]
+            self.assertNotIn("--headless", script_command)
+
+    def test_cli_diagnostic_headless_mode_passes_skip_screenshot_argument(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            candidate = tmp_path / "candidate"
+            candidate.mkdir()
+            (candidate / "project.godot").write_text("config_version=5\n", encoding="utf-8")
+
+            verifier = tmp_path / "verifier"
+            (verifier / "verifier_godot" / "__verifier__").mkdir(parents=True)
+            (verifier / "verifier_godot" / "__verifier__" / "runner.gd").write_text("extends SceneTree\n", encoding="utf-8")
+
+            fake_godot = tmp_path / "fake_godot.py"
+            fake_godot.write_text(textwrap.dedent(
+                """
+                import json
+                import sys
+                from pathlib import Path
+
+                args = sys.argv[1:]
+                project = Path(args[args.index("--path") + 1])
+                result = {
+                    "score": 9,
+                    "max_score": 100,
+                    "passed": False,
+                    "godot_version": "fake-godot",
+                    "formal_score_complete": False,
+                    "diagnostic_only": True,
+                    "omitted_formal_components": [
+                        "visual_audio_polish.rendered_projectile_footprint",
+                        "visual_audio_polish.rendered_explosion_footprint"
+                    ],
+                    "score_sections": [
+                        {"name": "formal", "label": "Formal Score", "score": 9, "max": 100, "categories": ["weapon_controls"]}
+                    ],
+                    "breakdown": [{"name": "weapon_controls", "score": 9, "max": 15, "notes": "fake"}],
+                    "artifacts": {"log": "run.log", "screenshots": []}
+                }
+                if "--script" in args:
+                    assert "--headless" in args, args
+                    assert "--skip-screenshot-scoring" in args, args
+                    assert "--" in args, args
+                (project / "__verifier_result.json").write_text(json.dumps(result), encoding="utf-8")
+                print("fake diagnostic godot executed")
+                """
+            ), encoding="utf-8")
+
+            out = tmp_path / "diagnostic.json"
+            log = tmp_path / "run.log"
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "run_grader.py"),
+                    "--project",
+                    str(candidate),
+                    "--godot",
+                    sys.executable,
+                    "--godot-arg",
+                    str(fake_godot),
+                    "--verifier-root",
+                    str(verifier),
+                    "--out",
+                    str(out),
+                    "--log",
+                    str(log),
+                    "--render-mode",
+                    "headless",
+                    "--skip-screenshot-scoring",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertFalse(data["formal_score_complete"])
+            self.assertTrue(data["diagnostic_only"])
+            self.assertIn("visual_audio_polish.rendered_projectile_footprint", data["omitted_formal_components"])
+            log_text = log.read_text(encoding="utf-8")
+            script_command = log_text.split("SCRIPT COMMAND:", 1)[1].split("SCRIPT STDOUT:", 1)[0]
+            self.assertIn("--headless", script_command)
+            self.assertIn("--skip-screenshot-scoring", script_command)
 
     def test_cli_writes_pdf_report_when_requested(self):
         with tempfile.TemporaryDirectory() as tmp:

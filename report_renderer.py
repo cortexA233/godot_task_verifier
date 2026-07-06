@@ -77,9 +77,16 @@ def render_pdf_report(result: dict, output_path: Path, source_json_path: Path | 
     passed = bool(result.get("passed", score >= 85))
     threshold = int(result.get("pass_threshold", 85))
     floor_failures = [str(item) for item in result.get("category_floor_failures", [])]
+    formal_score_complete = bool(result.get("formal_score_complete", True))
+    diagnostic_only = bool(result.get("diagnostic_only", False))
+    omitted_components = [str(item) for item in result.get("omitted_formal_components", [])]
     suspect = bool(result.get("suspect", False))
     suspect_reasons = [str(reason) for reason in result.get("suspect_reasons", [])]
-    if passed:
+    if not formal_score_complete:
+        omitted_text = "; ".join(omitted_components) if omitted_components else "unspecified formal components"
+        diagnostic_text = " diagnostic" if diagnostic_only else ""
+        status_line = f"Formal score incomplete{diagnostic_text}: omitted {omitted_text}."
+    elif passed:
         status_line = "Passing threshold met."
     elif score >= threshold and floor_failures:
         status_line = "Score meets the threshold but category pass floors failed: " + "; ".join(floor_failures) + "."

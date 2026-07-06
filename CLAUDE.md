@@ -55,8 +55,9 @@ python -m unittest discover -s tests
 ```
 
 For scoring, runner, input, physics, visual, or anti-cheat changes, also run a
-real headless verifier command when Godot is available and record the exact
-command, executable path, and observed score.
+real render-capable formal verifier command when Godot and a display-capable
+mode are available, and record the exact command, executable path, and observed
+score. Use headless verifier commands only for diagnostic/no-screenshot checks.
 
 ## Output Discipline
 

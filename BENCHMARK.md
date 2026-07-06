@@ -1,6 +1,6 @@
 # RoboBlast Grenade Benchmark Definition
 
-Date: 2026-07-03
+Date: 2026-07-06
 
 This repository is a single-task benchmark MVP for evaluating whether coding
 agents can implement a cross-cutting gameplay feature in an existing Godot
@@ -54,9 +54,15 @@ Record the following for each rollout attempt:
 Recommended protocol for comparable runs:
 
 - Give the agent the ablated task workspace and `TASK_PROMPT.md`.
-- Prefer generating that workspace with `prepare_rollout_workspace.py` so local
-  git history, verifier files, generated artifacts, and assignment/verifier
-  instruction files are stripped before rollout.
+- Prefer preparing evaluated workspaces with the repo-local
+  `prepare-agent-run-workspace` skill before the agent starts. It creates an
+  isolated `workspace/` plus evaluator-owned `evidence/`, strips local git
+  history, verifier files, generated artifacts, and assignment/verifier
+  instruction files, then records the baseline SHA and agent-facing prompt.
+- After the agent stops, use the repo-local `collect-agent-run-evidence` skill
+  to capture the objective diff, final SHA, manifest updates, and later the
+  score JSON plus exact grader command. Use `prepare_rollout_workspace.py` only
+  for plain clean copies that do not need baseline/evidence metadata.
 - Do not expose the verifier source, score rubric internals, calibration
   artifacts, reference implementation, git history, or other task branches.
 - Allow normal local inspection and Godot execution inside the candidate
@@ -99,32 +105,37 @@ The verifier grades out of 100:
 
 - `weapon_controls`: 15
 - `hud_feedback`: 8
-- `trajectory_preview`: 22
+- `trajectory_preview`: 17
 - `projectile_physics`: 15
 - `explosion_gameplay`: 20
-- `visual_audio_polish`: 15
+- `visual_audio_polish`: 20
 - `stability_repeatability`: 5
 
 The emitted score JSON keeps the formal `score/max_score` as the 100-point
-benchmark result and also exposes that same formal score as
-`logic_score/logic_max_score`. The existing `visual_audio_polish` category
-remains part of the 100-point score and pass-floor logic. Screenshot-based
-visual analysis is auxiliary evidence with `used_for_score: false`; it is
-reported as a separate 10-point section that includes projectile visibility,
-explosion visibility, and screenshot projectile-footprint quality. It may be
-displayed separately in reports but does not change `score`, `passed`, or the
-category floors.
+benchmark result, with a `Formal Score` entry in `score_sections`. The old
+`logic_score/logic_max_score` aliases are intentionally removed because the
+formal score now includes render-backed presentation evidence. Standalone
+screenshot-probe output remains auxiliary evidence with `used_for_score: false`,
+but the formal grader folds rendered projectile and explosion footprint evidence
+into `visual_audio_polish`.
 
-`visual_audio_polish` includes runtime presentation checks for the thrown
-grenade model, explosion VFX asset quality, detonation visual timing/location,
-detonation audio, temporary visual cleanup, and presentation consistency across
-deterministic visual trials. The asset-quality details follow runtime objects
+`visual_audio_polish` includes rendered projectile footprint (5), rendered
+explosion footprint (5), thrown grenade model asset quality (3), explosion VFX
+asset quality (3), detonation audio (2), temporary visual cleanup (1), and
+runtime presentation consistency (1). Rendered footprint checks score
+screen-space readability: too-small projectiles or explosions lose credit,
+oversized projectile frames lose credit only when oversize persists across
+frames or controlled views, and oversized explosions lose credit only when they
+remain full-screen or broadly obstructive. The controlled debug arena
+contributes up to 3 points and the real main scene contributes up to 2 points
+for each rendered footprint item. Asset-quality details follow runtime objects
 and reject built-in primitive placeholders and obvious reused non-grenade
-assets, rather than checking for a fixed node path. Placeholder presentation is
-a score penalty, not an automatic pass blocker, so a candidate can still pass if
+assets without double-counting mere visibility. Placeholder presentation is a
+score penalty, not an automatic pass blocker, so a candidate can still pass if
 the core gameplay is strong enough. Trajectory preview visibility and aim
-agreement remain gameplay communication inside `trajectory_preview`; model and
-VFX asset quality live in `visual_audio_polish`.
+agreement remain gameplay communication inside `trajectory_preview`; model,
+VFX, rendered footprint, audio, cleanup, and presentation consistency live in
+`visual_audio_polish`.
 
 `stability_repeatability` includes both deterministic verifier-arena repeat use
 checks and a real `res://main.tscn` smoke check for default shooting, melee,
@@ -141,22 +152,29 @@ that hit most nearby targets and multiple safety targets are capped inside
 
 The `passed` flag currently uses `score >= 85` as a report convenience, and it
 additionally requires at least half credit in each core gameplay category:
-`trajectory_preview >= 11/22`, `projectile_physics >= 8/15`, and
-`explosion_gameplay >= 10/20`, plus a conservative visual presentation floor of
-`visual_audio_polish >= 5/15` and a repeatability/integration floor of
-`stability_repeatability >= 5/5`. The score JSON records the threshold in
+`trajectory_preview >= 9/17`, `projectile_physics >= 8/15`, and
+`explosion_gameplay >= 10/20`, plus a repeatability/integration floor of
+`stability_repeatability >= 5/5`. There is no `visual_audio_polish` pass floor;
+rendered presentation quality affects the formal score directly. The score JSON records the threshold in
 `pass_threshold` and lists any floor misses in `category_floor_failures`, so a
 candidate cannot pass by stacking supporting-category points while a core
-category, required visual presentation, or repeated-use/integration behavior
-stays badly broken. The primary benchmark signal is the 0-100 score and
-category breakdown. The 2026-07-06 active probe refresh has six probes below the
-numeric `score >= 85` line, a single-use probe at `90/100` blocked by the
-`stability_repeatability` floor, and the reference implementation passing at
-`93/100`. Any scoring or calibration change must re-run the global-sweep probe
-and any affected visual, repeatability, or damage probe before publishing
-updated evidence. A reference score below 100 should be inspected as either
-reference incompleteness or a possible verifier false negative; it is not proof
-that the verifier is perfect.
+category or repeated-use/integration behavior stays badly broken. The primary benchmark signal is the 0-100 score and
+category breakdown. The 2026-07-06 active probe refresh is previous-rubric
+evidence: it had six probes below the numeric `score >= 85` line, a single-use
+probe at `90/100` blocked by the `stability_repeatability` floor, and the
+reference implementation passing at `93/100`. Because render-backed
+presentation evidence now affects the formal score, refresh the reference,
+ablated task, seven active probes, and any retained rollout rows before
+publishing current evidence. A reference score below 100 should be inspected as
+either reference incompleteness or a possible verifier false negative; it is not
+proof that the verifier is perfect.
+
+Complete formal scoring requires render-capable screenshot capture. Headless or
+no-screenshot-analysis runs are diagnostic only and must be marked
+`formal_score_complete: false`, `diagnostic_only: true`, and list omitted
+formal screenshot components. If screenshot capture is required but unavailable,
+the run is verifier infrastructure failure rather than a candidate scoring
+penalty.
 
 The score JSON also carries a soft `suspect` flag with `suspect_reasons`.
 Global damage sweeps, damaged far/side/rear safety targets, and player
@@ -194,8 +212,10 @@ version from the logs with every published result.
 
 `probe_matrix.md` lists anti-cheat probes, expected score bands, observed
 results, and explicitly deferred overlapping rows. Every observed probe must
-stay below the `score >= 85` pass line; record each probe run in the matrix's
-Observed column and keep the score JSON as curated evidence under
+either stay below the `score >= 85` numeric pass line or, for deliberate
+high-score floor-fail cases such as single-use behavior, report
+`passed: false` through a documented category floor. Record each probe run in
+the matrix's Observed column and keep the score JSON as curated evidence under
 `evaluation/evidence/`. The current local validation set should demonstrate:
 
 - the ablated task scores low
