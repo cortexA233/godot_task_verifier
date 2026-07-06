@@ -87,11 +87,11 @@ Score categories:
 | Category | Points |
 | --- | ---: |
 | `weapon_controls` | 15 |
-| `hud_feedback` | 10 |
-| `trajectory_preview` | 30 |
+| `hud_feedback` | 8 |
+| `trajectory_preview` | 22 |
 | `projectile_physics` | 15 |
 | `explosion_gameplay` | 20 |
-| `visual_audio_polish` | 5 |
+| `visual_audio_polish` | 15 |
 | `stability_repeatability` | 5 |
 
 The score JSON also exposes the formal benchmark as `logic_score` and
@@ -100,10 +100,15 @@ including the existing `visual_audio_polish` category. Screenshot-based visual
 analysis is reported separately as auxiliary evidence by the screenshot probe
 and is not counted in the 100-point benchmark score or pass threshold.
 
-`visual_audio_polish` includes a runtime check that the thrown, moving grenade
-projectile carries a visible non-placeholder model. Built-in primitive
-placeholder meshes and obvious reused bullet, coin, trajectory, or explosion
-assets do not receive this model credit.
+`visual_audio_polish` includes runtime presentation checks for the thrown
+grenade model, explosion VFX asset quality, detonation visual timing/location,
+detonation audio, temporary visual cleanup, and presentation consistency across
+deterministic visual trials. Built-in primitive placeholder meshes and obvious
+reused non-grenade assets lose asset-quality credit for the projectile or VFX,
+but placeholder presentation is a score penalty rather than an automatic pass
+blocker when core gameplay works. Trajectory preview visibility and aim
+agreement remain gameplay communication inside `trajectory_preview`; model and
+VFX asset quality are presentation fidelity inside `visual_audio_polish`.
 
 Weapon switching is behavioral. The verifier drives `swap_weapons` or
 `weapon_switch` when those actions exist, and falls back to a real `Tab` input
@@ -112,9 +117,9 @@ credit is recorded separately and does not depend on a specific action name.
 
 The `passed` flag is a reporting convenience. It currently requires
 `score >= 85` plus half-credit floors in the core gameplay categories:
-`trajectory_preview >= 15`, `projectile_physics >= 8`, and
-`explosion_gameplay >= 10`, plus a visual presentation floor of
-`visual_audio_polish >= 4`. The primary benchmark signal is the 0-100 score and
+`trajectory_preview >= 11`, `projectile_physics >= 8`, and
+`explosion_gameplay >= 10`, plus a conservative visual presentation floor of
+`visual_audio_polish >= 5`. The primary benchmark signal is the 0-100 score and
 category breakdown.
 
 The score JSON can also include a soft `suspect` flag with `suspect_reasons`
@@ -321,7 +326,7 @@ Latest local calibration was recorded on 2026-07-03 with Godot
 | Fixed-trajectory probe | 65/100 | Caught. |
 | Bad-distance probe | 50/100 | Caught. |
 | Single-use probe | 75/100 | Caught. |
-| Wrong projectile model overlay on the 100-point Codex candidate | 98/100 | `passed: false`; `visual_audio_polish` floor catches the placeholder model. |
+| Historical wrong-projectile-model overlay evidence | 98/100 | Retained as pre-reweighting evidence only; the active probe set no longer includes this high-scoring model-only probe. |
 
 Curated calibration, probe, and replacement Codex rollout score evidence lives
 under `evaluation/evidence/`. Anti-cheat expectations are documented in

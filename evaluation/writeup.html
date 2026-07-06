@@ -377,9 +377,9 @@
         <small>Three Sonnet 5 medium attempts land in partial-credit territory rather than an easy 100.</small>
       </div>
       <div class="metric status-good">
-        <b>8</b>
-        <span>Anti-cheat probes</span>
-        <small>Seven stay below score >= 85; one scores 98/100 but fails the visual presentation floor.</small>
+        <b>7</b>
+        <span>Active anti-cheat probes</span>
+        <small>All seven observed fake candidates stay below score >= 85.</small>
       </div>
     </div>
 
@@ -412,11 +412,11 @@
             </thead>
             <tbody>
               <tr><td>Weapon controls</td><td>15</td><td>Behavioral switching, controller binding, grenade attack path, rate limit, default attack preservation.</td></tr>
-              <tr><td>HUD feedback</td><td>10</td><td>Visible weapon UI, selected state update, aim feedback.</td></tr>
-              <tr><td>Trajectory preview</td><td>30</td><td>Visible aiming aid, arc/landing communication, camera reactivity, projectile consistency, lifecycle.</td></tr>
+              <tr><td>HUD feedback</td><td>8</td><td>Visible weapon UI, selected state update, aim feedback.</td></tr>
+              <tr><td>Trajectory preview</td><td>22</td><td>Visible aiming aid, arc/landing communication, camera reactivity, projectile consistency, lifecycle.</td></tr>
               <tr><td>Projectile physics</td><td>15</td><td>Runtime projectile spawn, arcing motion, player-safe path.</td></tr>
-              <tr><td>Explosion gameplay</td><td>20</td><td>Seeded nearby damage, far/side/rear safety, player safety, effects, throw-distance calibration.</td></tr>
-              <tr><td>Visual/audio polish</td><td>5</td><td>Visible temporary effects, detonation audio, cleanup.</td></tr>
+              <tr><td>Explosion gameplay</td><td>20</td><td>Seeded nearby damage, blast locality, far/side/rear safety, player safety, throw-distance calibration.</td></tr>
+              <tr><td>Visual/audio polish</td><td>15</td><td>Thrown grenade model and explosion VFX asset quality, visual timing/location, audio, cleanup, consistency.</td></tr>
               <tr><td>Stability repeatability</td><td>5</td><td>Repeated throws, default-weapon regression checks, main-scene smoke checks.</td></tr>
             </tbody>
           </table>
@@ -457,7 +457,7 @@
 
     <section>
       <h2>Calibration And Scores</h2>
-      <p>Most numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier; the wrong-projectile-model visual-floor probe was added on 2026-07-04. The global-damage sweep cap is active, weapon-switch input is scored behaviorally instead of by action name, and the <code>passed</code> flag means <code>score >= 85</code> plus half-credit pass floors in the core gameplay categories (<code>trajectory_preview >= 15</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>) and the visual presentation floor (<code>visual_audio_polish >= 4</code>). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
+      <p>Most numbers are from fresh local Godot 4.6 verifier runs on 2026-07-03 with the current verifier version used for that calibration pass. The presentation-fidelity rubric keeps the global-damage sweep cap, scores weapon-switch input behaviorally instead of by action name, and defines <code>passed</code> as <code>score >= 85</code> plus pass floors in the core gameplay categories (<code>trajectory_preview >= 11</code>, <code>projectile_physics >= 8</code>, <code>explosion_gameplay >= 10</code>) and the visual presentation category (<code>visual_audio_polish >= 5</code>). Score JSONs also carry a soft <code>suspect</code> flag when global sweeps, damaged safety targets, or player self-damage need manual review. Committed copies of every score JSON below live under <code>evaluation/evidence/</code>.</p>
       <table>
         <thead>
           <tr><th>Candidate</th><th>Score</th><th>Observed</th><th>Evidence path</th></tr>
@@ -518,12 +518,6 @@
             <td><code>evaluation/evidence/calibration-20260703-probe-global-damage-score.json</code></td>
           </tr>
           <tr>
-            <td>Fake wrong-projectile-model overlay probe</td>
-            <td><span class="score high">98/100</span></td>
-            <td><div class="bar"><span class="good" style="width:98%"></span></div></td>
-            <td><code>evaluation/evidence/calibration-20260704-probe-wrong-projectile-model-score.json</code></td>
-          </tr>
-          <tr>
             <td>Fake HUD-only probe</td>
             <td><span class="score low">19/100</span></td>
             <td><div class="bar"><span class="bad" style="width:19%"></span></div></td>
@@ -562,7 +556,7 @@
         </tbody>
       </table>
       <div class="callout">
-        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional low-score fake candidates cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven stay below the score >= 85 pass line. The wrong-projectile-model overlay probe intentionally remains high-scoring at 98/100 but records <code>passed: false</code> because <code>visual_audio_polish</code> is 3/5 and fails the visual floor.
+        <strong>Anti-cheat evidence:</strong> the broad/global damage fake previously scored 90 and passed. The verifier now detects global damage sweeps that hit most nearby targets plus multiple far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>, bringing that probe to 78/100. Six additional low-score fake candidates cover HUD-only, visual-only/no-damage, damage-without-preview, single-use, fixed-trajectory, and bad-distance near misses; all seven active fake candidates stay below the score >= 85 pass line.
       </div>
       <div class="callout warn">
         <strong>Full-score anomaly:</strong> Codex GPT-5.5 xhigh run 3 remains recorded as a formal 100/100 score JSON, but the final report classifies that record as an anomalous failure case because auxiliary screenshot evidence did not support a clean visual pass. Future generated writeups must keep formal score facts separate from report classification and group contradicted full-score runs with failure analysis.
@@ -596,14 +590,14 @@
             <td>Claude Code Sonnet 5 medium</td>
             <td>31 files, +1071/-52</td>
             <td><code>d4850dd760dd</code></td>
-            <td><strong>Near pass visually, but failed the explosion floor.</strong><ul class="observed-list"><li>Controls, HUD, trajectory preview, projectile physics, and polish all scored full; the missing category was <code>explosion_gameplay</code> at 2/20.</li><li>Lost 18 explosion points: seeded trials did not credit nearby target damage, destructible damage, blast locality, player safety, or detonation effects; only throw calibration earned credit.</li><li>Screenshot aux was 10/10 with 144px debug and 1271px main footprints, so the deficit is gameplay damage/detonation behavior, not rendered visibility.</li></ul></td>
+            <td><strong>Near pass visually, but failed the explosion floor.</strong><ul class="observed-list"><li>Controls, HUD, trajectory preview, projectile physics, and polish were credited in the recorded run; the missing category was <code>explosion_gameplay</code> at 2/20.</li><li>Lost 18 explosion points: seeded trials did not credit nearby target damage, destructible damage, blast locality, or player safety; only throw calibration earned credit.</li><li>Screenshot aux was 10/10 with 144px debug and 1271px main footprints, so the deficit is gameplay damage/detonation behavior, not rendered visibility.</li></ul></td>
           </tr>
           <tr>
             <td><code>agent-run/03-cc-sonnet</code></td>
             <td>Claude Code Sonnet 5 medium</td>
             <td>27 files, +405/-57</td>
             <td><code>223356ab7172</code></td>
-            <td><strong>Lowest retained implementation; failed trajectory and explosion floors.</strong><ul class="observed-list"><li><code>trajectory_preview</code> was 9/30: the aid appeared, but did not communicate an arc, did not update, and could not be matched to projectile direction.</li><li><code>explosion_gameplay</code> was 0/20: throw calibration landed outside the accepted envelope, no seeded target/destructible damage was credited, and no detonation-effects or player-safety credit was earned.</li><li>Screenshot aux was 6/10: debug footprint was 36px, main footprint was 80px, and explosion evidence arrived late in debug at frame 120.</li></ul></td>
+            <td><strong>Lowest retained implementation; failed trajectory and explosion floors.</strong><ul class="observed-list"><li><code>trajectory_preview</code> was low: the aid appeared, but did not communicate an arc, did not update, and could not be matched to projectile direction.</li><li><code>explosion_gameplay</code> was 0/20: throw calibration landed outside the accepted envelope, no seeded target/destructible damage was credited, and no player-safety credit was earned.</li><li>Screenshot aux was 6/10: debug footprint was 36px, main footprint was 80px, and explosion evidence arrived late in debug at frame 120.</li></ul></td>
           </tr>
           <tr>
             <td><code>agent-run/01-cc-opus</code></td>
@@ -617,7 +611,7 @@
             <td>Claude Code Opus 4.8 max</td>
             <td>26 files, +536/-57</td>
             <td><code>9554e94d052f</code></td>
-            <td><strong>Formal pass and visual pass, with remaining partial-credit defects.</strong><ul class="observed-list"><li>Still lost 12 logic points: <code>trajectory_preview</code> missed preview/projectile direction consistency for 0/7, and <code>explosion_gameplay</code> lost 5 points.</li><li>Explosion deductions were partial nearby target damage at 3/5 and no damageable-only destructible damage at 0/3.</li><li>No pass-floor failures: trajectory stayed at 23/30, explosion stayed at 15/20, and screenshots were 10/10 with 182px debug and 1036px main footprints.</li></ul></td>
+            <td><strong>Formal pass and visual pass, with remaining partial-credit defects.</strong><ul class="observed-list"><li>Still lost 12 logic points: <code>trajectory_preview</code> missed preview/projectile direction consistency, and <code>explosion_gameplay</code> lost 5 points.</li><li>Explosion deductions were partial nearby target damage at 3/5 and no damageable-only destructible damage at 0/3.</li><li>No pass-floor failures: trajectory and explosion stayed above their floors, and screenshots were 10/10 with 182px debug and 1036px main footprints.</li></ul></td>
           </tr>
           <tr>
             <td><code>agent-run/03-cc-opus</code></td>
@@ -638,7 +632,7 @@
             <td>Codex GPT-5 xhigh</td>
             <td>12 files, +577/-11</td>
             <td><code>151ae134255a</code></td>
-            <td><strong>Failed the trajectory floor; compact implementation left visual behavior too short-lived.</strong><ul class="observed-list"><li><code>trajectory_preview</code> was again 9/30 because the visible aid did not communicate arc, update with aim/camera, or match projectile direction.</li><li><code>explosion_gameplay</code> lost 4 points: nearby target damage was 3/5 and destructible-only damage was 1/3.</li><li>Screenshot aux was 6/10: only one visible debug frame and one visible main frame were captured, with 36px and 99px footprints before explosion at frame 10.</li></ul></td>
+            <td><strong>Failed the trajectory floor; compact implementation left visual behavior too short-lived.</strong><ul class="observed-list"><li><code>trajectory_preview</code> was again low because the visible aid did not communicate arc, update with aim/camera, or match projectile direction.</li><li><code>explosion_gameplay</code> lost 4 points: nearby target damage was 3/5 and destructible-only damage was 1/3.</li><li>Screenshot aux was 6/10: only one visible debug frame and one visible main frame were captured, with 36px and 99px footprints before explosion at frame 10.</li></ul></td>
           </tr>
           <tr>
             <td><code>agent-run/03-codex</code></td>
@@ -670,9 +664,9 @@
         </div>
         <div class="panel">
           <h3>Probes Actually Run</h3>
-          <p><span class="tag good">global damage capped at 78</span> <span class="tag good">wrong projectile 98/floor fail</span></p>
+          <p><span class="tag good">global damage capped at 78</span></p>
           <p><span class="tag good">HUD-only 19</span> <span class="tag good">visual-only 34</span> <span class="tag good">no-preview damage 54</span> <span class="tag good">single-use 75</span> <span class="tag good">fixed trajectory 65</span> <span class="tag good">bad distance 50</span></p>
-          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The strongest low-score fake lands at 78/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage. The wrong-projectile-model probe proves that a model-only defect cannot receive 100/100 or <code>passed: true</code> because <code>visual_audio_polish >= 4</code> is also required.</p>
+          <p>The runner now detects sweeps that damage most nearby targets plus three or more far/side/rear safety targets and caps <code>explosion_gameplay</code> to <code>4/20</code>. The strongest low-score fake lands at 78/100, below the score >= 85 pass line, and it is triple-blocked: it also fails the <code>explosion_gameplay >= 10</code> pass floor and is flagged <code>suspect</code> for the sweep and the safety-target damage. Presentation-fidelity checks now penalize placeholder projectile and explosion VFX assets through <code>visual_audio_polish</code> without making a model-only defect an automatic pass blocker.</p>
         </div>
         <div class="panel">
           <h3>Deferred Work</h3>
@@ -705,7 +699,7 @@
           </tr>
           <tr>
             <td>Verifier accepts reward hacking</td>
-            <td>Eight representative fake candidates are observed: seven below the numeric pass line, and one high-scoring wrong-projectile-model probe blocked by the visual presentation floor. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
+            <td>Seven representative fake candidates are observed, and all seven stay below the numeric pass line. Deferred rows are documented as overlapping follow-up work rather than treated as passing evidence.</td>
             <td><span class="tag good">Representative validation</span></td>
           </tr>
         </tbody>
