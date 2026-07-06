@@ -2,10 +2,10 @@ extends RefCounted
 
 const PASS_THRESHOLD := 85
 const CATEGORY_PASS_FLOORS := {
-	"trajectory_preview": 15,
+	"trajectory_preview": 11,
 	"projectile_physics": 8,
 	"explosion_gameplay": 10,
-	"visual_audio_polish": 4,
+	"visual_audio_polish": 5,
 }
 
 var _items: Array[Dictionary] = []

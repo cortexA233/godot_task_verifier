@@ -231,8 +231,8 @@ func _score_weapon_controls() -> void:
 
 func _score_hud_feedback() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 10, "missed", "No player available.")]
-		board.add("hud_feedback", 0, 10, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 8, "missed", "No player available.")]
+		board.add("hud_feedback", 0, 8, _detail_notes(details), details)
 		return
 	await input.wait_physics_frames(8)
 	var before := SceneProbe.control_snapshot(arena)
@@ -243,7 +243,7 @@ func _score_hud_feedback() -> void:
 	var can_switch_weapons: bool = input.can_drive(_weapon_switch_action())
 	details.append(_score_detail(
 		"Visible UI controls",
-		3,
+		2,
 		before.size() >= 2,
 		"player has visible UI controls",
 		"player has little or no visible UI control tree"
@@ -259,12 +259,12 @@ func _score_hud_feedback() -> void:
 	await input.release("aim")
 	details.append(_score_detail(
 		"Aiming UI feedback",
-		3,
+		2,
 		SceneProbe.count_changed_controls(after, aiming_snapshot) > 0,
 		"aiming changes UI feedback",
 		"aiming did not change UI feedback"
 	))
-	board.add("hud_feedback", _detail_score(details), 10, _detail_notes(details), details)
+	board.add("hud_feedback", _detail_score(details), 8, _detail_notes(details), details)
 
 
 func _count_visible_nodes(nodes: Array[Node3D]) -> int:
@@ -307,8 +307,8 @@ func _projectile_direction_after_attack(before_attack: Dictionary) -> Vector2:
 
 func _score_trajectory_preview() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 30, "missed", "No player available.")]
-		board.add("trajectory_preview", 0, 30, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 22, "missed", "No player available.")]
+		board.add("trajectory_preview", 0, 22, _detail_notes(details), details)
 		return
 	var details: Array[Dictionary] = []
 	var before_visible := SceneProbe.visible_3d_node_ids(arena)
@@ -318,17 +318,17 @@ func _score_trajectory_preview() -> void:
 	var visible_aid := aiming_aid_nodes.size() > 0
 	details.append(_score_detail(
 		"Visible grenade aiming aid",
-		5,
+		4,
 		visible_aid,
 		"visible grenade aiming aid appears in grenade mode",
 		"no visible grenade trajectory, landing marker, or equivalent aiming aid detected"
 	))
 	if not visible_aid:
-		details.append(_detail("Communicates arcing throw", 0, 6, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		details.append(_detail("Updates with aim/camera direction", 0, 8, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		details.append(_detail("Visibility lifecycle/cooldown behavior", 0, 4, "missed", "trajectory details gated because no visible aiming aid was observed"))
-		board.add("trajectory_preview", _detail_score(details), 30, _detail_notes(details), details)
+		details.append(_detail("Communicates arcing throw", 0, 4, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Updates with aim/camera direction", 0, 6, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		details.append(_detail("Visibility lifecycle/cooldown behavior", 0, 2, "missed", "trajectory details gated because no visible aiming aid was observed"))
+		board.add("trajectory_preview", _detail_score(details), 22, _detail_notes(details), details)
 		return
 
 	var first_transforms: Array[Transform3D] = []
@@ -338,7 +338,7 @@ func _score_trajectory_preview() -> void:
 	var communicates_arc := SceneProbe.visible_nodes_suggest_arc_or_landing(aiming_aid_nodes, player.global_position)
 	details.append(_score_detail(
 		"Communicates arcing throw",
-		6,
+		4,
 		communicates_arc,
 		"aiming aid communicates an arcing throw or landing area",
 		"aiming aid does not clearly communicate an arcing grenade throw"
@@ -352,7 +352,7 @@ func _score_trajectory_preview() -> void:
 	var updates_with_aim := moved_feedback or changed_direction
 	details.append(_score_detail(
 		"Updates with aim/camera direction",
-		8,
+		6,
 		updates_with_aim,
 		"aiming aid updates after aim or camera direction changes",
 		"aiming aid did not update after aim or camera direction changed"
@@ -362,13 +362,13 @@ func _score_trajectory_preview() -> void:
 	var projectile_direction := await _projectile_direction_after_attack(before_attack)
 	var consistency := updates_with_aim and SceneProbe.directions_match(second_direction, projectile_direction, TRAJECTORY_DIRECTION_MIN_DOT)
 	if consistency:
-		details.append(_detail("Preview matches projectile direction", 7, 7, "earned", "aiming aid direction matches the thrown grenade direction"))
+		details.append(_detail("Preview matches projectile direction", 6, 6, "earned", "aiming aid direction matches the thrown grenade direction"))
 	elif not updates_with_aim:
-		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "consistency not credited because aiming aid did not update"))
+		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "consistency not credited because aiming aid did not update"))
 	elif projectile_direction.is_zero_approx():
-		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "consistency not credited because no measurable grenade projectile direction was observed"))
+		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "consistency not credited because no measurable grenade projectile direction was observed"))
 	else:
-		details.append(_detail("Preview matches projectile direction", 0, 7, "missed", "aiming aid direction did not match the thrown grenade direction"))
+		details.append(_detail("Preview matches projectile direction", 0, 6, "missed", "aiming aid direction did not match the thrown grenade direction"))
 
 	await input.wait_physics_frames(12)
 	var visible_during_cooldown := _count_visible_nodes(aiming_aid_nodes) > 0
@@ -378,12 +378,12 @@ func _score_trajectory_preview() -> void:
 	var lifecycle_ok := visible_during_cooldown and visible_after_switch < aiming_aid_nodes.size()
 	details.append(_score_detail(
 		"Visibility lifecycle/cooldown behavior",
-		4,
+		2,
 		lifecycle_ok,
 		"aiming aid remains available in grenade mode and hides after leaving grenade mode",
 		"aiming aid did not show the expected grenade-mode lifecycle"
 	))
-	board.add("trajectory_preview", _detail_score(details), 30, _detail_notes(details), details)
+	board.add("trajectory_preview", _detail_score(details), 22, _detail_notes(details), details)
 
 
 func _score_projectile_physics() -> void:
@@ -784,14 +784,12 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 	var destructible_hit_count := 0
 	var localized_count := 0
 	var player_safe_count := 0
-	var effects_count := 0
 	var all_trials_detonated := true
 	var safety_misses: Array[String] = []
 	var near_notes: Array[String] = []
 	var destructible_notes: Array[String] = []
 	var locality_notes: Array[String] = []
 	var player_notes: Array[String] = []
-	var effect_notes: Array[String] = []
 	for trial_result in trial_results:
 		var label := String(trial_result["label"])
 		var near_score := int(trial_result["near_score"])
@@ -825,11 +823,6 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 			player_notes.append("%s player appears affected by explosion force" % label)
 		else:
 			player_notes.append("%s player safety not credited because no detonation was observed" % label)
-		if bool(trial_result["effects_observed"]):
-			effects_count += 1
-			effect_notes.append("%s detonation produced runtime nodes or effects" % label)
-		else:
-			effect_notes.append("%s no runtime detonation effects observed" % label)
 	var nearby_score := _scaled_average_score(total_near_score, trial_results.size(), 10, 5)
 	details.append(_detail(
 		"Nearby target damage across angles",
@@ -846,7 +839,7 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 		_score_status(destructible_score, 3),
 		"nearby damageable-only destructible damage averaged across explosion trials: " + "; ".join(destructible_notes)
 	))
-	var locality_score := _scaled_average_score(localized_count, trial_results.size(), 1, 5)
+	var locality_score := _scaled_average_score(localized_count, trial_results.size(), 1, 8)
 	var locality_note := "blast locality averaged across explosion trials: " + "; ".join(locality_notes)
 	if not all_trials_detonated:
 		locality_note += "; not all explosion trials detonated"
@@ -857,8 +850,8 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 	details.append(_detail(
 		"Blast locality across angles",
 		locality_score,
-		5,
-		_score_status(locality_score, 5),
+		8,
+		_score_status(locality_score, 8),
 		locality_note
 	))
 	var player_score := _scaled_average_score(player_safe_count, trial_results.size(), 1, 2)
@@ -868,14 +861,6 @@ func _explosion_details_from_trials(trial_results: Array[Dictionary], calibratio
 		2,
 		_score_status(player_score, 2),
 		"player safety averaged across explosion trials: " + "; ".join(player_notes)
-	))
-	var effects_score := _scaled_average_score(effects_count, trial_results.size(), 1, 3)
-	details.append(_detail(
-		"Detonation effects across angles",
-		effects_score,
-		3,
-		_score_status(effects_score, 3),
-		"detonation effects averaged across explosion trials: " + "; ".join(effect_notes)
 	))
 	var calibration_quality_score := _calibration_quality_score(calibration_status)
 	var calibration_quality_status := _score_status(calibration_quality_score, 2)
@@ -934,8 +919,8 @@ func _score_status(score: int, max_score: int) -> String:
 
 func _score_visual_audio_polish() -> void:
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 5, "missed", "No player available.")]
-		board.add("visual_audio_polish", 0, 5, _detail_notes(details), details)
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 15, "missed", "No player available.")]
+		board.add("visual_audio_polish", 0, 15, _detail_notes(details), details)
 		return
 	await _tap_weapon_switch()
 	var before := SceneProbe.collect_instance_ids(arena)
@@ -981,7 +966,7 @@ func _score_visual_audio_polish() -> void:
 		details.append(_detail("Temporary node cleanup", 0, 1, "missed", "no temporary visual nodes were created"))
 	else:
 		details.append(_detail("Temporary node cleanup", 0, 1, "missed", "temporary visual nodes did not visibly clean up"))
-	board.add("visual_audio_polish", _detail_score(details), 5, _detail_notes(details), details)
+	board.add("visual_audio_polish", _detail_score(details), 15, _detail_notes(details), details)
 
 
 func _score_main_scene_integration() -> Array[Dictionary]:
