@@ -30,6 +30,9 @@ const TRAJECTORY_PROJECTILE_TRACK_FRAMES := 35
 const NEARBY_DAMAGE_TARGET_RADII := [6.0, 8.0, 10.0, 12.0]
 const PROJECTILE_VISUAL_MIN_EXTENT := 0.02
 const PROJECTILE_VISUAL_MAX_EXTENT := 2.0
+const EXPLOSION_VFX_MIN_EXTENT := 0.5
+const EXPLOSION_VFX_MAX_EXTENT := 8.0
+const VISUAL_PRESENTATION_HEADINGS := [0.0, 0.45]
 
 var board
 var input
@@ -917,16 +920,29 @@ func _score_status(score: int, max_score: int) -> String:
 	return "partial"
 
 
-func _score_visual_audio_polish() -> void:
+func _run_visual_presentation_trial(heading_y: float) -> Dictionary:
+	await _build_arena()
 	if player == null:
-		var details: Array[Dictionary] = [_detail("Player availability", 0, 15, "missed", "No player available.")]
-		board.add("visual_audio_polish", 0, 15, _detail_notes(details), details)
-		return
-	await _tap_weapon_switch()
+		return {
+			"projectile_quality": 0,
+			"projectile_notes": "no player available",
+			"vfx_quality": 0,
+			"vfx_notes": "no player available",
+			"visual_timing_location": false,
+			"saw_audio": false,
+			"cleanup": false,
+		}
+	_set_explosion_trial_heading(heading_y)
+	await input.wait_physics_frames(4)
+	await _tap_weapon_switch(3, 10)
 	var before := SceneProbe.collect_instance_ids(arena)
 	await input.tap("attack")
 	await input.wait_physics_frames(2)
 	var spawned := SceneProbe.node3d_candidates(SceneProbe.new_nodes_since(arena, before), player.global_position, CALIBRATION_SPAWN_RADIUS)
+	var ignored_visual_ids := {}
+	for candidate in spawned:
+		for node in SceneProbe.flatten(candidate):
+			ignored_visual_ids[node.get_instance_id()] = true
 	var projectile_tracks: Dictionary = await SceneProbe.track_nodes_positions(self, spawned, TRAJECTORY_PROJECTILE_TRACK_FRAMES)
 	var projectile_visual: Dictionary = SceneProbe.grenade_projectile_visual_report(
 		spawned,
@@ -935,37 +951,81 @@ func _score_visual_audio_polish() -> void:
 		PROJECTILE_VISUAL_MIN_EXTENT,
 		PROJECTILE_VISUAL_MAX_EXTENT
 	)
-	var activity: Dictionary = await SceneProbe.observe_runtime_activity(self, arena, before, player.global_position, 30.0, 220)
-	var details: Array[Dictionary] = []
-	details.append(_score_detail(
-		"Thrown grenade model",
-		2,
-		bool(projectile_visual.get("has_model_visual", false)),
-		"moving grenade projectile used a visible non-placeholder model",
-		String(projectile_visual.get("notes", "moving grenade projectile model was not validated"))
-	))
+	var activity: Dictionary = await SceneProbe.observe_runtime_activity(
+		self,
+		arena,
+		before,
+		player.global_position,
+		TARGET_FIELD_RADIUS,
+		220,
+		EXPLOSION_VFX_MIN_EXTENT,
+		EXPLOSION_VFX_MAX_EXTENT,
+		ignored_visual_ids
+	)
 	var visible_effects := int(activity.get("visible_count", 0))
-	details.append(_score_detail(
-		"Visible effect nodes",
-		1,
-		visible_effects > 0,
-		"visible grenade or explosion nodes appeared",
-		"no visible grenade or explosion nodes appeared"
-	))
-	details.append(_score_detail(
-		"Detonation audio",
-		1,
-		visible_effects > 0 and bool(activity.get("saw_audio", false)),
-		"audio player was active during detonation window",
-		"detonation audio not observed during visible detonation window"
-	))
 	var remaining_new := int(activity.get("remaining_visible_count", 0))
-	if visible_effects > 0 and remaining_new < visible_effects:
-		details.append(_detail("Temporary node cleanup", 1, 1, "earned", "some temporary nodes cleaned up"))
-	elif visible_effects == 0:
-		details.append(_detail("Temporary node cleanup", 0, 1, "missed", "no temporary visual nodes were created"))
-	else:
-		details.append(_detail("Temporary node cleanup", 0, 1, "missed", "temporary visual nodes did not visibly clean up"))
+	return {
+		"projectile_quality": int(projectile_visual.get("projectile_asset_quality_score", 0)),
+		"projectile_notes": String(projectile_visual.get("notes", "")),
+		"vfx_quality": int(activity.get("explosion_vfx_asset_quality_score", 0)),
+		"vfx_notes": String(activity.get("explosion_vfx_notes", "")),
+		"visual_timing_location": visible_effects > 0,
+		"saw_audio": visible_effects > 0 and bool(activity.get("saw_audio", false)),
+		"cleanup": visible_effects > 0 and remaining_new < visible_effects,
+	}
+
+
+func _score_visual_audio_polish() -> void:
+	if player == null:
+		var details: Array[Dictionary] = [_detail("Player availability", 0, 15, "missed", "No player available.")]
+		board.add("visual_audio_polish", 0, 15, _detail_notes(details), details)
+		return
+	var trial_results: Array[Dictionary] = []
+	for heading_y in VISUAL_PRESENTATION_HEADINGS:
+		trial_results.append(await _run_visual_presentation_trial(float(heading_y)))
+	var best_projectile_score := 0
+	var best_projectile_notes := ""
+	var best_vfx_score := 0
+	var best_vfx_notes := ""
+	var timing_count := 0
+	var audio_count := 0
+	var cleanup_count := 0
+	var strong_consistency_count := 0
+	var present_consistency_count := 0
+	for result in trial_results:
+		var projectile_score := int(result.get("projectile_quality", 0))
+		if projectile_score > best_projectile_score:
+			best_projectile_score = projectile_score
+			best_projectile_notes = String(result.get("projectile_notes", ""))
+		var vfx_score := int(result.get("vfx_quality", 0))
+		if vfx_score > best_vfx_score:
+			best_vfx_score = vfx_score
+			best_vfx_notes = String(result.get("vfx_notes", ""))
+		if bool(result.get("visual_timing_location", false)):
+			timing_count += 1
+		if bool(result.get("saw_audio", false)):
+			audio_count += 1
+		if bool(result.get("cleanup", false)):
+			cleanup_count += 1
+		if projectile_score >= 3 and vfx_score >= 3:
+			strong_consistency_count += 1
+		if projectile_score > 0 and vfx_score > 0:
+			present_consistency_count += 1
+	var timing_score := _scaled_average_score(timing_count, trial_results.size(), 1, 2)
+	var audio_score := _scaled_average_score(audio_count, trial_results.size(), 1, 2)
+	var cleanup_score := 1 if cleanup_count > 0 else 0
+	var consistency_score := 0
+	if strong_consistency_count == trial_results.size():
+		consistency_score = 2
+	elif present_consistency_count == trial_results.size():
+		consistency_score = 1
+	var details: Array[Dictionary] = []
+	details.append(_detail("Thrown grenade model asset quality", best_projectile_score, 4, _score_status(best_projectile_score, 4), best_projectile_notes))
+	details.append(_detail("Explosion VFX asset quality", best_vfx_score, 4, _score_status(best_vfx_score, 4), best_vfx_notes))
+	details.append(_detail("Detonation visual timing/location", timing_score, 2, _score_status(timing_score, 2), "detonation visual appeared in %d/%d presentation trials" % [timing_count, trial_results.size()]))
+	details.append(_detail("Detonation audio", audio_score, 2, _score_status(audio_score, 2), "detonation audio appeared with visible effects in %d/%d presentation trials" % [audio_count, trial_results.size()]))
+	details.append(_detail("Temporary visual cleanup", cleanup_score, 1, _score_status(cleanup_score, 1), "temporary visual cleanup observed in %d/%d presentation trials" % [cleanup_count, trial_results.size()]))
+	details.append(_detail("Presentation consistency across trials", consistency_score, 2, _score_status(consistency_score, 2), "projectile and explosion presentation consistency across %d trials" % trial_results.size()))
 	board.add("visual_audio_polish", _detail_score(details), 15, _detail_notes(details), details)
 
 

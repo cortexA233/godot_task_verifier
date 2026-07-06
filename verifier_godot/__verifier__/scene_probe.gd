@@ -205,7 +205,8 @@ static func observe_runtime_activity(
 	radius: float,
 	frame_count: int,
 	vfx_min_extent: float = 0.5,
-	vfx_max_extent: float = 8.0
+	vfx_max_extent: float = 8.0,
+	ignored_ids: Dictionary = {}
 ) -> Dictionary:
 	var visible_ids := {}
 	var saw_audio := false
@@ -215,6 +216,8 @@ static func observe_runtime_activity(
 		for node in new_nodes_since(root, before):
 			if node is Node3D:
 				var node_3d := node as Node3D
+				if ignored_ids.has(node_3d.get_instance_id()):
+					continue
 				if node_3d.visible and node_3d.global_position.distance_to(point) <= radius:
 					visible_ids[node_3d.get_instance_id()] = true
 					var vfx_report := explosion_vfx_asset_quality_report([node_3d], point, vfx_min_extent, vfx_max_extent)
