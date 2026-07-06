@@ -10,6 +10,37 @@ The deterministic headless verifier path that produces the official 0-100 score
 and `passed` flag for a candidate project.
 _Avoid_: official screenshot runner, visual grader
 
+**Gameplay communication**:
+A formal-grader requirement where player-facing feedback explains how the
+grenade action will behave, such as preview visibility, aim reactivity, and
+preview/projectile agreement. It remains core feature behavior even when the
+verifier observes it through visible nodes or rendered evidence.
+_Avoid_: visual polish, asset quality
+
+**Presentation fidelity**:
+A formal-grader presentation requirement that the grenade feature uses
+believable, non-placeholder visual or audio assets for player-facing grenade
+objects and effects. It excludes trajectory preview correctness and other
+functional feedback.
+_Avoid_: gameplay communication, screenshot visual score, beauty score
+
+**Explosion VFX asset quality**:
+The presentation-fidelity requirement that a detonation creates a believable
+non-placeholder visual effect near the blast, with a plausible footprint for a
+grenade-scale explosion.
+_Avoid_: blast locality, damage radius, visible node count
+
+**Placeholder visual asset**:
+A visible stand-in made from primitive geometry or an obvious reused
+non-grenade asset where the task calls for a grenade model or explosion effect.
+_Avoid_: alternate implementation, low-poly style
+
+**Blast locality**:
+The requirement that grenade explosion effects apply near the intended
+detonation area while protecting far, side, rear, and player safety cases from
+over-broad damage. It is core explosion behavior, not presentation fidelity.
+_Avoid_: explosion visual size, effect polish
+
 **Screenshot probe**:
 An auxiliary render-capable verifier run that captures viewport images and
 visual metrics as evidence. It can fail, skip, or be unavailable without changing
@@ -114,6 +145,12 @@ _Avoid_: whole-frame similarity, grenade screenshot
 Artifacts and metrics that help a human inspect a run but do not directly award
 or remove formal grader points.
 _Avoid_: hidden score, unofficial penalty
+
+**Historical probe evidence**:
+Retained score artifacts from a previous verifier calibration point that are no
+longer part of the active probe set. They explain prior decisions but do not
+define the current benchmark's required probe coverage.
+_Avoid_: active probe, hidden failure case
 
 **Shadow visual evidence**:
 Auxiliary evidence that mirrors a possible future scoring rule by producing
